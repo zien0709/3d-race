@@ -1,0 +1,500 @@
+# [3D_race (Copy)] Project Context File: .tscn
+
+## res://
+
+**main.tscn**
+```ini
+[gd_scene format=3 uid="uid://b1v0aobmc6e2a"]
+
+[ext_resource type="Script" uid="uid://dtkc4s0hbw2f2" path="res://finish.gd" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://dxo6jim53dnvd" path="res://race_manager.gd" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://cm70cfbsaam80" path="res://check_point_1.gd" id="4_1bvp3"]
+[ext_resource type="Texture2D" uid="uid://caractsrssw0x" path="res://valley_of_desolation_1k.hdr" id="7_272bh"]
+[ext_resource type="Script" uid="uid://bfbpi4d25jog8" path="res://race/rank_panel.gd" id="8_4c57u"]
+[ext_resource type="PackedScene" uid="uid://bxnmkg3045ww3" path="res://race_map.glb" id="8_map"]
+[ext_resource type="PackedScene" path="res://player.tscn" id="9_4c57u"]
+[ext_resource type="Script" uid="uid://jcp3kan67dxe" path="res://race_course_setup.gd" id="9_setup"]
+[ext_resource type="Script" uid="uid://fhnpgubqq5bv" path="res://dashboard.gd" id="10_dashboard"]
+[ext_resource type="Script" uid="uid://bulnt0tdwhscf" path="res://race/player_spawner.gd" id="10_efxa6"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_hqp12"]
+size = Vector3(100, 0.2, 100)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8s5kf"]
+size = Vector3(100, 0.2, 100)
+
+[sub_resource type="BoxMesh" id="BoxMesh_e7trw"]
+size = Vector3(20, 1, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_amemp"]
+size = Vector3(20, 1, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_1bvp3"]
+size = Vector3(40, 1, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lquwl"]
+size = Vector3(40, 1, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7mycd"]
+size = Vector3(40, 1, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_272bh"]
+size = Vector3(40, 1, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5vw27"]
+size = Vector3(40, 1, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kek77"]
+size = Vector3(40, 1, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4c57u"]
+size = Vector3(40, 1, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_efxa6"]
+size = Vector3(40, 1, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_amemp"]
+size = Vector3(6, 2, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_maauo"]
+size = Vector3(6, 2, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_maauo"]
+size = Vector3(6, 2, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_la3fi"]
+size = Vector3(6, 2, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_efxa6"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0, 0, 0.55)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_7mycd"]
+panorama = ExtResource("7_272bh")
+
+[sub_resource type="Sky" id="Sky_272bh"]
+sky_material = SubResource("PanoramaSkyMaterial_7mycd")
+
+[sub_resource type="Environment" id="Environment_7mycd"]
+background_mode = 2
+sky = SubResource("Sky_272bh")
+reflected_light_source = 2
+
+[node name="Main" type="Node3D" unique_id=1697816867]
+script = ExtResource("9_setup")
+
+[node name="RaceMap" parent="." unique_id=1291223955 instance=ExtResource("8_map")]
+
+[node name="Track" type="Node3D" parent="." unique_id=1364110620]
+visible = false
+
+[node name="Floor" type="StaticBody3D" parent="Track" unique_id=1579361880]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Floor" unique_id=1187611900]
+mesh = SubResource("BoxMesh_hqp12")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Floor" unique_id=2049311600]
+shape = SubResource("BoxShape3D_8s5kf")
+
+[node name="Walls" type="Node3D" parent="Track" unique_id=1425255683]
+
+[node name="Wall1" type="StaticBody3D" parent="Track/Walls" unique_id=455882260]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -10)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Walls/Wall1" unique_id=241669667]
+mesh = SubResource("BoxMesh_e7trw")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Walls/Wall1" unique_id=864257628]
+shape = SubResource("BoxShape3D_amemp")
+
+[node name="Wall2" type="StaticBody3D" parent="Track/Walls" unique_id=1740358273]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 10)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Walls/Wall2" unique_id=600701840]
+mesh = SubResource("BoxMesh_e7trw")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Walls/Wall2" unique_id=622144843]
+shape = SubResource("BoxShape3D_amemp")
+
+[node name="Wall3" type="StaticBody3D" parent="Track/Walls" unique_id=1290416735]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -10, 0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Walls/Wall3" unique_id=2072774705]
+mesh = SubResource("BoxMesh_e7trw")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Walls/Wall3" unique_id=2074050414]
+shape = SubResource("BoxShape3D_amemp")
+
+[node name="Wall4" type="StaticBody3D" parent="Track/Walls" unique_id=1741073821]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 10, 0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Walls/Wall4" unique_id=1845948873]
+mesh = SubResource("BoxMesh_e7trw")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Walls/Wall4" unique_id=1110155683]
+shape = SubResource("BoxShape3D_amemp")
+
+[node name="Wall5" type="StaticBody3D" parent="Track/Walls" unique_id=1108966794]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.69906616, 0.5, 20.049438)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Walls/Wall5" unique_id=636393368]
+mesh = SubResource("BoxMesh_1bvp3")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Walls/Wall5" unique_id=1128740702]
+shape = SubResource("BoxShape3D_lquwl")
+
+[node name="Wall6" type="StaticBody3D" parent="Track/Walls" unique_id=19067156]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -20.425903, 0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Walls/Wall6" unique_id=565969382]
+mesh = SubResource("BoxMesh_7mycd")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Walls/Wall6" unique_id=136324871]
+shape = SubResource("BoxShape3D_272bh")
+
+[node name="Wall7" type="StaticBody3D" parent="Track/Walls" unique_id=120746226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6425781, 0.5, -19.974976)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Walls/Wall7" unique_id=1213974814]
+mesh = SubResource("BoxMesh_5vw27")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Walls/Wall7" unique_id=333215647]
+shape = SubResource("BoxShape3D_kek77")
+
+[node name="Wall8" type="StaticBody3D" parent="Track/Walls" unique_id=522523801]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 19.060982, 0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Track/Walls/Wall8" unique_id=529467876]
+mesh = SubResource("BoxMesh_4c57u")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Track/Walls/Wall8" unique_id=1923567555]
+shape = SubResource("BoxShape3D_efxa6")
+
+[node name="Finish" type="Area3D" parent="." unique_id=884375151]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.243988, 1, -2.2565918)
+visible = false
+script = ExtResource("2_0xm2m")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Finish" unique_id=1492683921]
+mesh = SubResource("BoxMesh_amemp")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Finish" unique_id=1233567838]
+shape = SubResource("BoxShape3D_maauo")
+
+[node name="CheckPoints" type="Node3D" parent="." unique_id=143600986]
+visible = false
+
+[node name="CheckPoint1" type="Area3D" parent="CheckPoints" unique_id=2029518838]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.799347, 1, 3)
+script = ExtResource("4_1bvp3")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="CheckPoints/CheckPoint1" unique_id=1274172078]
+mesh = SubResource("BoxMesh_maauo")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CheckPoints/CheckPoint1" unique_id=547058015]
+shape = SubResource("BoxShape3D_la3fi")
+
+[node name="CheckPoint2" type="Area3D" parent="CheckPoints" unique_id=645931963]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0.7253723, 1, 14.977661)
+script = ExtResource("4_1bvp3")
+checkpoint_index = 2
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="CheckPoints/CheckPoint2" unique_id=953197097]
+mesh = SubResource("BoxMesh_maauo")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CheckPoints/CheckPoint2" unique_id=1813359546]
+shape = SubResource("BoxShape3D_la3fi")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=675326437]
+
+[node name="TimerLabel" type="Label" parent="UI" unique_id=1777818473]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 52.0
+offset_bottom = 43.0
+theme_override_font_sizes/font_size = 32
+text = "0.00"
+
+[node name="CheckpointLabel" type="Label" parent="UI" unique_id=410341910]
+offset_left = 20.0
+offset_top = 65.0
+offset_right = 117.0
+offset_bottom = 88.0
+theme_override_font_sizes/font_size = 24
+text = "檢查點：0 / 7"
+
+[node name="BestTimeLabel" type="Label" parent="UI" unique_id=155909402]
+offset_left = 20.0
+offset_top = 95.0
+offset_right = 79.0
+offset_bottom = 118.0
+theme_override_font_sizes/font_size = 24
+text = "最佳：--"
+
+[node name="Dashboard" type="Control" parent="UI" unique_id=718393653]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -210.0
+offset_right = 320.0
+offset_bottom = -20.0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("10_dashboard")
+
+[node name="StartCenter" type="CenterContainer" parent="UI" unique_id=646291941]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="MainVBox" type="VBoxContainer" parent="UI/StartCenter" unique_id=1741335364]
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="TitleLabel" type="Label" parent="UI/StartCenter/MainVBox" unique_id=427091937]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "3D 賽車計時賽"
+
+[node name="FormCenter" type="CenterContainer" parent="UI/StartCenter/MainVBox" unique_id=1511651293]
+layout_mode = 2
+
+[node name="FormVBox" type="VBoxContainer" parent="UI/StartCenter/MainVBox/FormCenter" unique_id=1827642766]
+layout_mode = 2
+
+[node name="NameInput" type="LineEdit" parent="UI/StartCenter/MainVBox/FormCenter/FormVBox" unique_id=184456547]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+placeholder_text = "請輸入姓名"
+
+[node name="StartButton" type="Button" parent="UI/StartCenter/MainVBox/FormCenter/FormVBox" unique_id=143368488]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "開始比賽"
+
+[node name="LeaderboardButton" type="Button" parent="UI/StartCenter/MainVBox/FormCenter/FormVBox" unique_id=644940145]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "查看排行榜"
+
+[node name="CountdownCenter" type="CenterContainer" parent="UI" unique_id=552683415]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CountdownLabel" type="Label" parent="UI/CountdownCenter" unique_id=1302743649]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "3"
+
+[node name="FinishCenter" type="CenterContainer" parent="UI" unique_id=124082931]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/FinishCenter" unique_id=227598343]
+layout_mode = 2
+
+[node name="FinishTitle" type="Label" parent="UI/FinishCenter/VBoxContainer" unique_id=1541094874]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+text = "完成！"
+horizontal_alignment = 1
+
+[node name="FinalTimeLabel" type="Label" parent="UI/FinishCenter/VBoxContainer" unique_id=357086412]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "成績：0.00 秒"
+horizontal_alignment = 1
+
+[node name="RestartHintLabel" type="Label" parent="UI/FinishCenter/VBoxContainer" unique_id=1679357141]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "按 R 重新挑戰"
+horizontal_alignment = 1
+
+[node name="NextPlayerButton" type="Button" parent="UI/FinishCenter/VBoxContainer" unique_id=990109882]
+unique_name_in_owner = true
+layout_mode = 2
+text = "下一位玩家"
+
+[node name="LeaderboardCenter" type="CenterContainer" parent="UI" unique_id=1734518529]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -275.0
+offset_top = -303.0
+offset_right = 275.0
+offset_bottom = 303.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="UI/LeaderboardCenter" unique_id=103423152]
+layout_mode = 2
+
+[node name="LeaderboardVBox" type="VBoxContainer" parent="UI/LeaderboardCenter/PanelContainer" unique_id=903759592]
+layout_mode = 2
+
+[node name="LeaderboardTitle" type="Label" parent="UI/LeaderboardCenter/PanelContainer/LeaderboardVBox" unique_id=1415085607]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "排行榜"
+horizontal_alignment = 1
+
+[node name="LeaderboardGrid" type="GridContainer" parent="UI/LeaderboardCenter/PanelContainer/LeaderboardVBox" unique_id=2047864695]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 3
+
+[node name="CloseLeaderboardButton" type="Button" parent="UI/LeaderboardCenter/PanelContainer/LeaderboardVBox" unique_id=219526606]
+unique_name_in_owner = true
+layout_mode = 2
+text = "返回"
+
+[node name="RankPanel" type="PanelContainer" parent="UI" unique_id=285024104]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 16.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_efxa6")
+script = ExtResource("8_4c57u")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1279504209]
+transform = Transform3D(0.8660254, 0.43301272, -0.24999999, 0, 0.49999997, 0.86602545, 0.5, -0.75, 0.43301266, 0, 0, 0)
+
+[node name="RaceManager" type="Node" parent="." unique_id=1588467986]
+script = ExtResource("3_h2yge")
+total_checkpoints = 7
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=889358878]
+environment = SubResource("Environment_7mycd")
+
+[node name="Player" parent="." unique_id=529282143 instance=ExtResource("9_4c57u")]
+
+[node name="Players" type="Node3D" parent="." unique_id=535527962]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="Players" unique_id=69904012]
+script = ExtResource("10_efxa6")
+
+```
+
+**player.tscn**
+```ini
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://b60axc1opgq85" path="res://player.gd" id="1_player"]
+[ext_resource type="PackedScene" uid="uid://csrk1f6fryg68" path="res://AE86/AE86_2.glb" id="2_model"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_player"]
+size = Vector3(1.75, 0.75, 3.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_player"]
+size = Vector3(1.75, 0.75, 3.8)
+
+[node name="Player" type="VehicleBody3D"]
+transform = Transform3D(0.4, 0, 0, 0, 0.4, 0, 0, 0, 0.4, 0, 0, 0)
+mass = 900.0
+center_of_mass_mode = 1
+center_of_mass = Vector3(0, -0.15, 0)
+can_sleep = false
+continuous_cd = true
+script = ExtResource("1_player")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0)
+visible = false
+mesh = SubResource("BoxMesh_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0)
+shape = SubResource("BoxShape3D_player")
+
+[node name="WheelFL" type="VehicleWheel3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7095, 0.5, -1.2254)
+use_as_steering = true
+wheel_roll_influence = 0.02
+wheel_radius = 0.31
+wheel_rest_length = 0.18
+wheel_friction_slip = 2.3
+suspension_travel = 0.12
+suspension_stiffness = 32.0
+suspension_max_force = 9000.0
+damping_compression = 2.0
+damping_relaxation = 2.4
+
+[node name="WheelFR" type="VehicleWheel3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7095, 0.5, -1.2254)
+use_as_steering = true
+wheel_roll_influence = 0.02
+wheel_radius = 0.31
+wheel_rest_length = 0.18
+wheel_friction_slip = 2.3
+suspension_travel = 0.12
+suspension_stiffness = 32.0
+suspension_max_force = 9000.0
+damping_compression = 2.0
+damping_relaxation = 2.4
+
+[node name="WheelRL" type="VehicleWheel3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7095, 0.5, 1.1637)
+use_as_traction = true
+wheel_roll_influence = 0.02
+wheel_radius = 0.31
+wheel_rest_length = 0.18
+wheel_friction_slip = 2.3
+suspension_travel = 0.12
+suspension_stiffness = 32.0
+suspension_max_force = 9000.0
+damping_compression = 2.0
+damping_relaxation = 2.4
+
+[node name="WheelRR" type="VehicleWheel3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7095, 0.5, 1.1637)
+use_as_traction = true
+wheel_roll_influence = 0.02
+wheel_radius = 0.31
+wheel_rest_length = 0.18
+wheel_friction_slip = 2.3
+suspension_travel = 0.12
+suspension_stiffness = 32.0
+suspension_max_force = 9000.0
+damping_compression = 2.0
+damping_relaxation = 2.4
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.90630776, 0.42261827, 0, -0.42261827, 0.90630776, 0, 4, 6)
+current = true
+
+[node name="AE86_2" parent="." instance=ExtResource("2_model")]
+transform = Transform3D(-0.01, 0, -1.5099579e-09, 0, 0.01, 0, 1.5099579e-09, 0, -0.01, 0, 0, 0)
+
+```
+
