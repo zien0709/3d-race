@@ -8,6 +8,7 @@ const SAVE_PATH: String = "user://race_scores.cfg"
 @onready var checkpoint_label: Label = $"../UI/HUD/Margin/VBox/CheckpointLabel"
 @onready var checkpoint_bar: ProgressBar = $"../UI/HUD/Margin/VBox/CheckpointBar"
 @onready var hud_panel: PanelContainer = $"../UI/HUD"
+@onready var eos_login_button: Button = $"../UI/EOSLoginButton"
 @onready var finish_center: CenterContainer = $"../UI/FinishCenter"
 @onready var final_time_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/FinalTimeLabel"
 @onready var new_record_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/NewRecordLabel"
@@ -66,6 +67,7 @@ func restart_race() -> void:
 
 func _process(delta: float) -> void:
 	hud_panel.visible = not waiting_for_player
+	eos_login_button.visible = waiting_for_player
 	if waiting_for_player:
 		return
 	
@@ -96,6 +98,7 @@ func _ready() -> void:
 	
 	countdown_label.text = ""
 	start_button.pressed.connect(start_race)
+	name_input.text_submitted.connect(_on_name_submitted)
 	name_input.call_deferred("grab_focus")
 
 	rank_panel.visible = false
@@ -109,9 +112,12 @@ func setup_ranking(
 	ranking.register_car(1, "玩家")
 	ranking.changed.connect(rank_panel.update_entries)
 
+func _on_name_submitted(_text: String) -> void:
+	start_race()
+
+
 func start_race() -> void:
 	var entered_name := name_input.text.strip_edges()
-
 	if entered_name.is_empty():
 		name_input.placeholder_text = "名字不能空白"
 		return
