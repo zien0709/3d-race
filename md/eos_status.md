@@ -32,17 +32,17 @@
 3.  切換到上方的 **Clients** (用戶端) 標籤。
 4.  在您目前使用的 Client (如 `TestP2P`) 右側，查看它所使用的 **Client Policy** 名稱。點擊 **Manage Policies** (管理策略) 或直接點擊 Policy 名稱進行編輯。
 5.  在 Policy 編輯頁面中，下拉到 **Features** (功能權限) 列表：
-    *   **Connect 服務 (至關重要)**：尋找 `Connect` 欄位並啟用它。務必勾選以下子項目：
-        *   `authenticate` (認證)
-        *   `createDeviceId` (建立裝置識別碼)
-        *   `findProductUserIdMap`
-        *   `queryProductUserIdMappings`
-    *   **Lobby 服務 (開房必備)**：尋找 `Lobby` 欄位並啟用它，務必勾選：
-        *   `createLobby` (建立大廳)
-        *   `joinLobby` (加入大廳)
-        *   `updateLobby` (更新大廳屬性/成員狀態)
-        *   `connect` (連接大廳 RTC)
-    *   **P2P 服務 (傳輸連線)**：尋找 `P2P` 欄位並啟用，勾選或直接全開。
+	*   **Connect 服務 (至關重要)**：尋找 `Connect` 欄位並啟用它。務必勾選以下子項目：
+		*   `authenticate` (認證)
+		*   `createDeviceId` (建立裝置識別碼)
+		*   `findProductUserIdMap`
+		*   `queryProductUserIdMappings`
+	*   **Lobby 服務 (開房必備)**：尋找 `Lobby` 欄位並啟用它，務必勾選：
+		*   `createLobby` (建立大廳)
+		*   `joinLobby` (加入大廳)
+		*   `updateLobby` (更新大廳屬性/成員狀態)
+		*   `connect` (連接大廳 RTC)
+	*   **P2P 服務 (傳輸連線)**：尋找 `P2P` 欄位並啟用，勾選或直接全開。
 6.  儲存 Policy 設定。
 7.  **驗證**：在 `eos_config.cfg` 中將 `method` 改為 `"anonymous"`，啟動遊戲點擊登入。此時 Device ID 匿名登入應能秒速成功！
 
@@ -53,15 +53,15 @@
 1.  在左側導覽列中，點擊 **Epic Account Services** (EAS)。
 2.  若尚未配置 Application，請點擊 **Configure** 建立一個新的測試用 Application（「品牌設定 / Brand Settings」填寫本地測試資訊即可，暫不需提交給 Epic 審查）。
 3.  進入該 Application 設定：
-    *   **Permissions (權限) 標籤**：
-        *   在權限列表中，務必勾選並啟用 **Basic Profile**、**Friends** 與 **Presence**。
-        *   *原因*：GDScript 程式端代碼中預設請求了 `BasicProfile | Presence | FriendsList` 三個 Scopes，如果 EAS portal 中沒有一致啟用，登入即會回報錯誤。
-    *   **Clients (用戶端) 標籤**：
-        *   點擊 **Associate Client** (關聯用戶端)。
-        *   選擇您的用戶端 `TestP2P`，將其綁定到此 EAS 應用程式中。**（此步驟不可遺漏，是 InvalidRequest 的主要根源）**。
+	*   **Permissions (權限) 標籤**：
+		*   在權限列表中，務必勾選並啟用 **Basic Profile**、**Friends** 與 **Presence**。
+		*   *原因*：GDScript 程式端代碼中預設請求了 `BasicProfile | Presence | FriendsList` 三個 Scopes，如果 EAS portal 中沒有一致啟用，登入即會回報錯誤。
+	*   **Clients (用戶端) 標籤**：
+		*   點擊 **Associate Client** (關聯用戶端)。
+		*   選擇您的用戶端 `TestP2P`，將其綁定到此 EAS 應用程式中。**（此步驟不可遺漏，是 InvalidRequest 的主要根源）**。
 4.  **確保測試帳號權限**：
-    *   在 EAS 審查通過前，只有您的 Epic 組織成員（Organization Members）能進行登入授權。
-    *   請確認您在 DevAuthTool 中登入的 Epic 帳號（Z 所對應的帳號），已被邀請並加入到您的 Epic 組織成員中，且接受了邀請信。
+	*   在 EAS 審查通過前，只有您的 Epic 組織成員（Organization Members）能進行登入授權。
+	*   請確認您在 DevAuthTool 中登入的 Epic 帳號（Z 所對應的帳號），已被邀請並加入到您的 Epic 組織成員中，且接受了邀請信。
 
 ---
 
@@ -73,6 +73,6 @@
 ## 多人連線測試流程（登入成功後）
 
 1.  **本機雙開測試**：
-    *   可以使用 Godot 編輯器的多人遊戲測試（Debug > Run Multiple Instances），或匯出兩個遊戲執行檔。
-    *   **Player 1 (Host)**：登入後，點選「建立房間」。這會透過 `HLobbies.create_lobby_async()` 建立 lobby 並同步開啟 listen server (`EOSGMultiplayerPeer.create_server`)。
-    *   **Player 2 (Client)**：登入後，呼叫 `search_lobbies()` 搜尋到剛才建立的 lobby，點選加入。這會透過 `HLobbies.join_async()` 加入大廳，並自動利用主辦方的 `owner_product_user_id` 呼叫 `NetworkManager.join_game()` 建立 P2P 連線。
+	*   可以使用 Godot 編輯器的多人遊戲測試（Debug > Run Multiple Instances），或匯出兩個遊戲執行檔。
+	*   **Player 1 (Host)**：登入後，點選「建立房間」。這會透過 `HLobbies.create_lobby_async()` 建立 lobby 並同步開啟 listen server (`EOSGMultiplayerPeer.create_server`)。
+	*   **Player 2 (Client)**：登入後，呼叫 `search_lobbies()` 搜尋到剛才建立的 lobby，點選加入。這會透過 `HLobbies.join_async()` 加入大廳，並自動利用主辦方的 `owner_product_user_id` 呼叫 `NetworkManager.join_game()` 建立 P2P 連線。

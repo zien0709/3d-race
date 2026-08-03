@@ -15,7 +15,19 @@ const ROW_SPACING := 7.0
 const GRID_YAW := 0.0
 
 
-static func get_slot(slot_index: int) -> Dictionary:
+static func get_single_player_slot() -> Dictionary:
+	return {
+		"index": 0,
+		"position": GRID_CENTER,
+		"yaw": GRID_YAW,
+		"label": "P1",
+	}
+
+
+static func get_slot(slot_index: int, is_single_player: bool = false) -> Dictionary:
+	if is_single_player and slot_index == 0:
+		return get_single_player_slot()
+
 	slot_index = clampi(slot_index, 0, GRID_SLOT_COUNT - 1)
 	@warning_ignore("integer_division")
 	var row := slot_index / GRID_COLS
@@ -29,7 +41,7 @@ static func get_slot(slot_index: int) -> Dictionary:
 			GRID_CENTER.z + row * ROW_SPACING
 		),
 		"yaw": GRID_YAW,
-		"label": "P%d" % (slot_index + 1),
+		"label": "P1" if is_single_player else "P%d" % (slot_index + 1),
 	}
 
 

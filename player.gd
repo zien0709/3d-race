@@ -388,4 +388,10 @@ func respawn_car() -> void:
 	angular_velocity = Vector3.ZERO
 	global_transform = spawn_transform
 	sleeping = false
+
+	# PhysicsServer3D explicit state reset to guarantee immediate teleport without residual momentum
+	PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_TRANSFORM, spawn_transform)
+	PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+	PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
+
 	reset_physics_interpolation()

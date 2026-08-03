@@ -44,12 +44,12 @@ func _remove_test_course() -> void:
 
 func _configure_player() -> void:
 	var player := get_node("Player") as VehicleBody3D
-	var spawn_slot: Dictionary = StartGrid.get_slot(0)
+	var spawn_slot: Dictionary = StartGrid.get_single_player_slot()
 	player.position = spawn_slot["position"]
 	player.rotation = Vector3(0.0, float(spawn_slot["yaw"]), 0.0)
 	player.linear_velocity = Vector3.ZERO
 	player.angular_velocity = Vector3.ZERO
-	player.set("spawn_transform", player.global_transform)
+	player.spawn_transform = player.global_transform
 
 
 func _create_finish_gate() -> void:
@@ -108,5 +108,5 @@ func _setup_ranking() -> void:
 	race_manager.setup_ranking(
 		checkpoint_positions,
 		FINISH_POSITION,
-		StartGrid.get_slot(0)["position"]
+		StartGrid.get_single_player_slot()["position"]
 	)

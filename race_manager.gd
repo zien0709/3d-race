@@ -43,8 +43,15 @@ var race_finished: bool = false
 
 var _last_countdown_text: String = ""
 var _countdown_tween: Tween
+var _bar_tween: Tween
+var _chk_tween: Tween
+var _final_time_tween: Tween
+var _record_pulse_tween: Tween
 
 func restart_race() -> void:
+	if player:
+		player.respawn_car()
+
 	race_time = 0.0
 	race_finished = false
 	race_started = false
@@ -103,6 +110,54 @@ func _ready() -> void:
 
 	rank_panel.visible = false
 
+	# Setup Micro-interactions for interactive UI buttons
+	setup_button_animations(start_button)
+	setup_button_animations(leaderboard_button)
+	setup_button_animations(close_leaderboard_button)
+	setup_button_animations(next_player_button)
+	setup_button_animations(eos_login_button)
+
+
+func setup_button_animations(btn: Button) -> void:
+	if not btn:
+		return
+	btn.pivot_offset = btn.size * 0.5
+	if not btn.resized.is_connected(_on_btn_resized.bind(btn)):
+		btn.resized.connect(_on_btn_resized.bind(btn))
+	btn.mouse_entered.connect(_on_btn_mouse_entered.bind(btn))
+	btn.mouse_exited.connect(_on_btn_mouse_exited.bind(btn))
+	btn.button_down.connect(_on_btn_button_down.bind(btn))
+	btn.button_up.connect(_on_btn_button_up.bind(btn))
+
+
+func _on_btn_resized(btn: Button) -> void:
+	btn.pivot_offset = btn.size * 0.5
+
+
+func _on_btn_mouse_entered(btn: Button) -> void:
+	if btn.disabled:
+		return
+	var tw := create_tween()
+	tw.tween_property(btn, "scale", Vector2(1.05, 1.05), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _on_btn_mouse_exited(btn: Button) -> void:
+	var tw := create_tween()
+	tw.tween_property(btn, "scale", Vector2.ONE, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _on_btn_button_down(btn: Button) -> void:
+	if btn.disabled:
+		return
+	var tw := create_tween()
+	tw.tween_property(btn, "scale", Vector2(0.95, 0.95), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _on_btn_button_up(btn: Button) -> void:
+	var target_scale := Vector2(1.05, 1.05) if btn.is_hovered() else Vector2.ONE
+	var tw := create_tween()
+	tw.tween_property(btn, "scale", target_scale, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
 func setup_ranking(
 	checkpoint_positions: Array,
 	finish_position: Vector3,
@@ -125,12 +180,36 @@ func start_race() -> void:
 	player_name = entered_name
 	waiting_for_player = false
 
-	start_center.visible = false
+	# Smooth StartCenter Slide & Fade Out
+	start_center.pivot_offset = start_center.size * 0.5
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(start_center, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw.tween_property(start_center, "position:y", start_center.position.y - 40.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(func():
+		start_center.visible = false
+		start_center.modulate.a = 1.0
+		start_center.position.y += 40.0
+	)
+
 	restart_race()
+
+	# HUD Pop In
+	hud_panel.pivot_offset = hud_panel.size * 0.5
+	hud_panel.scale = Vector2(0.8, 0.8)
+	hud_panel.modulate.a = 0.0
+	var hud_tw := create_tween().set_parallel(true)
+	hud_tw.tween_property(hud_panel, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	hud_tw.tween_property(hud_panel, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	ranking.cars[1]["name"] = player_name
 	ranking.emit_changed()
 	rank_panel.visible = true
+	rank_panel.pivot_offset = rank_panel.size * 0.5
+	rank_panel.scale = Vector2(0.8, 0.8)
+	rank_panel.modulate.a = 0.0
+	var rank_tw := create_tween().set_parallel(true)
+	rank_tw.tween_property(rank_panel, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	rank_tw.tween_property(rank_panel, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func finish_race() -> void:
 	if race_finished:
@@ -149,8 +228,19 @@ func finish_race() -> void:
 	
 	timer_label.text = "%.2f" % race_time
 	finish_center.visible = true
+	finish_center.modulate.a = 0.0
+	finish_center.scale = Vector2(0.7, 0.7)
+	finish_center.pivot_offset = finish_center.size * 0.5
+	
+	var pop_tw := create_tween().set_parallel(true)
+	pop_tw.tween_property(finish_center, "modulate:a", 1.0, 0.35).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	pop_tw.tween_property(finish_center, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-	final_time_label.text = "%.2f 秒" % race_time
+	# Count-up timer animation
+	if _final_time_tween and _final_time_tween.is_valid():
+		_final_time_tween.kill()
+	_final_time_tween = create_tween()
+	_final_time_tween.tween_method(func(val: float): final_time_label.text = "成績：%.2f 秒" % val, 0.0, race_time, 0.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 	if best_time < 0.0 or race_time < best_time:
 		best_time = race_time
@@ -159,6 +249,12 @@ func finish_race() -> void:
 		refresh_best_time_label()
 
 		new_record_label.visible = true
+		new_record_label.pivot_offset = new_record_label.get_minimum_size() * 0.5
+		if _record_pulse_tween and _record_pulse_tween.is_valid():
+			_record_pulse_tween.kill()
+		_record_pulse_tween = create_tween().set_loops()
+		_record_pulse_tween.tween_property(new_record_label, "scale", Vector2(1.15, 1.15), 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_record_pulse_tween.tween_property(new_record_label, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	else:
 		new_record_label.visible = false
 		
@@ -175,7 +271,17 @@ func register_checkpoint(checkpoint_index: int) -> void:
 		checkpoint_index,
 		total_checkpoints
 	]
-	checkpoint_bar.value = checkpoint_index
+
+	if _bar_tween and _bar_tween.is_valid():
+		_bar_tween.kill()
+	_bar_tween = create_tween()
+	_bar_tween.tween_property(checkpoint_bar, "value", float(checkpoint_index), 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	checkpoint_label.pivot_offset = checkpoint_label.get_minimum_size() * 0.5
+	if _chk_tween and _chk_tween.is_valid():
+		_chk_tween.kill()
+	_chk_tween = create_tween()
+	_chk_tween.tween_property(checkpoint_label, "scale", Vector2.ONE, 0.3).from(Vector2(1.3, 1.3)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	ranking.advance_car(1)
 	ranking.emit_changed()
@@ -334,11 +440,20 @@ func open_leaderboard() -> void:
 
 	start_center.visible = false
 	leaderboard_center.visible = true
+	leaderboard_center.modulate.a = 0.0
+	leaderboard_center.scale = Vector2(0.85, 0.85)
+	leaderboard_center.pivot_offset = leaderboard_center.size * 0.5
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(leaderboard_center, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(leaderboard_center, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func close_leaderboard() -> void:
 	leaderboard_center.visible = false
 	start_center.visible = true
+	start_center.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(start_center, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 	name_input.call_deferred("grab_focus")
 	
