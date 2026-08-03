@@ -1,10 +1,11 @@
 extends PanelContainer
 
-## 名次面板（佔位）
-## 純文字列出 1. 2. 3. ...，之後再換成正式 UI。
-## RaceManager 每 0.15 秒呼叫 update_entries()。
+const MAX_ROWS := 10
 
-const MAX_ROWS := 12
+const ACCENT := Color(0.1, 0.82, 1.0)
+const GOLD := Color(1.0, 0.84, 0.29)
+const TEXT_MAIN := Color(0.95, 0.98, 1.0)
+const TEXT_MUTED := Color(0.55, 0.66, 0.74)
 
 var _row_labels: Array[Label] = []
 var _rows: VBoxContainer
@@ -12,34 +13,50 @@ var _rows: VBoxContainer
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_bottom", 10)
+
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 2)
 
 	var title := Label.new()
-	title.text = "名次"
+	title.text = "即時名次"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", ACCENT)
 	vbox.add_child(title)
+
+	var separator := HSeparator.new()
+	separator.add_theme_color_override("separator", Color(0.18, 0.24, 0.31, 1.0))
+	vbox.add_child(separator)
 
 	_rows = VBoxContainer.new()
 	_rows.add_theme_constant_override("separation", 2)
 	for i in MAX_ROWS:
 		var label := Label.new()
-		label.add_theme_font_size_override("font_size", 20)
+		label.add_theme_font_size_override("font_size", 19)
 		_rows.add_child(label)
 		_row_labels.append(label)
 	vbox.add_child(_rows)
 
-	add_child(vbox)
+	margin.add_child(vbox)
+	add_child(margin)
 
 
 func update_entries(entries: Array) -> void:
 	for i in _row_labels.size():
+		var label := _row_labels[i]
 		if i < entries.size():
 			var entry: Dictionary = entries[i]
-			_row_labels[i].text = "%d. %s" % [i + 1, entry.get("name", "玩家")]
+			label.text = "%d. %s" % [i + 1, entry.get("name", "玩家")]
+			label.add_theme_color_override("font_color", GOLD if i == 0 else TEXT_MAIN)
 		else:
-			_row_labels[i].text = ""
+			label.text = ""
+			label.add_theme_color_override("font_color", TEXT_MUTED)
 
 
 func clear_entries() -> void:

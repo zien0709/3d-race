@@ -96,7 +96,7 @@ func _create_gate_shape() -> CollisionShape3D:
 func _configure_race_manager() -> void:
 	var race_manager := get_node("RaceManager")
 	race_manager.set("total_checkpoints", TOTAL_CHECKPOINTS)
-	var checkpoint_label := get_node("UI/CheckpointLabel") as Label
+	var checkpoint_label := get_node("UI/HUD/Margin/VBox/CheckpointLabel") as Label
 	checkpoint_label.text = "檢查點：0 / %d" % TOTAL_CHECKPOINTS
 
 

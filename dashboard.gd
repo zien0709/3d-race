@@ -7,6 +7,7 @@ extends Control
 @onready var race_manager: Node = $"../../RaceManager"
 
 var displayed_speed_kph: float = 0.0
+var peak_speed_kph: float = 0.0
 var forward_speed_mps: float = 0.0
 var gear_text: String = "1"
 var displayed_rpm: int = 900
@@ -32,6 +33,7 @@ func _process(delta: float) -> void:
 		return
 
 	var target_speed_kph := player.linear_velocity.length() * 3.6
+	peak_speed_kph = maxf(peak_speed_kph, target_speed_kph)
 	var blend_weight := 1.0 - exp(-speed_smoothing * delta)
 	displayed_speed_kph = lerpf(displayed_speed_kph, target_speed_kph, blend_weight)
 	forward_speed_mps = player.linear_velocity.dot(-player.global_basis.z)
@@ -102,8 +104,13 @@ func _draw() -> void:
 		ACCENT if gear_text != "R" else WARNING
 	)
 
-	draw_string(font, Vector2(224.0, 121.0), "RPM", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 11, TEXT_MUTED)
-	draw_string(font, Vector2(224.0, 140.0), str(displayed_rpm), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, TEXT_MAIN)
+	draw_string(font, Vector2(224.0, 116.0), "RPM", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 11, TEXT_MUTED)
+	draw_string(font, Vector2(224.0, 136.0), str(displayed_rpm), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, TEXT_MAIN)
+	draw_string(font, Vector2(268.0, 116.0), "TOP", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 11, TEXT_MUTED)
+	draw_string(font, Vector2(268.0, 136.0), "%03d" % int(round(peak_speed_kph)), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, TEXT_MAIN)
 	var rpm_ratio := clampf(float(displayed_rpm - 900) / 6900.0, 0.0, 1.0)
-	draw_rect(Rect2(154.0, 166.0, 124.0, 6.0), GAUGE_TRACK, true)
-	draw_rect(Rect2(154.0, 166.0, 124.0 * rpm_ratio, 6.0), ACCENT if rpm_ratio < 0.82 else WARNING, true)
+	var bar_origin := Vector2(154.0, 162.0)
+	var bar_size := Vector2(124.0, 8.0)
+	draw_rect(Rect2(bar_origin, bar_size), GAUGE_TRACK, true)
+	draw_rect(Rect2(bar_origin.x + bar_size.x * 0.78, bar_origin.y, bar_size.x * 0.22, bar_size.y), Color(0.6, 0.14, 0.1, 1.0), true)
+	draw_rect(Rect2(bar_origin, Vector2(bar_size.x * rpm_ratio, bar_size.y)), ACCENT if rpm_ratio < 0.78 else WARNING, true)
