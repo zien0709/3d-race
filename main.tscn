@@ -3,8 +3,9 @@
 [ext_resource type="Script" uid="uid://dtkc4s0hbw2f2" path="res://finish.gd" id="2_0xm2m"]
 [ext_resource type="Script" uid="uid://dxo6jim53dnvd" path="res://race_manager.gd" id="3_h2yge"]
 [ext_resource type="Script" uid="uid://cm70cfbsaam80" path="res://check_point_1.gd" id="4_1bvp3"]
+[ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="5_dg77c"]
 [ext_resource type="Texture2D" uid="uid://caractsrssw0x" path="res://valley_of_desolation_1k.hdr" id="7_272bh"]
-[ext_resource type="Script" path="res://ui/eos_login_button.gd" id="7_efxa6"]
+[ext_resource type="Script" uid="uid://cu5yapdsoo1ms" path="res://ui/eos_login_button.gd" id="7_efxa6"]
 [ext_resource type="Script" uid="uid://bfbpi4d25jog8" path="res://race/rank_panel.gd" id="8_4c57u"]
 [ext_resource type="PackedScene" uid="uid://bxnmkg3045ww3" path="res://race_map.glb" id="8_map"]
 [ext_resource type="PackedScene" path="res://player.tscn" id="9_4c57u"]
@@ -59,17 +60,6 @@ size = Vector3(6, 2, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_la3fi"]
 size = Vector3(6, 2, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_efxa6"]
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
-bg_color = Color(0, 0, 0, 0.55)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
 
 [sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_7mycd"]
 panorama = ExtResource("7_272bh")
@@ -209,30 +199,6 @@ shape = SubResource("BoxShape3D_la3fi")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=675326437]
 
-[node name="TimerLabel" type="Label" parent="UI" unique_id=1777818473]
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 52.0
-offset_bottom = 43.0
-theme_override_font_sizes/font_size = 32
-text = "0.00"
-
-[node name="CheckpointLabel" type="Label" parent="UI" unique_id=410341910]
-offset_left = 20.0
-offset_top = 65.0
-offset_right = 117.0
-offset_bottom = 88.0
-theme_override_font_sizes/font_size = 24
-text = "檢查點：0 / 7"
-
-[node name="BestTimeLabel" type="Label" parent="UI" unique_id=155909402]
-offset_left = 20.0
-offset_top = 95.0
-offset_right = 79.0
-offset_bottom = 118.0
-theme_override_font_sizes/font_size = 24
-text = "最佳：--"
-
 [node name="Dashboard" type="Control" parent="UI" unique_id=718393653]
 layout_mode = 3
 anchors_preset = 2
@@ -244,6 +210,7 @@ offset_right = 320.0
 offset_bottom = -20.0
 grow_vertical = 0
 mouse_filter = 2
+theme = ExtResource("5_dg77c")
 script = ExtResource("10_dashboard")
 
 [node name="StartCenter" type="CenterContainer" parent="UI" unique_id=646291941]
@@ -253,6 +220,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
+theme = ExtResource("5_dg77c")
 
 [node name="MainVBox" type="VBoxContainer" parent="UI/StartCenter" unique_id=1741335364]
 layout_mode = 2
@@ -260,8 +228,20 @@ theme_override_constants/separation = 30
 
 [node name="TitleLabel" type="Label" parent="UI/StartCenter/MainVBox" unique_id=427091937]
 layout_mode = 2
-theme_override_font_sizes/font_size = 64
+theme_override_colors/font_color = Color(0.95686275, 0.9843137, 0.99607843, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.73333335)
+theme_override_colors/font_outline_color = Color(0.03137255, 0.1254902, 0.1882353, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 76
 text = "3D 賽車計時賽"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="UI/StartCenter/MainVBox" unique_id=2142125584]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101960786, 0.8156863, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "── TIME ATTACK ──"
+horizontal_alignment = 1
 
 [node name="FormCenter" type="CenterContainer" parent="UI/StartCenter/MainVBox" unique_id=1511651293]
 layout_mode = 2
@@ -286,6 +266,15 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "查看排行榜"
 
+[node name="HintLabel" type="Label" parent="UI/StartCenter/MainVBox/FormCenter/FormVBox" unique_id=685528237]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.43529412, 0.52156866, 0.5882353, 1)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 16
+text = "WASD 駕駛 · R 重置 · 通過 7 個檢查點後衝向終點"
+horizontal_alignment = 1
+
 [node name="CountdownCenter" type="CenterContainer" parent="UI" unique_id=552683415]
 anchors_preset = 15
 anchor_right = 1.0
@@ -293,11 +282,17 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("5_dg77c")
 
 [node name="CountdownLabel" type="Label" parent="UI/CountdownCenter" unique_id=1302743649]
 layout_mode = 2
-theme_override_font_sizes/font_size = 64
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6666667)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 110
 text = "3"
+horizontal_alignment = 1
 
 [node name="FinishCenter" type="CenterContainer" parent="UI" unique_id=124082931]
 visible = false
@@ -307,29 +302,45 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("5_dg77c")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/FinishCenter" unique_id=227598343]
+[node name="FinishPanel" type="PanelContainer" parent="UI/FinishCenter" unique_id=1495610740]
 layout_mode = 2
 
-[node name="FinishTitle" type="Label" parent="UI/FinishCenter/VBoxContainer" unique_id=1541094874]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/FinishCenter/FinishPanel" unique_id=227598343]
 layout_mode = 2
-theme_override_font_sizes/font_size = 64
+
+[node name="FinishTitle" type="Label" parent="UI/FinishCenter/FinishPanel/VBoxContainer" unique_id=1541094874]
+layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.73333335)
+theme_override_colors/font_outline_color = Color(0.03137255, 0.1254902, 0.1882353, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 84
 text = "完成！"
 horizontal_alignment = 1
 
-[node name="FinalTimeLabel" type="Label" parent="UI/FinishCenter/VBoxContainer" unique_id=357086412]
+[node name="FinalTimeLabel" type="Label" parent="UI/FinishCenter/FinishPanel/VBoxContainer" unique_id=357086412]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 34
 text = "成績：0.00 秒"
 horizontal_alignment = 1
 
-[node name="RestartHintLabel" type="Label" parent="UI/FinishCenter/VBoxContainer" unique_id=1679357141]
+[node name="NewRecordLabel" type="Label" parent="UI/FinishCenter/FinishPanel/VBoxContainer" unique_id=1000427108]
+visible = false
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 0.8352941, 0.2901961, 1)
+theme_override_font_sizes/font_size = 28
+text = "★ 新紀錄！"
+horizontal_alignment = 1
+
+[node name="RestartHintLabel" type="Label" parent="UI/FinishCenter/FinishPanel/VBoxContainer" unique_id=1679357141]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.54509807, 0.63529414, 0.7019608, 1)
+theme_override_font_sizes/font_size = 20
 text = "按 R 重新挑戰"
 horizontal_alignment = 1
 
-[node name="NextPlayerButton" type="Button" parent="UI/FinishCenter/VBoxContainer" unique_id=990109882]
+[node name="NextPlayerButton" type="Button" parent="UI/FinishCenter/FinishPanel/VBoxContainer" unique_id=990109882]
 unique_name_in_owner = true
 layout_mode = 2
 text = "下一位玩家"
@@ -348,26 +359,34 @@ offset_right = 275.0
 offset_bottom = 303.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("5_dg77c")
 
 [node name="PanelContainer" type="PanelContainer" parent="UI/LeaderboardCenter" unique_id=103423152]
 layout_mode = 2
 
 [node name="LeaderboardVBox" type="VBoxContainer" parent="UI/LeaderboardCenter/PanelContainer" unique_id=903759592]
 layout_mode = 2
+theme_override_constants/separation = 10
 
 [node name="LeaderboardTitle" type="Label" parent="UI/LeaderboardCenter/PanelContainer/LeaderboardVBox" unique_id=1415085607]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.73333335)
+theme_override_colors/font_outline_color = Color(0.03137255, 0.1254902, 0.1882353, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 54
 text = "排行榜"
 horizontal_alignment = 1
 
 [node name="LeaderboardGrid" type="GridContainer" parent="UI/LeaderboardCenter/PanelContainer/LeaderboardVBox" unique_id=2047864695]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 6
 columns = 3
 
 [node name="CloseLeaderboardButton" type="Button" parent="UI/LeaderboardCenter/PanelContainer/LeaderboardVBox" unique_id=219526606]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 text = "返回"
 
@@ -375,23 +394,72 @@ text = "返回"
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -16.0
+offset_left = -244.0
 offset_top = 16.0
 offset_right = -16.0
-offset_bottom = 16.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_efxa6")
+offset_bottom = 352.0
+theme = ExtResource("5_dg77c")
 script = ExtResource("8_4c57u")
 
 [node name="EOSLoginButton" type="Button" parent="UI" unique_id=1465636691]
-anchors_preset = 1
+anchors_preset = 3
 anchor_left = 1.0
+anchor_top = 1.0
 anchor_right = 1.0
-offset_left = -160.0
-offset_top = 16.0
-offset_bottom = 56.0
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -72.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+theme = ExtResource("5_dg77c")
 theme_override_font_sizes/font_size = 20
 text = "登入"
 script = ExtResource("7_efxa6")
+
+[node name="HUD" type="PanelContainer" parent="UI" unique_id=1047554821]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 320.0
+offset_bottom = 210.0
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="UI/HUD" unique_id=2056312059]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="UI/HUD/Margin" unique_id=1326733984]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TimerLabel" type="Label" parent="UI/HUD/Margin/VBox" unique_id=2018465086]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101960786, 0.8156863, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6666667)
+theme_override_font_sizes/font_size = 40
+text = "0.00"
+
+[node name="CheckpointLabel" type="Label" parent="UI/HUD/Margin/VBox" unique_id=1433965983]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8117647, 0.89411765, 0.9411765, 1)
+theme_override_font_sizes/font_size = 20
+text = "檢查點：0 / 7"
+
+[node name="BestTimeLabel" type="Label" parent="UI/HUD/Margin/VBox" unique_id=1552018045]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.54509807, 0.63529414, 0.7019608, 1)
+theme_override_font_sizes/font_size = 18
+text = "最佳：--"
+
+[node name="CheckpointBar" type="ProgressBar" parent="UI/HUD/Margin/VBox" unique_id=1670226780]
+custom_minimum_size = Vector2(240, 8)
+layout_mode = 2
+max_value = 7.0
+show_percentage = false
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1279504209]
 transform = Transform3D(0.8660254, 0.43301272, -0.24999999, 0, 0.49999997, 0.86602545, 0.5, -0.75, 0.43301266, 0, 0, 0)

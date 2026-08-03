@@ -3,12 +3,15 @@ extends Node
 const SAVE_PATH: String = "user://race_scores.cfg"
 
 @onready var player: VehicleBody3D = $"../Player"
-@onready var timer_label: Label = $"../UI/TimerLabel"
+@onready var timer_label: Label = $"../UI/HUD/Margin/VBox/TimerLabel"
 @onready var countdown_label: Label = $"../UI/CountdownCenter/CountdownLabel"
-@onready var checkpoint_label: Label = $"../UI/CheckpointLabel"
+@onready var checkpoint_label: Label = $"../UI/HUD/Margin/VBox/CheckpointLabel"
+@onready var checkpoint_bar: ProgressBar = $"../UI/HUD/Margin/VBox/CheckpointBar"
+@onready var hud_panel: PanelContainer = $"../UI/HUD"
 @onready var finish_center: CenterContainer = $"../UI/FinishCenter"
-@onready var final_time_label: Label = $"../UI/FinishCenter/VBoxContainer/FinalTimeLabel"
-@onready var best_time_label: Label = $"../UI/BestTimeLabel"
+@onready var final_time_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/FinalTimeLabel"
+@onready var new_record_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/NewRecordLabel"
+@onready var best_time_label: Label = $"../UI/HUD/Margin/VBox/BestTimeLabel"
 @onready var start_center: CenterContainer = $"../UI/StartCenter"
 @onready var name_input: LineEdit = $"../UI/StartCenter/MainVBox/FormCenter/FormVBox/NameInput"
 @onready var start_button: Button = $"../UI/StartCenter/MainVBox/FormCenter/FormVBox/StartButton"
@@ -37,6 +40,9 @@ var next_checkpoint: int = 1
 var race_time: float = 0.0
 var race_finished: bool = false
 
+var _last_countdown_text: String = ""
+var _countdown_tween: Tween
+
 func restart_race() -> void:
 	race_time = 0.0
 	race_finished = false
@@ -49,11 +55,17 @@ func restart_race() -> void:
 
 	timer_label.text = "0.00"
 	checkpoint_label.text = "檢查點：0 / %d" % total_checkpoints
+	checkpoint_bar.value = 0
 	countdown_label.text = "3"
+	countdown_label.scale = Vector2.ONE
+	countdown_label.modulate = Color.WHITE
+	_last_countdown_text = ""
 	
 	finish_center.visible = false
+	new_record_label.visible = false
 
 func _process(delta: float) -> void:
+	hud_panel.visible = not waiting_for_player
 	if waiting_for_player:
 		return
 	
@@ -132,21 +144,17 @@ func finish_race() -> void:
 	timer_label.text = "%.2f" % race_time
 	finish_center.visible = true
 
+	final_time_label.text = "%.2f 秒" % race_time
+
 	if best_time < 0.0 or race_time < best_time:
 		best_time = race_time
 
 		save_best_time()
 		refresh_best_time_label()
 
-		final_time_label.text = "%s\n新紀錄：%.2f 秒" % [
-			player_name,
-			race_time
-		]
+		new_record_label.visible = true
 	else:
-		final_time_label.text = "%s\n成績：%.2f 秒" % [
-			player_name,
-			race_time
-		]
+		new_record_label.visible = false
 		
 func register_checkpoint(checkpoint_index: int) -> void:
 	if race_finished:
@@ -161,6 +169,7 @@ func register_checkpoint(checkpoint_index: int) -> void:
 		checkpoint_index,
 		total_checkpoints
 	]
+	checkpoint_bar.value = checkpoint_index
 
 	ranking.advance_car(1)
 	ranking.emit_changed()
@@ -177,10 +186,10 @@ func update_start_countdown(delta: float) -> void:
 		countdown_time -= delta
 
 		if countdown_time > 0.0:
-			countdown_label.text = str(ceili(countdown_time))
+			_set_countdown_text(str(ceili(countdown_time)), Color.WHITE)
 		else:
 			race_started = true
-			countdown_label.text = "GO!"
+			_set_countdown_text("GO!", Color(0.15, 1.0, 0.4))
 			go_display_time = 1.0
 
 		return
@@ -189,7 +198,24 @@ func update_start_countdown(delta: float) -> void:
 		go_display_time -= delta
 
 		if go_display_time <= 0.0:
-			countdown_label.text = ""
+			_set_countdown_text("", Color.WHITE)
+
+
+func _set_countdown_text(text: String, color: Color) -> void:
+	countdown_label.text = text
+	countdown_label.modulate = color
+	if text.is_empty():
+		return
+	if text == _last_countdown_text:
+		return
+	_last_countdown_text = text
+	if _countdown_tween and _countdown_tween.is_valid():
+		_countdown_tween.kill()
+	countdown_label.pivot_offset = countdown_label.get_minimum_size() * 0.5
+	_countdown_tween = create_tween()
+	_countdown_tween.tween_property(
+		countdown_label, "scale", Vector2.ONE, 0.35
+	).from(Vector2(0.45, 0.45)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func load_best_time() -> void:
 	var config := ConfigFile.new()
@@ -413,9 +439,14 @@ func prepare_next_player() -> void:
 
 	timer_label.text = "0.00"
 	checkpoint_label.text = "檢查點：0 / %d" % total_checkpoints
+	checkpoint_bar.value = 0
 	countdown_label.text = ""
+	countdown_label.scale = Vector2.ONE
+	countdown_label.modulate = Color.WHITE
+	_last_countdown_text = ""
 
 	finish_center.visible = false
+	new_record_label.visible = false
 	leaderboard_center.visible = false
 	start_center.visible = true
 
