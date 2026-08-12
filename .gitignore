@@ -4,3 +4,17 @@
 
 # EOS secrets config
 eos_config.cfg
+
+# Debug probe files
+_probe*.gd
+_probe*.gd.uid
+
+# Temporary files & backups
+~*
+*.tmp
+*.bak
+Thumbs.db
+
+# MCP/AI Plugin configs (Do not commit local tool/plugin configurations)
+addons/godot_ai/
+addons/flatten_for_llm/
