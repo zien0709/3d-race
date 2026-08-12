@@ -21,7 +21,7 @@ var is_host: bool = false
 ## players: [{ "peer_id": int, "product_user_id": String, "name": String, "ready": bool }]
 var players: Array = []
 
-var _lobby: HLobby
+var _lobby = null
 
 
 # ==========================================================================
@@ -30,20 +30,26 @@ var _lobby: HLobby
 
 ## 開房：建立 12 人 EOS lobby，並在 host 端開 listen server。
 func create_lobby() -> void:
-	if not NetworkManager.is_logged_in:
+	if not _nm().is_logged_in:
 		lobby_created.emit({})
 		return
 
-	var opts := EOS.Lobby.CreateLobbyOptions.new()
+	var hlobbies = _hlobbies()
+	var eos = _eos_class()
+	if hlobbies == null or eos == null:
+		lobby_created.emit({})
+		return
+
+	var opts = eos.Lobby.CreateLobbyOptions.new()
 	opts.max_lobby_members = MAX_PLAYERS
 	opts.bucket_id = BUCKET_ID
-	opts.permission_level = EOS.Lobby.LobbyPermissionLevel.PublicAdvertised
+	opts.permission_level = eos.Lobby.LobbyPermissionLevel.PublicAdvertised
 	opts.enable_join_by_id = true
 	opts.allow_invites = true
 	opts.enable_rtc_room = false
-	opts.local_rtc_options = HLobbies.local_rtc_options
+	opts.local_rtc_options = hlobbies.local_rtc_options
 
-	var lobby := await HLobbies.create_lobby_async(opts)
+	var lobby: Variant = await hlobbies.create_lobby_async(opts)
 	if not lobby:
 		lobby_created.emit({})
 		return
@@ -52,31 +58,38 @@ func create_lobby() -> void:
 	_bind_lobby(lobby)
 
 	lobby.add_attribute("game", "3d_race")
-	lobby.add_attribute("host_name", NetworkManager.display_name)
+	lobby.add_attribute("host_name", _nm().display_name)
 	await lobby.update_async()
 
 	_sync_members()
 	lobby_created.emit(_lobby_info())
 
 	# 本機先開 host peer（listen server）
-	NetworkManager.host_game()
+	_nm().host_game()
 
 
 ## 搜尋公開房。回傳 Array[HLobby]，空陣列表示沒有。
 func search_lobbies() -> Array:
-	if not NetworkManager.is_logged_in:
+	if not _nm().is_logged_in:
 		return []
-	var results = await HLobbies.search_by_bucket_id_async(BUCKET_ID)
+	var hlobbies = _hlobbies()
+	if hlobbies == null:
+		return []
+	var results = await hlobbies.search_by_bucket_id_async(BUCKET_ID)
 	return results if results else []
 
 
 ## 加入一間搜尋到的房（HLobby）。
 func join_lobby(lobby) -> void:
-	if not lobby or not NetworkManager.is_logged_in:
+	if not lobby or not _nm().is_logged_in:
 		lobby_joined.emit({})
 		return
 
-	var joined: HLobby = await HLobbies.join_async(lobby)
+	var hlobbies = _hlobbies()
+	if hlobbies == null:
+		lobby_joined.emit({})
+		return
+	var joined: Variant = await hlobbies.join_async(lobby)
 	if not joined:
 		lobby_joined.emit({})
 		return
@@ -87,15 +100,15 @@ func join_lobby(lobby) -> void:
 	lobby_joined.emit(_lobby_info())
 
 	# client 用 host 的 product user id 建立連線
-	var host_user_id := joined.owner_product_user_id
-	NetworkManager.join_game(host_user_id)
+	var host_user_id = joined.owner_product_user_id
+	_nm().join_game(host_user_id)
 
 
 ## 離開目前房間（host 結束時會連 lobby 一起銷毀）。
 func leave_lobby() -> void:
 	if not _lobby:
 		return
-	var lobby := _lobby
+	var lobby = _lobby
 	_lobby = null
 	is_host = false
 	players = []
@@ -138,16 +151,19 @@ func _sync_members() -> void:
 
 ## 把 product_user_id 對應成 peer id；本機是 1，其餘靠 EOSGMultiplayerPeer。
 func _resolve_peer_id(product_user_id: String) -> int:
-	if product_user_id == NetworkManager.product_user_id:
-		return NetworkManager.LOCAL_PEER_ID
-	return NetworkManager.get_peer_id_for_user(product_user_id)
+	if product_user_id == _nm().product_user_id:
+		return _nm().LOCAL_PEER_ID
+	return _nm().get_peer_id_for_user(product_user_id)
 
 
 ## 本機玩家設為就緒 / 未就緒（寫入自己的 member attribute）。
 func set_ready(is_ready: bool) -> void:
 	if not _lobby:
 		return
-	_lobby.add_current_member_attribute(ATTR_READY, is_ready, EOS.Lobby.LobbyAttributeVisibility.Private)
+	var eos = _eos_class()
+	if eos == null:
+		return
+	_lobby.add_current_member_attribute(ATTR_READY, is_ready, eos.Lobby.LobbyAttributeVisibility.Private)
 	await _lobby.update_async()
 
 
@@ -191,7 +207,18 @@ func _all_ready(order: Array) -> bool:
 # 內部
 # ==========================================================================
 
-func _bind_lobby(lobby: HLobby) -> void:
+func _nm() -> Variant:
+	return get_node_or_null("/root/NetworkManager")
+
+
+func _eos_class() -> Variant:
+	return load("res://addons/epic-online-services-godot/eos.gd")
+
+
+func _hlobbies() -> Variant:
+	return get_node_or_null("/root/HLobbies")
+
+func _bind_lobby(lobby) -> void:
 	_lobby = lobby
 	_lobby.lobby_updated.connect(_on_lobby_updated)
 	_lobby.kicked_from_lobby.connect(_on_kicked)
@@ -213,7 +240,7 @@ func _on_kicked() -> void:
 	players = []
 	current_lobby = {}
 	_lobby = null
-	NetworkManager.disconnect_from_game()
+	_nm().disconnect_from_game()
 
 
 func _on_owner_changed() -> void:

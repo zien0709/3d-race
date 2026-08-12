@@ -19,26 +19,33 @@ config/icon="res://icon.svg"
 
 NetworkManager="*res://network/network_manager.gd"
 LobbyManager="*res://network/lobby_manager.gd"
-EOSGRuntime="*uid://7saywdx0ipep"
-HPlatform="*uid://yl2muvqrdiud"
-HAuth="*uid://786t1jiowvvg"
-HAchievements="*uid://bis404dty5u5c"
-HFriends="*uid://uumqbey8ji5t"
-HStats="*uid://dbckdip83oone"
-HLeaderboards="*uid://b06khhf20mplm"
-HLobbies="*uid://6iqvm33q0tb1"
-HP2P="*uid://u6ae5fpm6l8q"
-HSessions="*uid://bieh2rxxahuu2"
+EnvironmentManager="*res://EnvironmentManager.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
+EOSGRuntime="*res://addons/epic-online-services-godot/runtime.gd"
+HPlatform="*res://addons/epic-online-services-godot/heos/hplatform.gd"
+HAuth="*res://addons/epic-online-services-godot/heos/hauth.gd"
+HLobbies="*res://addons/epic-online-services-godot/heos/hlobbies.gd"
+HP2P="*res://addons/epic-online-services-godot/heos/hp2p.gd"
+HFriends="*res://addons/epic-online-services-godot/heos/hfriends.gd"
+HStats="*res://addons/epic-online-services-godot/heos/hstats.gd"
+HLeaderboards="*res://addons/epic-online-services-godot/heos/hleaderboards.gd"
+HAchievements="*res://addons/epic-online-services-godot/heos/hachievements.gd"
+HSessions="*res://addons/epic-online-services-godot/heos/hsessions.gd"
 
 [display]
 
+window/size/viewport_width=1280
+window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[dotnet]
+
+project/assembly_name="3D_race (Copy)"
+
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/epic-online-services-godot/plugin.cfg", "res://addons/flatten_for_llm/plugin.cfg", "res://addons/godot_ai/plugin.cfg")
+enabled=PackedStringArray("res://addons/epic-online-services-godot/plugin.cfg", "res://addons/godot_ai/plugin.cfg")
 
 [physics]
 
@@ -49,3 +56,7 @@ enabled=PackedStringArray("res://addons/epic-online-services-godot/plugin.cfg", 
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+shader_globals/global_wind_dir=Vector3(0, 0, 1)
+shader_globals/global_wind_speed=1.0
+shader_globals/global_time_of_day=0.0
+shader_globals/global_weather_intensity=0.0

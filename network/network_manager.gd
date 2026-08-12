@@ -30,7 +30,7 @@ var is_logged_in := false
 var display_name := ""
 var product_user_id := ""
 
-var _peer: EOSGMultiplayerPeer
+var _peer = null
 
 
 func _ready() -> void:
@@ -56,6 +56,18 @@ func is_host() -> bool:
 	return mode == Mode.HOST
 
 
+func _hauth() -> Variant:
+	return get_node_or_null("/root/HAuth")
+
+
+func _hplatform() -> Variant:
+	return get_node_or_null("/root/HPlatform")
+
+
+func _hlog() -> Variant:
+	return get_node_or_null("/root/HLog")
+
+
 # ==========================================================================
 # EOS 初始化與登入
 # ==========================================================================
@@ -64,6 +76,11 @@ func is_host() -> bool:
 func init_eos() -> void:
 	if is_eos_ready:
 		eos_initialized.emit(true, "")
+		return
+	var hp = _hplatform()
+	var hauth = _hauth()
+	if hp == null or hauth == null or not hp.has_method("setup_eos_async"):
+		eos_initialized.emit(false, "EOS 執行期未就緒（檢查 EOSG 插件 / GDExtension）")
 		return
 
 	var config := ConfigFile.new()
@@ -87,13 +104,14 @@ func init_eos() -> void:
 				"EOS 憑證不完整：請在 %s 填入 product_id / sandbox_id / deployment_id / client_id / client_secret" % EOS_CONFIG_PATH)
 		return
 
-	HLog.log_level = HLog.LogLevel.INFO
-	HPlatform.log_msg.connect(_on_eos_log, CONNECT_DEFERRED)
+	var hlog = _hlog()
+	if hlog != null:
+		hlog.log_level = int(hlog.LogLevel.INFO) if "LogLevel" in hlog else 0
+	hp.log_msg.connect(_on_eos_log, CONNECT_DEFERRED)
+	hauth.logged_in.connect(_on_logged_in)
+	hauth.logged_out.connect(_on_logged_out)
 
-	HAuth.logged_in.connect(_on_logged_in)
-	HAuth.logged_out.connect(_on_logged_out)
-
-	var setup_success := await HPlatform.setup_eos_async(creds)
+	var setup_success: bool = await hp.setup_eos_async(creds)
 	if not setup_success:
 		eos_initialized.emit(false, "EOS 初始化失敗，詳見 Output / HPlatform log")
 		return
@@ -124,13 +142,17 @@ func login_devtool(server_url := "", credential_name := "") -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化")
 		return
+	var hauth = _hauth()
+	if hauth == null or not hauth.has_method("login_devtool_async"):
+		login_failed.emit("EOS 執行期未就緒")
+		return
 	var config := ConfigFile.new()
 	if config.load(EOS_CONFIG_PATH) == OK:
 		if server_url.is_empty():
 			server_url = config.get_value("login", "devtool_server_url", "localhost:4545")
 		if credential_name.is_empty():
 			credential_name = config.get_value("login", "devtool_credential_name", "")
-	var ok := await HAuth.login_devtool_async(server_url, credential_name)
+	var ok: bool = await hauth.login_devtool_async(server_url, credential_name)
 	if not ok:
 		login_failed.emit("Dev Auth Tool 登入失敗（請確認已啟動 DevAuthTool 且帳號名稱正確）")
 
@@ -140,7 +162,11 @@ func login_account_portal() -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化")
 		return
-	var ok := await HAuth.login_account_portal_async()
+	var hauth = _hauth()
+	if hauth == null or not hauth.has_method("login_account_portal_async"):
+		login_failed.emit("EOS 執行期未就緒")
+		return
+	var ok: bool = await hauth.login_account_portal_async()
 	if not ok:
 		login_failed.emit("Epic Account Portal 登入失敗")
 
@@ -151,9 +177,13 @@ func login_anonymous(display_name := "") -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化")
 		return
+	var hauth = _hauth()
+	if hauth == null or not hauth.has_method("login_anonymous_async"):
+		login_failed.emit("EOS 執行期未就緒")
+		return
 	if display_name.is_empty():
 		display_name = "Player_%d" % randi_range(1000, 9999)
-	var ok := await HAuth.login_anonymous_async(display_name)
+	var ok: bool = await hauth.login_anonymous_async(display_name)
 	if not ok:
 		login_failed.emit("匿名登入失敗")
 
@@ -162,7 +192,9 @@ func logout() -> void:
 	if not is_logged_in:
 		return
 	disconnect_from_game()
-	await HAuth.logout_async()
+	var hauth = _hauth()
+	if hauth != null and hauth.has_method("logout_async"):
+		await hauth.logout_async()
 
 
 # ==========================================================================
@@ -173,8 +205,10 @@ func logout() -> void:
 func host_game() -> int:
 	if not is_logged_in:
 		return ERR_UNAUTHORIZED
-	var peer := EOSGMultiplayerPeer.new()
-	var err := peer.create_server(EOS_SOCKET_ID)
+	if not ClassDB.class_exists("EOSGMultiplayerPeer"):
+		return ERR_UNAVAILABLE
+	var peer = ClassDB.instantiate("EOSGMultiplayerPeer")
+	var err: int = peer.create_server(EOS_SOCKET_ID)
 	if err != OK:
 		return err
 	peer.set_auto_accept_connection_requests(true)
@@ -187,8 +221,10 @@ func host_game() -> int:
 func join_game(host_user_id: String) -> int:
 	if not is_logged_in or host_user_id.is_empty():
 		return ERR_UNAUTHORIZED
-	var peer := EOSGMultiplayerPeer.new()
-	var err := peer.create_client(EOS_SOCKET_ID, host_user_id)
+	if not ClassDB.class_exists("EOSGMultiplayerPeer"):
+		return ERR_UNAVAILABLE
+	var peer = ClassDB.instantiate("EOSGMultiplayerPeer")
+	var err: int = peer.create_client(EOS_SOCKET_ID, host_user_id)
 	if err != OK:
 		return err
 	_attach_peer(peer)
@@ -221,7 +257,7 @@ func get_peer_id_for_user(user_id: String) -> int:
 # 內部：peer 事件
 # ==========================================================================
 
-func _attach_peer(peer: EOSGMultiplayerPeer) -> void:
+func _attach_peer(peer) -> void:
 	_peer = peer
 	multiplayer.multiplayer_peer = peer
 
@@ -250,8 +286,9 @@ func _on_server_disconnected() -> void:
 
 func _on_logged_in() -> void:
 	is_logged_in = true
-	display_name = HAuth.display_name
-	product_user_id = HAuth.product_user_id
+	var hauth = _hauth()
+	display_name = hauth.get("display_name", "") if hauth != null else ""
+	product_user_id = hauth.get("product_user_id", "") if hauth != null else ""
 	login_succeeded.emit()
 
 
