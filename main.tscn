@@ -4,7 +4,6 @@
 [ext_resource type="Script" uid="uid://dxo6jim53dnvd" path="res://race_manager.gd" id="3_h2yge"]
 [ext_resource type="Script" uid="uid://cm70cfbsaam80" path="res://check_point_1.gd" id="4_1bvp3"]
 [ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="5_dg77c"]
-[ext_resource type="Texture2D" uid="uid://caractsrssw0x" path="res://valley_of_desolation_1k.hdr" id="7_272bh"]
 [ext_resource type="Script" uid="uid://cu5yapdsoo1ms" path="res://ui/eos_login_button.gd" id="7_efxa6"]
 [ext_resource type="Script" uid="uid://bfbpi4d25jog8" path="res://race/rank_panel.gd" id="8_4c57u"]
 [ext_resource type="PackedScene" uid="uid://bxnmkg3045ww3" path="res://race_map.glb" id="8_map"]
@@ -12,6 +11,13 @@
 [ext_resource type="Script" uid="uid://jcp3kan67dxe" path="res://race_course_setup.gd" id="9_setup"]
 [ext_resource type="Script" uid="uid://fhnpgubqq5bv" path="res://dashboard.gd" id="10_dashboard"]
 [ext_resource type="Script" uid="uid://bulnt0tdwhscf" path="res://race/player_spawner.gd" id="10_efxa6"]
+[ext_resource type="Script" uid="uid://cnch5086mi6jc" path="res://scripts/water_animator.gd" id="12_074og"]
+[ext_resource type="Material" uid="uid://b3lodrgc0thgn" path="res://materials/rain_material.tres" id="13_cegan"]
+[ext_resource type="Script" uid="uid://cwg7nk8hgtnv6" path="res://scripts/weather_follow.gd" id="14_82xsv"]
+[ext_resource type="Material" uid="uid://dwm513b0hacrf" path="res://materials/snow_material.tres" id="15_getpj"]
+[ext_resource type="Script" uid="uid://ip5blnynhbs" path="res://scripts/grass_manager.gd" id="16_ryguw"]
+[ext_resource type="PlaneMesh" uid="uid://brsm74ufeeqhs" path="res://meshes/grass_blade.tres" id="17_d13ii"]
+[ext_resource type="Material" uid="uid://rgj3e8m3d37s" path="res://materials/grass_material.tres" id="18_1u8w0"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_hqp12"]
 size = Vector3(100, 0.2, 100)
@@ -61,16 +67,76 @@ size = Vector3(6, 2, 1)
 [sub_resource type="BoxShape3D" id="BoxShape3D_la3fi"]
 size = Vector3(6, 2, 1)
 
-[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_7mycd"]
-panorama = ExtResource("7_272bh")
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_0odxb"]
+sky_top_color = Color(0.22745098, 0.65882355, 1, 1)
+sky_horizon_color = Color(0.8117647, 0.9098039, 1, 1)
+ground_bottom_color = Color(0.16470589, 0.22745098, 0.2901961, 1)
+ground_horizon_color = Color(0.8117647, 0.9098039, 1, 1)
+sun_angle_max = 55.0
 
-[sub_resource type="Sky" id="Sky_272bh"]
-sky_material = SubResource("PanoramaSkyMaterial_7mycd")
+[sub_resource type="Sky" id="Sky_lswn8"]
+sky_material = SubResource("ProceduralSkyMaterial_0odxb")
 
-[sub_resource type="Environment" id="Environment_7mycd"]
+[sub_resource type="Environment" id="Environment_a6jrf"]
 background_mode = 2
-sky = SubResource("Sky_272bh")
-reflected_light_source = 2
+sky = SubResource("Sky_lswn8")
+ambient_light_source = 3
+glow_enabled = true
+glow_intensity = 0.4
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_xuqvo"]
+emission_shape = 3
+emission_box_extents = Vector3(14, 0.5, 14)
+direction = Vector3(0, -1, 0)
+initial_velocity_min = 18.0
+initial_velocity_max = 24.0
+gravity = Vector3(0, -42, 0)
+scale_min = 0.05
+scale_max = 0.12
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qsp4k"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+billboard_keep_scale = true
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_kq58d"]
+material = SubResource("StandardMaterial3D_qsp4k")
+size = Vector2(0.25, 0.25)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_seu75"]
+lifetime_randomness = 0.4
+emission_shape = 3
+emission_box_extents = Vector3(20, 1, 20)
+spread = 70.0
+initial_velocity_min = 0.3
+initial_velocity_max = 0.8
+gravity = Vector3(0, -1.8, 0)
+damping_min = 0.1
+damping_max = 0.5
+scale_min = 0.04
+scale_max = 0.12
+turbulence_enabled = true
+turbulence_noise_strength = 2.0
+turbulence_noise_speed = Vector3(0.8, 0.2, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_htxhm"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+billboard_keep_scale = true
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_jq2sk"]
+material = SubResource("StandardMaterial3D_htxhm")
+size = Vector2(0.25, 0.25)
 
 [node name="Main" type="Node3D" unique_id=1697816867]
 script = ExtResource("9_setup")
@@ -460,13 +526,14 @@ show_percentage = false
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1279504209]
 transform = Transform3D(0.8660254, 0.43301272, -0.24999999, 0, 0.49999997, 0.86602545, 0.5, -0.75, 0.43301266, 0, 0, 0)
+shadow_enabled = true
 
 [node name="RaceManager" type="Node" parent="." unique_id=1588467986]
 script = ExtResource("3_h2yge")
 total_checkpoints = 7
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=889358878]
-environment = SubResource("Environment_7mycd")
+environment = SubResource("Environment_a6jrf")
 
 [node name="Player" parent="." unique_id=529282143 instance=ExtResource("9_4c57u")]
 
@@ -474,3 +541,34 @@ environment = SubResource("Environment_7mycd")
 
 [node name="PlayerSpawner" type="MultiplayerSpawner" parent="Players" unique_id=69904012]
 script = ExtResource("10_efxa6")
+
+[node name="WaterAnimator" type="Node" parent="." unique_id=471142367]
+script = ExtResource("12_074og")
+
+[node name="RainParticles" type="GPUParticles3D" parent="." unique_id=829402449]
+material_override = ExtResource("13_cegan")
+emitting = false
+amount = 800
+lifetime = 0.8
+preprocess = 0.5
+process_material = SubResource("ParticleProcessMaterial_xuqvo")
+draw_pass_1 = SubResource("QuadMesh_kq58d")
+script = ExtResource("14_82xsv")
+
+[node name="SnowParticles" type="GPUParticles3D" parent="." unique_id=1468930010]
+material_override = ExtResource("15_getpj")
+emitting = false
+amount = 600
+lifetime = 6.0
+preprocess = 3.0
+process_material = SubResource("ParticleProcessMaterial_seu75")
+draw_pass_1 = SubResource("QuadMesh_jq2sk")
+script = ExtResource("14_82xsv")
+
+[node name="GrassField" type="MultiMeshInstance3D" parent="." unique_id=551726256]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -55.15, -0.15, -38.12)
+script = ExtResource("16_ryguw")
+placement_area = Vector2(8, 8)
+max_instances = 1200
+grass_mesh = ExtResource("17_d13ii")
+grass_material = ExtResource("18_1u8w0")

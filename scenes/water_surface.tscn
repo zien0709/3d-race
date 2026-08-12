@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://water_surface"]
+
+[node name="WaterSurface" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("res://scripts/water_surface.gd")
+mesh = SubResource("PlaneMesh_5vw27")
+material_override = ExtResource("res://shaders/water.gdshader")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_5vw27"]
+size = Vector2(50, 50)

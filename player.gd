@@ -33,6 +33,11 @@ var road_surface_lookup_ready: bool = false
 var road_triangles: Array[PackedVector2Array] = []
 var road_triangle_grid: Dictionary = {}
 
+## Weather grip multiplier applied by EnvironmentManager (1.0 = dry).
+var weather_grip_multiplier: float = 1.0
+const WET_GRIP_MIN: float = 0.82
+const WET_GRIP_MAX: float = 0.85
+
 const MAX_FORWARD_GEAR := 5
 const ROAD_GRID_CELL_SIZE := 4.0
 const UPSHIFT_SPEEDS := [0.0, 8.5, 15.0, 22.0, 28.0, 999.0]
@@ -153,11 +158,22 @@ func _update_surface_response() -> void:
 			and not _is_point_on_road(wheel.global_position)
 		)
 
-		wheel.wheel_friction_slip = grass_tire_grip if wheel_on_grass else road_tire_grip
+		var base_grip := grass_tire_grip if wheel_on_grass else road_tire_grip
+		wheel.wheel_friction_slip = base_grip * weather_grip_multiplier
 		if wheel_on_grass:
 			grass_wheel_count += 1
 
-	grass_contact_ratio = float(grass_wheel_count) / float(WHEEL_SETTINGS.size())
+		grass_contact_ratio = float(grass_wheel_count) / float(WHEEL_SETTINGS.size())
+
+
+## Called by EnvironmentManager when weather intensity changes.
+## Reduces tire grip on wet/snowy surfaces (dry = 1.0).
+func update_weather_effects(intensity: float) -> void:
+	weather_grip_multiplier = lerpf(1.0, WET_GRIP_MIN, clampf(intensity, 0.0, 1.0))
+	for wheel_name in WHEEL_SETTINGS:
+		var wheel := get_node_or_null("Wheel%s" % wheel_name) as VehicleWheel3D
+		if wheel != null:
+			wheel.wheel_friction_slip = lerpf(road_tire_grip, grass_tire_grip, grass_contact_ratio) * weather_grip_multiplier
 
 
 func _build_road_surface_lookup() -> void:

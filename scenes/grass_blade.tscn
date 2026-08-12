@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://grass_blade_mesh"]
+
+[node name="GrassBlade" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_7mycd")
+material_override = ExtResource("res://shaders/grass.gdshader")
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_7mycd"]
+size = Vector2(0.1, 0.5)

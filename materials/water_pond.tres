@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://bwcq4t0u3pufn"]
+
+[ext_resource type="Shader" path="res://shaders/water.gdshader" id="1_x7k9v"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_x7k9v")
+shader_parameter/wave_speed = 0.35
+shader_parameter/wave_height = 0.05
+shader_parameter/wave_length = 1.6
+shader_parameter/wave_steepness = 0.08
+shader_parameter/water_color = Color(0.03, 0.28, 0.42, 0.92)
+shader_parameter/deep_color = Color(0.01, 0.1, 0.18, 1)
+shader_parameter/reflectivity = 0.55
