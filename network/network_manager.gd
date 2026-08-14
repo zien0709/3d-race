@@ -2,7 +2,7 @@ extends Node
 
 ## 網路管理：單人 / 開房(host) / 加入(client)。
 ## 線上模式透過 Epic Online Services (EOSG 插件)：
-##  - 登入：Epic Dev Auth Tool（開發）或 Epic Account Portal
+##  - 登入：Epic Dev Auth Tool（開發）/ Epic Account Portal / Discord OAuth2
 ##  - 傳輸：EOSGMultiplayerPeer（EOS P2P），host 是 listen server（peer 1）
 
 enum Mode {
@@ -18,11 +18,14 @@ signal eos_initialized(success: bool, message: String)
 signal login_succeeded
 signal login_failed(message: String)
 signal logged_out
+signal discord_oauth_started
+signal discord_oauth_completed(code: String, error: String)
 
 const LOCAL_PEER_ID := 1
 const MAX_PLAYERS := 12  ## 連線數上限（配合 12 格出發位置）
 const EOS_CONFIG_PATH := "res://eos_config.cfg"
 const EOS_SOCKET_ID := "race_3d"
+const DISCORD_REDIRECT_PORT := 14514
 
 var mode: int = Mode.SINGLEPLAYER
 var is_eos_ready := false
@@ -31,6 +34,10 @@ var display_name := ""
 var product_user_id := ""
 
 var _peer = null
+var _oauth_server: TCPServer = null
+var _discord_http: HTTPRequest = null
+var _discord_auth_code := ""
+var _discord_state := ""
 
 
 func _ready() -> void:
@@ -39,6 +46,7 @@ func _ready() -> void:
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
+	discord_oauth_completed.connect(_on_discord_oauth_completed)
 
 
 func set_mode(new_mode: int) -> void:
@@ -56,16 +64,24 @@ func is_host() -> bool:
 	return mode == Mode.HOST
 
 
-func _hauth() -> Variant:
+func _hauth() -> Node:
 	return get_node_or_null("/root/HAuth")
 
 
-func _hplatform() -> Variant:
+func _hplatform() -> Node:
 	return get_node_or_null("/root/HPlatform")
 
 
-func _hlog() -> Variant:
+func _hlog() -> Node:
 	return get_node_or_null("/root/HLog")
+
+
+func _hstats() -> Node:
+	return get_node_or_null("/root/HStats")
+
+
+func _hleaderboards() -> Node:
+	return get_node_or_null("/root/HLeaderboards")
 
 
 # ==========================================================================
@@ -77,8 +93,8 @@ func init_eos() -> void:
 	if is_eos_ready:
 		eos_initialized.emit(true, "")
 		return
-	var hp = _hplatform()
-	var hauth = _hauth()
+	var hp := _hplatform()
+	var hauth := _hauth()
 	if hp == null or hauth == null or not hp.has_method("setup_eos_async"):
 		eos_initialized.emit(false, "EOS 執行期未就緒（檢查 EOSG 插件 / GDExtension）")
 		return
@@ -104,9 +120,9 @@ func init_eos() -> void:
 				"EOS 憑證不完整：請在 %s 填入 product_id / sandbox_id / deployment_id / client_id / client_secret" % EOS_CONFIG_PATH)
 		return
 
-	var hlog = _hlog()
+	var hlog := _hlog()
 	if hlog != null:
-		hlog.log_level = int(hlog.LogLevel.INFO) if "LogLevel" in hlog else 0
+		hlog.set("log_level", int(0) if not "LogLevel" in hlog else int(HLog.LogLevel.INFO))
 	hp.log_msg.connect(_on_eos_log, CONNECT_DEFERRED)
 	hauth.logged_in.connect(_on_logged_in)
 	hauth.logged_out.connect(_on_logged_out)
@@ -120,7 +136,7 @@ func init_eos() -> void:
 	eos_initialized.emit(true, "")
 
 
-## 依設定檔 [login] method 選擇登入方式（devtool / account_portal）
+## 依設定檔 [login] method 選擇登入方式（devtool / account_portal / discord）
 func login() -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化，請先呼叫 init_eos()")
@@ -134,6 +150,14 @@ func login() -> void:
 		if method == "anonymous":
 			login_anonymous()
 			return
+		if method == "discord":
+			var dc_id: String = config.get_value("discord", "client_id", "")
+			if dc_id.is_empty():
+				push_warning("Discord client_id 未設定，退回 DevAuthTool 登入")
+				login_devtool()
+				return
+			login_discord()
+			return
 	login_devtool()
 
 
@@ -142,7 +166,7 @@ func login_devtool(server_url := "", credential_name := "") -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化")
 		return
-	var hauth = _hauth()
+	var hauth := _hauth()
 	if hauth == null or not hauth.has_method("login_devtool_async"):
 		login_failed.emit("EOS 執行期未就緒")
 		return
@@ -162,7 +186,7 @@ func login_account_portal() -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化")
 		return
-	var hauth = _hauth()
+	var hauth := _hauth()
 	if hauth == null or not hauth.has_method("login_account_portal_async"):
 		login_failed.emit("EOS 執行期未就緒")
 		return
@@ -177,7 +201,7 @@ func login_anonymous(display_name := "") -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化")
 		return
-	var hauth = _hauth()
+	var hauth := _hauth()
 	if hauth == null or not hauth.has_method("login_anonymous_async"):
 		login_failed.emit("EOS 執行期未就緒")
 		return
@@ -188,11 +212,143 @@ func login_anonymous(display_name := "") -> void:
 		login_failed.emit("匿名登入失敗")
 
 
+# ==========================================================================
+# Discord OAuth2 登入
+# ==========================================================================
+
+## 啟動 Discord OAuth2 登入流程：
+##   1. 開啟瀏覽器顯示 Discord 授權頁
+##   2. 用 TCPServer 在 localhost 等待回呼
+##   3. 用 access_token 呼叫 EOS Connect 登入
+func login_discord() -> void:
+	if not is_eos_ready:
+		login_failed.emit("EOS 尚未初始化")
+		return
+	var config := ConfigFile.new()
+	if config.load(EOS_CONFIG_PATH) != OK:
+		login_failed.emit("無法讀取 %s" % EOS_CONFIG_PATH)
+		return
+	var client_id: String = config.get_value("discord", "client_id", "")
+	if client_id.is_empty():
+		login_failed.emit("Discord client_id 未設定（請在 eos_config.cfg [discord] 填入）")
+		return
+
+	_discord_state = _random_state()
+	var redirect_uri := "http://localhost:%d/callback" % DISCORD_REDIRECT_PORT
+	var scope := "identify"
+	var url := "https://discord.com/api/oauth2/authorize?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s" % [
+		client_id, redirect_uri.uri_encode(), scope, _discord_state
+	]
+	_start_oauth_server()
+	OS.shell_open(url)
+	discord_oauth_started.emit()
+
+
+## 用 Discord access_token 透過 EOS Connect 登入（Auth → Connect 流程）。
+func login_discord_with_token(access_token: String) -> void:
+	if not is_eos_ready:
+		login_failed.emit("EOS 尚未初始化")
+		return
+	var hauth := _hauth()
+	if hauth == null:
+		login_failed.emit("EOS 執行期未就緒")
+		return
+
+	var eos := _eos_class()
+	if eos == null:
+		login_failed.emit("EOS 型別未載入")
+		return
+
+	var opts = eos.Auth.LoginOptions.new()
+	opts.credentials = eos.Auth.Credentials.new()
+	opts.credentials.type = eos.Auth.LoginCredentialType.ExternalAuth
+	opts.credentials.external_type = eos.ExternalCredentialType.DiscordAccessToken
+	opts.credentials.token = access_token
+	opts.scope_flags = eos.Auth.ScopeFlags.NoFlags
+	opts.login_flags = eos.Auth.LoginFlags.None
+
+	var ok: bool = await hauth.login_async(opts)
+	if not ok:
+		login_failed.emit("Discord 登入失敗（請確認 Discord 帳號已關聯到 Epic 帳戶）")
+
+
+func _start_oauth_server() -> void:
+	_stop_oauth_server()
+	_oauth_server = TCPServer.new()
+	var err := _oauth_server.listen(DISCORD_REDIRECT_PORT)
+	if err != OK:
+		discord_oauth_completed.emit("", "無法啟動回呼伺服器（port %d）" % DISCORD_REDIRECT_PORT)
+		return
+
+
+func _stop_oauth_server() -> void:
+	if _oauth_server:
+		_oauth_server.stop()
+		_oauth_server = null
+
+
+## 用授權碼換取 Discord access_token（透過 Discord API）。
+func _exchange_code_for_token(code: String) -> void:
+	var config := ConfigFile.new()
+	if config.load(EOS_CONFIG_PATH) != OK:
+		discord_oauth_completed.emit("", "無法讀取設定檔")
+		return
+	var client_id: String = config.get_value("discord", "client_id", "")
+	var client_secret: String = config.get_value("discord", "client_secret", "")
+	var redirect_uri := "http://localhost:%d/callback" % DISCORD_REDIRECT_PORT
+
+	_discord_http = HTTPRequest.new()
+	add_child(_discord_http)
+	_discord_http.request_completed.connect(_on_discord_token_response)
+
+	var body := "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&redirect_uri=%s" % [
+		client_id.uri_encode(), client_secret.uri_encode(), code.uri_encode(), redirect_uri.uri_encode()
+	]
+	_discord_http.request(
+		"https://discord.com/api/oauth2/token",
+		["Content-Type: application/x-www-form-urlencoded"],
+		HTTPClient.METHOD_POST,
+		body
+	)
+
+
+func _on_discord_token_response(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	if _discord_http:
+		_discord_http.queue_free()
+		_discord_http = null
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		var msg := "Discord token 交換失敗（HTTP %d）" % response_code
+		discord_oauth_completed.emit("", msg)
+		return
+	var json_text := body.get_string_from_utf8()
+	var parsed: Variant = JSON.parse_string(json_text)
+	if parsed == null or not (parsed is Dictionary):
+		discord_oauth_completed.emit("", "Discord token 交換失敗：回應格式異常")
+		return
+	var json_dict: Dictionary = parsed as Dictionary
+	if not json_dict.has("access_token"):
+		discord_oauth_completed.emit("", "Discord token 交換失敗：回應格式異常")
+		return
+	var access_token: String = json_dict["access_token"] as String
+	await login_discord_with_token(access_token)
+
+
+func _random_state() -> String:
+	var s := ""
+	for i in range(32):
+		s += "0123456789abcdef"[randi() % 16]
+	return s
+
+
+func _eos_class() -> GDScript:
+	return load("res://addons/epic-online-services-godot/eos.gd") as GDScript
+
+
 func logout() -> void:
 	if not is_logged_in:
 		return
 	disconnect_from_game()
-	var hauth = _hauth()
+	var hauth := _hauth()
 	if hauth != null and hauth.has_method("logout_async"):
 		await hauth.logout_async()
 
@@ -286,9 +442,15 @@ func _on_server_disconnected() -> void:
 
 func _on_logged_in() -> void:
 	is_logged_in = true
-	var hauth = _hauth()
-	display_name = hauth.get("display_name", "") if hauth != null else ""
-	product_user_id = hauth.get("product_user_id", "") if hauth != null else ""
+	var hauth := _hauth()
+	if hauth != null:
+		var disp: Variant = hauth.get("display_name")
+		display_name = str(disp) if disp != null else ""
+		var uid: Variant = hauth.get("product_user_id")
+		product_user_id = str(uid) if uid != null else ""
+	else:
+		display_name = ""
+		product_user_id = ""
 	login_succeeded.emit()
 
 
@@ -302,3 +464,82 @@ func _on_logged_out() -> void:
 func _on_eos_log(msg) -> void:
 	## 之後可接 UI / 檔案 log
 	pass
+
+
+# ==========================================================================
+# Discord OAuth2 回呼處理（在 _process 輪詢）
+# ==========================================================================
+
+var _oauth_conn: StreamPeerTCP = null
+var _oauth_conn_time := 0.0
+
+
+func _process(delta: float) -> void:
+	# 輪詢 OAuth 回呼連線
+	if _oauth_server and _oauth_server.is_connection_available():
+		_oauth_conn = _oauth_server.take_connection()
+		_oauth_conn_time = 0.0
+	if _oauth_conn:
+		_oauth_conn_time += delta
+		if _oauth_conn.get_available_bytes() > 0:
+			_handle_oauth_response(_oauth_conn)
+		elif _oauth_conn_time > 10.0:
+			_oauth_conn.disconnect_from_host()
+			_oauth_conn = null
+			discord_oauth_completed.emit("", "回呼逾時")
+
+
+func _handle_oauth_response(conn: StreamPeerTCP) -> void:
+	var raw: Array = conn.get_data(conn.get_available_bytes())
+	var data: String = ""
+	if raw.size() > 1 and raw[1] is PackedByteArray:
+		data = raw[1].get_string_from_utf8()
+	_stop_oauth_server()
+	_oauth_conn = null
+
+	var code := ""
+	var state := ""
+	var error := ""
+	for line in data.split("\n"):
+		if line.begins_with("GET "):
+			var path_end := line.find(" HTTP/")
+			if path_end > 4:
+				var path := line.substr(4, path_end - 4)
+				var qs_start := path.find("?")
+				if qs_start >= 0:
+					var qs := path.substr(qs_start + 1)
+					for pair in qs.split("&"):
+						var kv := pair.split("=")
+						if kv.size() == 2:
+							match kv[0]:
+								"code":
+									code = kv[1].uri_decode()
+								"state":
+									state = kv[1].uri_decode()
+								"error":
+									error = kv[1].uri_decode()
+			break
+
+	var body := "<html><body><h2>已關閉，請回到遊戲。</h2></body></html>"
+	var resp := "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: %d\r\n\r\n%s" % [body.length(), body]
+	conn.put_data(resp.to_utf8_buffer())
+	conn.disconnect_from_host()
+
+	if error.is_empty() and code.is_empty():
+		discord_oauth_completed.emit("", "授權失敗：未收到授權碼")
+		return
+	if state != _discord_state:
+		discord_oauth_completed.emit("", "授權失敗：state 不匹配（可能為 CSRF 攻擊）")
+		return
+	_discord_auth_code = code
+	discord_oauth_completed.emit(code, "")
+
+
+func _on_discord_oauth_completed(code: String, error: String) -> void:
+	if not error.is_empty():
+		login_failed.emit(error)
+		return
+	if code.is_empty():
+		login_failed.emit("Discord 授權失敗")
+		return
+	await _exchange_code_for_token(code)
