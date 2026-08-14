@@ -8,18 +8,22 @@ const SAVE_PATH: String = "user://race_scores.cfg"
 @onready var checkpoint_label: Label = $"../UI/HUD/Margin/VBox/CheckpointLabel"
 @onready var checkpoint_bar: ProgressBar = $"../UI/HUD/Margin/VBox/CheckpointBar"
 @onready var hud_panel: PanelContainer = $"../UI/HUD"
-@onready var eos_login_button: Button = $"../UI/EOSLoginButton"
+@onready var login_button: Button = $"../UI/StartCenter/MainCard/TabHeader/LoginButton"
+@onready var register_button: Button = $"../UI/StartCenter/MainCard/TabHeader/RegisterButton"
+@onready var play_button: Button = $"../UI/StartCenter/MainCard/TabHeader/PlayButton"
 @onready var finish_center: CenterContainer = $"../UI/FinishCenter"
 @onready var final_time_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/FinalTimeLabel"
 @onready var new_record_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/NewRecordLabel"
 @onready var best_time_label: Label = $"../UI/HUD/Margin/VBox/BestTimeLabel"
-@onready var start_center: CenterContainer = $"../UI/StartCenter"
-@onready var name_input: LineEdit = $"../UI/StartCenter/MainVBox/FormCenter/FormVBox/NameInput"
-@onready var start_button: Button = $"../UI/StartCenter/MainVBox/FormCenter/FormVBox/StartButton"
-@onready var leaderboard_button: Button = %LeaderboardButton
-@onready var leaderboard_center: CenterContainer = %LeaderboardCenter
+@onready var start_center: Control = $"../UI/StartCenter"
+@onready var name_input: LineEdit = $"../UI/StartCenter/MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox/NameInput"
+@onready var start_button: Button = $"../UI/StartCenter/MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox/Footer/StartButton"
+@onready var leaderboard_panel: PanelContainer = %LeaderboardPanel
 @onready var leaderboard_grid: GridContainer = %LeaderboardGrid
-@onready var close_leaderboard_button: Button = %CloseLeaderboardButton
+@onready var leaderboard_title: Label = %LeaderboardTitle
+@onready var local_tab: Button = %LocalTab
+@onready var public_tab: Button = %PublicTab
+@onready var public_leaderboard_grid: GridContainer = %PublicLeaderboardGrid
 @onready var next_player_button: Button = %NextPlayerButton
 @onready var rank_panel: PanelContainer = $"../UI/RankPanel"
 @export var total_checkpoints: int = 2
@@ -30,6 +34,7 @@ var ranking := RaceRanking.new()
 var ranking_update_accum: float = 0.0
 
 var leaderboard: Array = []
+var _showing_public := false
 var player_name: String = ""
 var waiting_for_player: bool = true
 var best_time: float = -1.0
@@ -74,7 +79,8 @@ func restart_race() -> void:
 
 func _process(delta: float) -> void:
 	hud_panel.visible = not waiting_for_player
-	eos_login_button.visible = waiting_for_player
+	login_button.visible = waiting_for_player
+	leaderboard_panel.visible = waiting_for_player
 	if waiting_for_player:
 		return
 	
@@ -99,9 +105,10 @@ func _ready() -> void:
 	
 	start_center.visible = true
 	
-	leaderboard_button.pressed.connect(open_leaderboard)
-	close_leaderboard_button.pressed.connect(close_leaderboard)
 	next_player_button.pressed.connect(prepare_next_player)
+	local_tab.pressed.connect(_on_local_tab_pressed)
+	public_tab.pressed.connect(_on_public_tab_pressed)
+	LeaderboardManager.leaderboard_updated.connect(_on_public_leaderboard_updated)
 	
 	countdown_label.text = ""
 	start_button.pressed.connect(start_race)
@@ -110,12 +117,18 @@ func _ready() -> void:
 
 	rank_panel.visible = false
 
+	# 初始化排行榜分頁狀態（本地為預設）
+	local_tab.disabled = true
+	public_tab.disabled = false
+	leaderboard_grid.visible = true
+	public_leaderboard_grid.visible = false
+
 	# Setup Micro-interactions for interactive UI buttons
+	setup_button_animations(login_button)
+	setup_button_animations(register_button)
+	setup_button_animations(play_button)
 	setup_button_animations(start_button)
-	setup_button_animations(leaderboard_button)
-	setup_button_animations(close_leaderboard_button)
 	setup_button_animations(next_player_button)
-	setup_button_animations(eos_login_button)
 
 
 func setup_button_animations(btn: Button) -> void:
@@ -225,6 +238,10 @@ func finish_race() -> void:
 	ranking.emit_changed()
 
 	register_score(player_name, race_time)
+
+	# 提交到 EOS 公開排行榜（毫秒）
+	if LeaderboardManager and NetworkManager.is_logged_in:
+		LeaderboardManager.submit_race_time(race_time)
 	
 	timer_label.text = "%.2f" % race_time
 	finish_center.visible = true
@@ -435,27 +452,71 @@ func register_score(score_name: String, score_time: float) -> void:
 func is_score_faster(score_a: Dictionary, score_b: Dictionary) -> bool:
 	return float(score_a["time"]) < float(score_b["time"])
 	
-func open_leaderboard() -> void:
+
+func _on_local_tab_pressed() -> void:
+	_showing_public = false
+	leaderboard_title.text = "排行榜"
+	leaderboard_grid.visible = true
+	public_leaderboard_grid.visible = false
+	local_tab.disabled = true
+	public_tab.disabled = false
 	refresh_leaderboard_ui()
 
-	start_center.visible = false
-	leaderboard_center.visible = true
-	leaderboard_center.modulate.a = 0.0
-	leaderboard_center.scale = Vector2(0.85, 0.85)
-	leaderboard_center.pivot_offset = leaderboard_center.size * 0.5
-	var tw := create_tween().set_parallel(true)
-	tw.tween_property(leaderboard_center, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tw.tween_property(leaderboard_center, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _on_public_tab_pressed() -> void:
+	_showing_public = true
+	leaderboard_title.text = "公開排行榜"
+	leaderboard_grid.visible = false
+	public_leaderboard_grid.visible = true
+	local_tab.disabled = false
+	public_tab.disabled = true
+	LeaderboardManager.refresh_leaderboard()
 
 
-func close_leaderboard() -> void:
-	leaderboard_center.visible = false
-	start_center.visible = true
-	start_center.modulate.a = 0.0
-	var tw := create_tween()
-	tw.tween_property(start_center, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+func _on_public_leaderboard_updated(records: Array) -> void:
+	if not _showing_public:
+		return
+	_refresh_public_leaderboard_ui(records)
 
-	name_input.call_deferred("grab_focus")
+
+func _refresh_public_leaderboard_ui(records: Array) -> void:
+	for child in public_leaderboard_grid.get_children():
+		child.queue_free()
+
+	_add_leaderboard_header(public_leaderboard_grid)
+
+	if records.is_empty():
+		_add_leaderboard_row(public_leaderboard_grid, "", "尚無紀錄", "")
+		return
+
+	var count: int = mini(10, records.size())
+	for i in range(count):
+		var rec: Dictionary = records[i]
+		var display_name: String = str(rec.get("display_name", "未知"))
+		var score_int: int = int(rec.get("stat_value", 0))
+		var time_str: String = "%.2f 秒" % (score_int / 1000.0)
+		_add_leaderboard_row(public_leaderboard_grid, str(i + 1), display_name, time_str)
+
+
+func _add_leaderboard_header(grid: GridContainer) -> void:
+	_make_label(grid, "名次", 60.0)
+	_make_label(grid, "姓名", 180.0)
+	_make_label(grid, "時間", 70.0)
+
+
+func _add_leaderboard_row(grid: GridContainer, rank: String, pname: String, time: String) -> void:
+	_make_label(grid, rank, 60.0)
+	_make_label(grid, pname, 180.0)
+	_make_label(grid, time, 70.0)
+
+
+func _make_label(grid: GridContainer, txt: String, min_w: float) -> void:
+	var lbl := Label.new()
+	lbl.text = txt
+	lbl.custom_minimum_size.x = min_w
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 24)
+	grid.add_child(lbl)
 	
 func refresh_leaderboard_ui() -> void:
 	for child in leaderboard_grid.get_children():
@@ -463,33 +524,33 @@ func refresh_leaderboard_ui() -> void:
 
 	add_leaderboard_cell(
 		"名次",
-		100.0
+		60.0
 	)
 
 	add_leaderboard_cell(
 		"姓名",
-		300.0
+		180.0
 	)
 
 	add_leaderboard_cell(
 		"時間",
-		100.0
+		70.0
 	)
 
 	if leaderboard.is_empty():
 		add_leaderboard_cell(
 			"",
-			100.0
+			60.0
 		)
 
 		add_leaderboard_cell(
 			"尚無紀錄",
-			300.0
+			180.0
 		)
 
 		add_leaderboard_cell(
 			"",
-			100.0
+			70.0
 		)
 
 		return
@@ -511,17 +572,17 @@ func refresh_leaderboard_ui() -> void:
 
 		add_leaderboard_cell(
 			str(index + 1),
-			100.0
+			60.0
 		)
 
 		add_leaderboard_cell(
 			score_name,
-			300.0
+			180.0
 		)
 
 		add_leaderboard_cell(
 			"%.2f 秒" % score_time,
-			100.0
+			70.0
 		)
 
 func add_leaderboard_cell(
@@ -568,7 +629,7 @@ func prepare_next_player() -> void:
 
 	finish_center.visible = false
 	new_record_label.visible = false
-	leaderboard_center.visible = false
+	leaderboard_panel.visible = true
 	start_center.visible = true
 
 	if ranking.cars.has(1):
