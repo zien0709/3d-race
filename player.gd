@@ -54,26 +54,35 @@ const GEAR_RPM_SPEED_RANGES := [
 
 const WHEEL_SETTINGS := {
 	"FL": {
-		"position": Vector3(-0.7095, 0.50, -1.2254),
+		"position": Vector3(-1.0247, 0.58, -1.30),
 		"steering": true,
 		"traction": false,
 	},
 	"FR": {
-		"position": Vector3(0.7095, 0.50, -1.2254),
+		"position": Vector3(1.0247, 0.58, -1.30),
 		"steering": true,
 		"traction": false,
 	},
 	"RL": {
-		"position": Vector3(-0.7095, 0.50, 1.1637),
+		"position": Vector3(-1.0247, 0.58, 1.5829),
 		"steering": false,
 		"traction": true,
 	},
 	"RR": {
-		"position": Vector3(0.7095, 0.50, 1.1637),
+		"position": Vector3(1.0247, 0.58, 1.5829),
 		"steering": false,
 		"traction": true,
 	},
 }
+
+const CONCEPT_WHEEL_MAP := {
+	"FL": ["tire_001_R17_001", "rim_235_001"],
+	"FR": ["tire_001_R17_003", "rim_235_003"],
+	"RL": ["tire_001_R17_002", "rim_235_002"],
+	"RR": ["tire_001_R17_004", "rim_235_004"],
+}
+
+const WHEEL_RADIUS := 0.38
 
 
 func _ready() -> void:
@@ -355,41 +364,77 @@ func _apply_upright_stability() -> void:
 
 
 func _configure_model_wheels() -> void:
-	var car_model := get_node_or_null("AE86_2")
+	var car_model := get_node_or_null("ConceptCar")
 	if car_model == null:
-		push_error("AE86_2 model is missing; four-wheel physics could not be configured")
+		car_model = get_node_or_null("AE86_2")
+	if car_model == null:
+		push_error("Vehicle model node is missing; four-wheel physics could not be configured")
 		return
 
+	_disable_fake_shadow(car_model)
+
 	for wheel_name in WHEEL_SETTINGS:
-		var visual_wheel := car_model.find_child(wheel_name, true, false) as VehicleWheel3D
+		var visual_wheels := _find_visual_wheels(car_model, wheel_name)
 		var wheel := get_node_or_null("Wheel%s" % wheel_name) as VehicleWheel3D
-		if visual_wheel == null:
-			push_error("Missing AE86 wheel node: %s" % wheel_name)
+		if visual_wheels.is_empty():
+			push_error("Missing %s visual wheel in model %s" % [wheel_name, car_model.name])
 			continue
 		if wheel == null:
 			push_error("Missing physics wheel node: Wheel%s" % wheel_name)
 			continue
 
-		var settings: Dictionary = WHEEL_SETTINGS[wheel_name]
-		for visual_child in visual_wheel.get_children():
-			if visual_child is MeshInstance3D:
-				visual_child.reparent(wheel, false)
-		visual_wheel.queue_free()
+		for visual_wheel in visual_wheels:
+			_attach_visual_wheel(visual_wheel, wheel)
 
+		var settings: Dictionary = WHEEL_SETTINGS[wheel_name]
 		wheel.position = settings["position"]
 		wheel.rotation = Vector3.ZERO
 		wheel.scale = Vector3.ONE
 		wheel.use_as_steering = bool(settings["steering"])
 		wheel.use_as_traction = bool(settings["traction"])
-		wheel.wheel_radius = 0.31
+		wheel.wheel_radius = WHEEL_RADIUS
 		wheel.wheel_rest_length = 0.18
-		wheel.suspension_travel = 0.12
-		wheel.suspension_stiffness = 32.0
+		wheel.suspension_travel = 0.15
+		wheel.suspension_stiffness = 150.0
 		wheel.suspension_max_force = 9000.0
 		wheel.damping_compression = 2.0
 		wheel.damping_relaxation = 2.4
 		wheel.wheel_friction_slip = road_tire_grip
 		wheel.wheel_roll_influence = 0.02
+
+
+func _find_visual_wheels(car_model: Node3D, wheel_name: String) -> Array[Node3D]:
+	var result: Array[Node3D] = []
+	var direct := car_model.find_child(wheel_name, true, false) as Node3D
+	if direct != null:
+		result.append(direct)
+		return result
+	for group_name in CONCEPT_WHEEL_MAP.get(wheel_name, []):
+		var group := car_model.find_child(group_name, true, false) as Node3D
+		if group != null:
+			result.append(group)
+	return result
+
+
+func _attach_visual_wheel(visual_wheel: Node3D, wheel: VehicleWheel3D) -> void:
+	if visual_wheel is VehicleWheel3D:
+		for visual_child in visual_wheel.get_children():
+			if visual_child is MeshInstance3D:
+				visual_child.reparent(wheel, false)
+		visual_wheel.queue_free()
+		return
+
+	# ConceptCar-style wheel groups are authored in centimeters with their own
+	# scale; the model node's 0.01 scale is lost on reparent, so bake it in.
+	visual_wheel.reparent(wheel, false)
+	visual_wheel.position = Vector3.ZERO
+	visual_wheel.scale = visual_wheel.scale * 0.01
+
+
+func _disable_fake_shadow(car_model: Node3D) -> void:
+	for child in car_model.find_children("*shadow*", "", true, false):
+		if child is Node3D:
+			child.visible = false
 
 
 func respawn_car() -> void:

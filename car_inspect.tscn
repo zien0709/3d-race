@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://cdq7ikv12ys07"]
+
+[ext_resource type="PackedScene" uid="uid://vw54wjuncdts" path="res://Car Model/ConceptCar 050/scene.gltf" id="1_f7drf"]
+[ext_resource type="PackedScene" uid="uid://csrk1f6fryg68" path="res://AE86/AE86_2.glb" id="2_vf4gi"]
+
+[node name="InspectRoot" type="Node3D" unique_id=1984107739]
+
+[node name="ConceptCar" parent="." unique_id=461565383 instance=ExtResource("1_f7drf")]
+
+[node name="AE86Ref" parent="." unique_id=1531117584 instance=ExtResource("2_vf4gi")]
