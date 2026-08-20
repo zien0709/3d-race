@@ -62,3 +62,17 @@ func update_entries(entries: Array) -> void:
 func clear_entries() -> void:
 	for label in _row_labels:
 		label.text = ""
+
+
+func play_intro() -> void:
+	visible = true
+	pivot_offset = size * 0.5
+	scale = Vector2(0.8, 0.8)
+	modulate.a = 0.0
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(self, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(self, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+func hide_panel() -> void:
+	visible = false

@@ -1,0 +1,163 @@
+[gd_scene format=3 uid="uid://b1piyf2oecvnn"]
+
+[ext_resource type="Script" uid="uid://cyg05oxg0je4" path="res://ui/time_trial_start_screen.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="2_theme"]
+[ext_resource type="Script" uid="uid://btounhqdr632d" path="res://ui/menu_tabs.gd" id="3_tabs"]
+
+[node name="StartCenter" type="Control" unique_id=1143439026]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="TitleVBox" type="VBoxContainer" parent="." unique_id=2069064974]
+layout_mode = 0
+offset_left = 32.0
+offset_top = 16.0
+offset_right = 320.0
+offset_bottom = 76.0
+
+[node name="TitleLabel" type="Label" parent="TitleVBox" unique_id=17213208]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95686275, 0.9843137, 0.99607843, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.73333335)
+theme_override_colors/font_outline_color = Color(0.03137255, 0.1254902, 0.1882353, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 48
+text = "3D Race"
+
+[node name="MainCard" type="VBoxContainer" parent="." unique_id=690793920]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -540.0
+offset_top = 80.0
+offset_right = 180.0
+offset_bottom = 680.0
+grow_horizontal = 2
+theme_override_constants/separation = 0
+script = ExtResource("3_tabs")
+
+[node name="TabHeader" type="HBoxContainer" parent="MainCard" unique_id=179119929]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="LoginButton" type="Button" parent="MainCard/TabHeader" unique_id=1872933768]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+toggle_mode = true
+text = "登入"
+
+[node name="RegisterButton" type="Button" parent="MainCard/TabHeader" unique_id=1323330474]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+toggle_mode = true
+text = "註冊"
+
+[node name="PlayButton" type="Button" parent="MainCard/TabHeader" unique_id=1727377975]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+toggle_mode = true
+text = "體驗"
+
+[node name="ContentArea" type="PanelContainer" parent="MainCard" unique_id=1128601364]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="MainCard/ContentArea" unique_id=653440309]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="ContentStack" type="Control" parent="MainCard/ContentArea/Margin" unique_id=1978280440]
+layout_mode = 2
+
+[node name="LoginPage" type="Control" parent="MainCard/ContentArea/Margin/ContentStack" unique_id=1560748299]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="RegisterPage" type="Control" parent="MainCard/ContentArea/Margin/ContentStack" unique_id=343913101]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PlayPage" type="Control" parent="MainCard/ContentArea/Margin/ContentStack" unique_id=1854839966]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PlayCenter" type="CenterContainer" parent="MainCard/ContentArea/Margin/ContentStack/PlayPage" unique_id=588340642]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ContentVBox" type="VBoxContainer" parent="MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter" unique_id=13167395]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="NameInput" type="LineEdit" parent="MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox" unique_id=82302346]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+placeholder_text = "請輸入姓名"
+
+[node name="HintLabel" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox" unique_id=123939682]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.43529412, 0.52156866, 0.5882353, 1)
+theme_override_font_sizes/font_size = 16
+text = "WASD 駕駛 · R 重置 · 通過 7 個檢查點後衝向終點"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox" unique_id=1343459088]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101960786, 0.8156863, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "── TIME ATTACK ──"
+horizontal_alignment = 1
+
+[node name="Footer" type="Control" parent="MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox" unique_id=569177323]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox/Footer" unique_id=1251643359]
+custom_minimum_size = Vector2(160, 60)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -60.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 32
+text = "開始"

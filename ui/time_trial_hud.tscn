@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://dlmmnas6pu2eq"]
+
+[ext_resource type="Script" uid="uid://dti1u6bq7jd1s" path="res://ui/time_trial_hud.gd" id="1_script"]
+
+[node name="HUD" type="PanelContainer" unique_id=669336810]
+visible = false
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 320.0
+offset_bottom = 210.0
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="Margin" type="MarginContainer" parent="." unique_id=383563868]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="Margin" unique_id=853456886]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TimerLabel" type="Label" parent="Margin/VBox" unique_id=887863019]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.101960786, 0.8156863, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6666667)
+theme_override_font_sizes/font_size = 40
+text = "0.00"
+
+[node name="CheckpointLabel" type="Label" parent="Margin/VBox" unique_id=135447600]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8117647, 0.89411765, 0.9411765, 1)
+theme_override_font_sizes/font_size = 20
+text = "檢查點：0 / 7"
+
+[node name="BestTimeLabel" type="Label" parent="Margin/VBox" unique_id=682810081]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.54509807, 0.63529414, 0.7019608, 1)
+theme_override_font_sizes/font_size = 18
+text = "最佳：--"
+
+[node name="CheckpointBar" type="ProgressBar" parent="Margin/VBox" unique_id=1845139897]
+custom_minimum_size = Vector2(240, 8)
+layout_mode = 2
+max_value = 7.0
+show_percentage = false

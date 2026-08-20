@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://bq4bfthd7tmdf"]
+
+[ext_resource type="Script" uid="uid://fhnpgubqq5bv" path="res://dashboard.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="2_theme"]
+
+[node name="Dashboard" type="Control" unique_id=2059773937]
+layout_mode = 3
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -316.0
+offset_top = -206.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")

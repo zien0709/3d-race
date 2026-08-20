@@ -6,13 +6,10 @@ signal race_active_changed(active: bool)
 
 @onready var player: VehicleBody3D = $"../Player"
 @onready var time_trial_hud = $"../UI/HUD"
-@onready var countdown_label: Label = $"../UI/CountdownCenter/CountdownLabel"
+@onready var countdown = $"../UI/CountdownCenter"
 @onready var start_screen = $"../UI/StartCenter"
-@onready var finish_center: CenterContainer = $"../UI/FinishCenter"
-@onready var final_time_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/FinalTimeLabel"
-@onready var new_record_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/NewRecordLabel"
-@onready var leaderboard_ui = %LeaderboardPanel
-@onready var next_player_button: Button = %NextPlayerButton
+@onready var finish_screen = $"../UI/FinishCenter"
+@onready var leaderboard_ui = $"../UI/LeaderboardPanel"
 @onready var rank_panel: PanelContainer = $"../UI/RankPanel"
 @export var total_checkpoints: int = 2
 
@@ -34,11 +31,6 @@ var race_finished: bool = false
 
 var _race_active := false
 
-var _last_countdown_text: String = ""
-var _countdown_tween: Tween
-var _final_time_tween: Tween
-var _record_pulse_tween: Tween
-
 func restart_race() -> void:
 	if player:
 		player.respawn_car()
@@ -53,13 +45,9 @@ func restart_race() -> void:
 	go_display_time = 0.0
 
 	time_trial_hud.reset(total_checkpoints)
-	countdown_label.text = "3"
-	countdown_label.scale = Vector2.ONE
-	countdown_label.modulate = Color.WHITE
-	_last_countdown_text = ""
+	countdown.reset()
 
-	finish_center.visible = false
-	new_record_label.visible = false
+	finish_screen.hide_results()
 
 func _process(delta: float) -> void:
 	var race_active := not waiting_for_player
@@ -70,7 +58,7 @@ func _process(delta: float) -> void:
 	leaderboard_ui.set_waiting(waiting_for_player)
 	if waiting_for_player:
 		return
-	
+
 	update_start_countdown(delta)
 
 	if not race_started or race_finished:
@@ -88,59 +76,16 @@ func _process(delta: float) -> void:
 func _ready() -> void:
 	load_best_time()
 	refresh_best_time_label()
-	
+
 	start_screen.start_requested.connect(_on_start_requested)
 	start_screen.show_for_waiting()
-	
-	next_player_button.pressed.connect(prepare_next_player)
-	
-	countdown_label.text = ""
 
-	rank_panel.visible = false
+	finish_screen.next_player_requested.connect(prepare_next_player)
+	finish_screen.home_requested.connect(_on_home_requested)
 
-	# Setup Micro-interactions for interactive UI buttons
-	setup_button_animations(next_player_button)
+	countdown.clear()
 
-
-func setup_button_animations(btn: Button) -> void:
-	if not btn:
-		return
-	btn.pivot_offset = btn.size * 0.5
-	if not btn.resized.is_connected(_on_btn_resized.bind(btn)):
-		btn.resized.connect(_on_btn_resized.bind(btn))
-	btn.mouse_entered.connect(_on_btn_mouse_entered.bind(btn))
-	btn.mouse_exited.connect(_on_btn_mouse_exited.bind(btn))
-	btn.button_down.connect(_on_btn_button_down.bind(btn))
-	btn.button_up.connect(_on_btn_button_up.bind(btn))
-
-
-func _on_btn_resized(btn: Button) -> void:
-	btn.pivot_offset = btn.size * 0.5
-
-
-func _on_btn_mouse_entered(btn: Button) -> void:
-	if btn.disabled:
-		return
-	var tw := create_tween()
-	tw.tween_property(btn, "scale", Vector2(1.05, 1.05), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-
-func _on_btn_mouse_exited(btn: Button) -> void:
-	var tw := create_tween()
-	tw.tween_property(btn, "scale", Vector2.ONE, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-
-func _on_btn_button_down(btn: Button) -> void:
-	if btn.disabled:
-		return
-	var tw := create_tween()
-	tw.tween_property(btn, "scale", Vector2(0.95, 0.95), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-
-func _on_btn_button_up(btn: Button) -> void:
-	var target_scale := Vector2(1.05, 1.05) if btn.is_hovered() else Vector2.ONE
-	var tw := create_tween()
-	tw.tween_property(btn, "scale", target_scale, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	rank_panel.hide_panel()
 
 func setup_ranking(
 	checkpoint_positions: Array,
@@ -171,13 +116,7 @@ func start_race(player_name: String) -> void:
 
 	ranking.cars[1]["name"] = player_name
 	ranking.emit_changed()
-	rank_panel.visible = true
-	rank_panel.pivot_offset = rank_panel.size * 0.5
-	rank_panel.scale = Vector2(0.8, 0.8)
-	rank_panel.modulate.a = 0.0
-	var rank_tw := create_tween().set_parallel(true)
-	rank_tw.tween_property(rank_panel, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	rank_tw.tween_property(rank_panel, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	rank_panel.play_intro()
 
 func finish_race() -> void:
 	if race_finished:
@@ -196,39 +135,19 @@ func finish_race() -> void:
 
 	# 提交到 EOS 公開排行榜（毫秒）
 	leaderboard_ui.submit_public(race_time)
-	
+
 	time_trial_hud.set_time(race_time)
-	finish_center.visible = true
-	finish_center.modulate.a = 0.0
-	finish_center.scale = Vector2(0.7, 0.7)
-	finish_center.pivot_offset = finish_center.size * 0.5
-	
-	var pop_tw := create_tween().set_parallel(true)
-	pop_tw.tween_property(finish_center, "modulate:a", 1.0, 0.35).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	pop_tw.tween_property(finish_center, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-	# Count-up timer animation
-	if _final_time_tween and _final_time_tween.is_valid():
-		_final_time_tween.kill()
-	_final_time_tween = create_tween()
-	_final_time_tween.tween_method(func(val: float): final_time_label.text = "成績：%.2f 秒" % val, 0.0, race_time, 0.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var is_new_record := best_time < 0.0 or race_time < best_time
 
-	if best_time < 0.0 or race_time < best_time:
+	if is_new_record:
 		best_time = race_time
 
 		save_best_time()
 		refresh_best_time_label()
 
-		new_record_label.visible = true
-		new_record_label.pivot_offset = new_record_label.get_minimum_size() * 0.5
-		if _record_pulse_tween and _record_pulse_tween.is_valid():
-			_record_pulse_tween.kill()
-		_record_pulse_tween = create_tween().set_loops()
-		_record_pulse_tween.tween_property(new_record_label, "scale", Vector2(1.15, 1.15), 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		_record_pulse_tween.tween_property(new_record_label, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	else:
-		new_record_label.visible = false
-		
+	finish_screen.show_results(race_time, is_new_record)
+
 func register_checkpoint(checkpoint_index: int) -> void:
 	if race_finished:
 		return
@@ -249,16 +168,16 @@ func register_checkpoint(checkpoint_index: int) -> void:
 		"/",
 		total_checkpoints
 	)
-	
+
 func update_start_countdown(delta: float) -> void:
 	if not race_started:
 		countdown_time -= delta
 
 		if countdown_time > 0.0:
-			_set_countdown_text(str(ceili(countdown_time)), Color.WHITE)
+			countdown.set_text(str(ceili(countdown_time)), Color.WHITE)
 		else:
 			race_started = true
-			_set_countdown_text("GO!", Color(0.15, 1.0, 0.4))
+			countdown.set_text("GO!", Color(0.15, 1.0, 0.4))
 			go_display_time = 1.0
 
 		return
@@ -267,24 +186,7 @@ func update_start_countdown(delta: float) -> void:
 		go_display_time -= delta
 
 		if go_display_time <= 0.0:
-			_set_countdown_text("", Color.WHITE)
-
-
-func _set_countdown_text(text: String, color: Color) -> void:
-	countdown_label.text = text
-	countdown_label.modulate = color
-	if text.is_empty():
-		return
-	if text == _last_countdown_text:
-		return
-	_last_countdown_text = text
-	if _countdown_tween and _countdown_tween.is_valid():
-		_countdown_tween.kill()
-	countdown_label.pivot_offset = countdown_label.get_minimum_size() * 0.5
-	_countdown_tween = create_tween()
-	_countdown_tween.tween_property(
-		countdown_label, "scale", Vector2.ONE, 0.35
-	).from(Vector2(0.45, 0.45)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			countdown.set_text("", Color.WHITE)
 
 func load_best_time() -> void:
 	var config := ConfigFile.new()
@@ -296,13 +198,13 @@ func load_best_time() -> void:
 	best_time = float(
 		config.get_value("scores", "best_time", -1.0)
 	)
-	
+
 func save_best_time() -> void:
 	var config := ConfigFile.new()
 
 	# 避免儲存最佳成績時清掉排行榜
 	config.load(SAVE_PATH)
-	
+
 	config.set_value(
 		"scores",
 		"best_time",
@@ -313,7 +215,7 @@ func save_best_time() -> void:
 
 	if error != OK:
 		push_error("無法儲存最佳成績")
-		
+
 func refresh_best_time_label() -> void:
 	time_trial_hud.set_best_time(best_time)
 
@@ -334,13 +236,9 @@ func prepare_next_player() -> void:
 	go_display_time = 0.0
 
 	time_trial_hud.reset(total_checkpoints)
-	countdown_label.text = ""
-	countdown_label.scale = Vector2.ONE
-	countdown_label.modulate = Color.WHITE
-	_last_countdown_text = ""
+	countdown.clear()
 
-	finish_center.visible = false
-	new_record_label.visible = false
+	finish_screen.hide_results()
 	leaderboard_ui.set_waiting(true)
 	start_screen.show_for_waiting()
 
@@ -348,4 +246,7 @@ func prepare_next_player() -> void:
 		ranking.cars[1]["next_index"] = 0
 		ranking.cars[1]["progress"] = 0.0
 		rank_panel.clear_entries()
-	rank_panel.visible = false
+	rank_panel.hide_panel()
+
+func _on_home_requested() -> void:
+	get_tree().change_scene_to_file("res://ui/lobby.tscn")

@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://wtjl8wu3i1kx"]
+
+[ext_resource type="Script" uid="uid://bfbpi4d25jog8" path="res://race/rank_panel.gd" id="1_script"]
+[ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="2_theme"]
+
+[node name="RankPanel" type="PanelContainer" unique_id=1177923342]
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -244.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = 352.0
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
