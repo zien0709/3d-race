@@ -23,5 +23,20 @@
 - A public leaderboard will need a backend that stores the EOS Product User ID, chosen display name, consent record, and verified race result. This implementation does not claim otherwise.
 
 ### Files changed
-- `main.tscn`: populated the existing empty Login and Register page placeholders.
+- `ui/time_trial_start_screen.tscn`: populated the existing empty Login and Register page placeholders.
 - `ui/time_trial_start_screen.gd`: provider routing, registration state, local display preference, and post-login lobby route.
+
+## Stage 2: Post-login lobby
+
+### Layout decisions
+- The login page uses a vertical stack of full-width provider buttons (Epic, Discord, disabled Google) - the "guided" layout.
+- The register page puts the three providers in a compact horizontal row of short buttons (Epic / Discord / Google), then asks for a public display name, Terms acceptance, and shows the create-account button.
+- Google stays disabled everywhere until a real Google OAuth/EOS integration exists; the UI never pretends it is available.
+
+### Login → lobby
+- A successful login from the login tab switches to `res://ui/lobby.tscn`.
+- `res://ui/lobby.tscn` is a scripted root: `ui/lobby_ui.gd` builds the room card, player card, car slots, chat and garage at runtime, and already reads `NetworkManager.display_name` / `product_user_id` for the player card, so a freshly authenticated player is shown correctly without further work.
+
+### Verification status
+- `ui/time_trial_start_screen.gd` and `.tscn` pass Godot script/scene parsing (verified via editor diagnostics).
+- Runtime launch is currently blocked by pre-existing parse errors in `res://race_manager.gd` (undeclared leaderboard/hud variables) which belong to parallel work and are intentionally not touched by this change. Once that file compiles, the login flow can be exercised end to end.
