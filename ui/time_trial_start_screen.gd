@@ -93,13 +93,15 @@ func _on_login_succeeded() -> void:
 		return
 	_auth_in_progress = false
 	_set_auth_controls(false)
+	# 從雲端（PlayerDataStorage）或本地快取讀回暱稱
+	var saved_name := await _restore_display_name()
 	if not _registration_flow:
 		get_tree().change_scene_to_file("res://ui/lobby.tscn")
 		return
 	_identity_verified = true
 	if username_input.text.strip_edges().is_empty():
 		var preferred_name := name_input.text.strip_edges()
-		username_input.text = preferred_name if not preferred_name.is_empty() else NetworkManager.display_name
+		username_input.text = preferred_name if not preferred_name.is_empty() else saved_name
 	registration_status.text = "帳號已驗證。設定公開暱稱後即可開始。"
 	_refresh_registration_button()
 
@@ -123,13 +125,24 @@ func _on_create_account_pressed() -> void:
 	var nickname := username_input.text.strip_edges()
 	if nickname.is_empty() or not _identity_verified or not terms_check_box.button_pressed:
 		return
-	# Credentials remain with the external provider; this only stores local display preferences.
-	var profile := ConfigFile.new()
-	profile.set_value("profile", "display_name", nickname)
-	profile.set_value("profile", "product_user_id", NetworkManager.product_user_id)
-	profile.set_value("profile", "terms_accepted", true)
-	profile.save("user://player_profile.cfg")
+	create_account_button.disabled = true
+	# Credentials remain with the external provider; this only stores display preferences.
+	var profile := {
+		"display_name": nickname,
+		"product_user_id": NetworkManager.product_user_id,
+		"terms_accepted": true,
+	}
+	var cloud_ok := false
+	if PlayerStorage.is_available():
+		registration_status.text = "正在同步暱稱到雲端…"
+		cloud_ok = await PlayerStorage.save_profile(profile)
+	# 無論雲端成功與否都保留本地快取作為 fallback
+	_save_local_profile(nickname)
 	NetworkManager.display_name = nickname
+	if cloud_ok:
+		registration_status.text = "暱稱已同步到雲端。"
+	else:
+		registration_status.text = "雲端同步未完成，暱稱僅儲存於本機。"
 	get_tree().change_scene_to_file("res://ui/lobby.tscn")
 
 
@@ -138,6 +151,39 @@ func _set_auth_controls(disabled: bool) -> void:
 	discord_login_button.disabled = disabled
 	epic_register_button.disabled = disabled
 	discord_register_button.disabled = disabled
+
+
+# ==========================================================================
+# 暱稱同步（EOS PlayerDataStorage + 本地快取）
+# ==========================================================================
+
+## 登入後讀回暱稱：優先雲端，其次本地快取（B3 / B4）。
+func _restore_display_name() -> String:
+	if PlayerStorage.is_available():
+		var cloud := await PlayerStorage.load_profile()
+		var cloud_name := str(cloud.get("display_name", ""))
+		if not cloud_name.is_empty():
+			NetworkManager.display_name = cloud_name
+			return cloud_name
+	var local_name := _load_local_display_name()
+	if not local_name.is_empty():
+		NetworkManager.display_name = local_name
+	return local_name
+
+
+func _load_local_display_name() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load("user://player_profile.cfg") != OK:
+		return ""
+	return str(cfg.get_value("profile", "display_name", ""))
+
+
+func _save_local_profile(nickname: String) -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("profile", "display_name", nickname)
+	cfg.set_value("profile", "product_user_id", NetworkManager.product_user_id)
+	cfg.set_value("profile", "terms_accepted", true)
+	cfg.save("user://player_profile.cfg")
 
 
 func _set_auth_status(message: String) -> void:
