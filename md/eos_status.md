@@ -95,6 +95,19 @@
   * B2 註冊按下「建立帳號」時 `save_profile()` 上傳暱稱，仍保留本地快取；雲端失敗不阻擋進 lobby，只提示。
 * PDS 測試帳號：可用 `login_anonymous_async()` 產生 device-id PUID 做 PDS 端到端測試，測試檔可事後 `delete_file` 清除。
 
+### 驗證狀態（2026-08-20）
+* ✅ 專案啟動乾淨（0 parse/compile error）；`PlayerStorage` autoload 正常註冊（`/root/PlayerStorage` 存在）。
+* ✅ B3/B4 回退邏輯已用模擬登入狀態驗證：雲端 `read_file` 失敗（假 PUID）→ 正確回退 `user://player_profile.cfg` 本地快取並設定 `NetworkManager.display_name`。
+* ✅ C1 login 統一分派：`login("bogus")` → 正確 emit「未知登入方式」；`login("epic")` → account_portal。
+* ✅ D1 自動登入：無 token 啟動時靜默失敗（`_suppress_login_error` 抑制錯誤記錄），不干擾 UI。
+* ⛔ **B1 live PDS 讀寫尚未驗證**：需要一個真實登入。目前所有登入方式皆受阻：
+  * `anonymous` → `AccessDenied`：Dev Portal Client Policy 未開 Connect 權限（`authenticate`/`createDeviceId`/`queryProductUserIdMappings` 等）。
+  * `devtool` → DevAuthTool 未執行（localhost:4545 無服務）。
+  * `account_portal` → 需瀏覽器登入 + EAS 已關聯。
+  * `discord` → 使用者明確排除，且 client_id 未填。
+  * **待辦**：在 Dev Portal 的 Client Policy 開啟 Connect 權限後，用 `login_anonymous_async` 或手動 Account Portal 登入，執行
+    `PlayerStorage.save_profile()/has_profile()/load_profile()` 三連驗證。
+
 ---
 
 ## 多人連線測試流程（登入成功後）
