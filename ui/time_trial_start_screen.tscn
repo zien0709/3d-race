@@ -93,6 +93,65 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="LoginCenter" type="CenterContainer" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage" unique_id=1518915061]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="LoginContent" type="VBoxContainer" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter" unique_id=908881220]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent" unique_id=840722751]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "使用帳號登入"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent" unique_id=92650372]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+text = "連結帳號，同步公開排行與賽事紀錄。"
+horizontal_alignment = 1
+
+[node name="EpicLoginButton" type="Button" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent" unique_id=1538482787]
+custom_minimum_size = Vector2(360, 48)
+layout_mode = 2
+tooltip_text = "透過 Epic Account Portal 驗證身份"
+text = "使用 Epic Games 登入"
+
+[node name="DiscordLoginButton" type="Button" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent" unique_id=1713389993]
+custom_minimum_size = Vector2(360, 48)
+layout_mode = 2
+tooltip_text = "透過 Discord OAuth 驗證身份"
+text = "使用 Discord 帳號登入"
+
+[node name="GoogleLoginButton" type="Button" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent" unique_id=1465790570]
+custom_minimum_size = Vector2(360, 48)
+layout_mode = 2
+tooltip_text = "Google 登入尚未設定"
+disabled = true
+text = "使用 Google 帳號登入"
+
+[node name="ProviderSeparator" type="HSeparator" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent" unique_id=1723828287]
+layout_mode = 2
+
+[node name="ProviderNotice" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent" unique_id=169236364]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.39215687, 0.45490196, 0.54509807, 1)
+theme_override_font_sizes/font_size = 12
+text = "Google 登入準備中；登入即同意條款與隱私政策。"
+horizontal_alignment = 1
+
+[node name="AuthStatus" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent" unique_id=701369253]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.21960784, 0.7411765, 0.972549, 1)
+horizontal_alignment = 1
+
 [node name="RegisterPage" type="Control" parent="MainCard/ContentArea/Margin/ContentStack" unique_id=343913101]
 visible = false
 layout_mode = 1
@@ -102,6 +161,84 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="RegisterCenter" type="CenterContainer" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage" unique_id=1898206304]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="RegisterContent" type="VBoxContainer" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter" unique_id=1983041863]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=631453724]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "建立遊戲身份"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=1512399647]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5803922, 0.6392157, 0.72156864, 1)
+text = "選擇帳號提供者，設定賽車暱稱。"
+horizontal_alignment = 1
+
+[node name="RegisterProviderRow" type="HBoxContainer" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=370751166]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EpicRegisterButton" type="Button" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/RegisterProviderRow" unique_id=1131392970]
+custom_minimum_size = Vector2(112, 32)
+layout_mode = 2
+text = "Epic"
+
+[node name="DiscordRegisterButton" type="Button" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/RegisterProviderRow" unique_id=1871498778]
+custom_minimum_size = Vector2(112, 32)
+layout_mode = 2
+text = "Discord"
+
+[node name="GoogleRegisterButton" type="Button" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/RegisterProviderRow" unique_id=1550227397]
+custom_minimum_size = Vector2(112, 32)
+layout_mode = 2
+tooltip_text = "Google 登入尚未設定"
+disabled = true
+text = "Google"
+
+[node name="ProfileSeparator" type="HSeparator" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=1212155314]
+layout_mode = 2
+
+[node name="UsernameInput" type="LineEdit" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=1359817275]
+custom_minimum_size = Vector2(360, 38)
+layout_mode = 2
+placeholder_text = "公開使用者名稱（可沿用體驗模式姓名）"
+max_length = 24
+
+[node name="TermsCheckBox" type="CheckBox" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=1252664335]
+layout_mode = 2
+text = "我同意服務條款與隱私政策"
+
+[node name="CreateAccountButton" type="Button" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=531760005]
+custom_minimum_size = Vector2(360, 44)
+layout_mode = 2
+tooltip_text = "請先完成社群帳號驗證並同意條款"
+disabled = true
+text = "創建帳號並開始比賽"
+
+[node name="RegistrationNotice" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=587934200]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.39215687, 0.45490196, 0.54509807, 1)
+theme_override_font_sizes/font_size = 12
+text = "不建立密碼，本遊戲不保存認證資料。"
+horizontal_alignment = 1
+
+[node name="RegistrationStatus" type="Label" parent="MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent" unique_id=1582345914]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.21960784, 0.7411765, 0.972549, 1)
+horizontal_alignment = 1
 
 [node name="PlayPage" type="Control" parent="MainCard/ContentArea/Margin/ContentStack" unique_id=1854839966]
 layout_mode = 1

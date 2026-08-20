@@ -7,20 +7,151 @@ signal start_requested(player_name: String)
 @onready var play_button: Button = $MainCard/TabHeader/PlayButton
 @onready var name_input: LineEdit = $MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox/NameInput
 @onready var start_button: Button = $MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox/Footer/StartButton
+@onready var epic_login_button: Button = $MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent/EpicLoginButton
+@onready var discord_login_button: Button = $MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent/DiscordLoginButton
+@onready var auth_status: Label = $MainCard/ContentArea/Margin/ContentStack/LoginPage/LoginCenter/LoginContent/AuthStatus
+@onready var epic_register_button: Button = $MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/RegisterProviderRow/EpicRegisterButton
+@onready var discord_register_button: Button = $MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/RegisterProviderRow/DiscordRegisterButton
+@onready var username_input: LineEdit = $MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/UsernameInput
+@onready var terms_check_box: CheckBox = $MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/TermsCheckBox
+@onready var create_account_button: Button = $MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/CreateAccountButton
+@onready var registration_status: Label = $MainCard/ContentArea/Margin/ContentStack/RegisterPage/RegisterCenter/RegisterContent/RegistrationStatus
+
+var _auth_in_progress := false
+var _registration_flow := false
+var _identity_verified := false
+var _requested_provider := ""
 
 
 func _ready() -> void:
 	start_button.pressed.connect(_on_start_pressed)
 	name_input.text_submitted.connect(_on_start_pressed)
+	epic_login_button.pressed.connect(_begin_login.bind("epic", false))
+	discord_login_button.pressed.connect(_begin_login.bind("discord", false))
+	epic_register_button.pressed.connect(_begin_login.bind("epic", true))
+	discord_register_button.pressed.connect(_begin_login.bind("discord", true))
+	terms_check_box.toggled.connect(_refresh_registration_button)
+	username_input.text_changed.connect(_on_username_changed)
+	create_account_button.pressed.connect(_on_create_account_pressed)
+	NetworkManager.eos_initialized.connect(_on_eos_initialized)
+	NetworkManager.login_succeeded.connect(_on_login_succeeded)
+	NetworkManager.login_failed.connect(_on_login_failed)
 
 	setup_button_animations(login_button)
 	setup_button_animations(register_button)
 	setup_button_animations(play_button)
 	setup_button_animations(start_button)
+	setup_button_animations(epic_login_button)
+	setup_button_animations(discord_login_button)
+	setup_button_animations(epic_register_button)
+	setup_button_animations(discord_register_button)
+	setup_button_animations(create_account_button)
+	_refresh_registration_button()
 
 
 func _on_start_pressed(_text: String = "") -> void:
 	start_requested.emit(name_input.text.strip_edges())
+
+
+func _begin_login(provider: String, registration: bool) -> void:
+	if _auth_in_progress:
+		return
+	_auth_in_progress = true
+	_registration_flow = registration
+	_identity_verified = false
+	_requested_provider = provider
+	_set_auth_controls(true)
+	_set_auth_status("正在初始化 %s 登入…" % _provider_name(provider))
+	if NetworkManager.is_eos_ready:
+		_run_requested_login()
+	else:
+		NetworkManager.init_eos()
+
+
+func _on_eos_initialized(success: bool, message: String) -> void:
+	if not _auth_in_progress:
+		return
+	if not success:
+		_on_login_failed(message if not message.is_empty() else "EOS 初始化失敗")
+		return
+	_run_requested_login()
+
+
+func _run_requested_login() -> void:
+	_set_auth_status("正在開啟 %s 授權…" % _provider_name(_requested_provider))
+	match _requested_provider:
+		"epic":
+			NetworkManager.login_account_portal()
+		"discord":
+			NetworkManager.login_discord()
+		_:
+			_on_login_failed("此登入提供者尚未設定")
+
+
+func _on_login_succeeded() -> void:
+	if not _auth_in_progress:
+		return
+	_auth_in_progress = false
+	_set_auth_controls(false)
+	if not _registration_flow:
+		get_tree().change_scene_to_file("res://ui/lobby.tscn")
+		return
+	_identity_verified = true
+	if username_input.text.strip_edges().is_empty():
+		var preferred_name := name_input.text.strip_edges()
+		username_input.text = preferred_name if not preferred_name.is_empty() else NetworkManager.display_name
+	registration_status.text = "帳號已驗證。設定公開暱稱後即可開始。"
+	_refresh_registration_button()
+
+
+func _on_login_failed(message: String) -> void:
+	_auth_in_progress = false
+	_set_auth_controls(false)
+	_set_auth_status(message if not message.is_empty() else "登入失敗，請再試一次。")
+
+
+func _on_username_changed(_new_text: String) -> void:
+	_refresh_registration_button()
+
+
+func _refresh_registration_button(_pressed := false) -> void:
+	var can_create := _identity_verified and terms_check_box.button_pressed and not username_input.text.strip_edges().is_empty()
+	create_account_button.disabled = not can_create
+
+
+func _on_create_account_pressed() -> void:
+	var nickname := username_input.text.strip_edges()
+	if nickname.is_empty() or not _identity_verified or not terms_check_box.button_pressed:
+		return
+	# Credentials remain with the external provider; this only stores local display preferences.
+	var profile := ConfigFile.new()
+	profile.set_value("profile", "display_name", nickname)
+	profile.set_value("profile", "product_user_id", NetworkManager.product_user_id)
+	profile.set_value("profile", "terms_accepted", true)
+	profile.save("user://player_profile.cfg")
+	NetworkManager.display_name = nickname
+	get_tree().change_scene_to_file("res://ui/lobby.tscn")
+
+
+func _set_auth_controls(disabled: bool) -> void:
+	epic_login_button.disabled = disabled
+	discord_login_button.disabled = disabled
+	epic_register_button.disabled = disabled
+	discord_register_button.disabled = disabled
+
+
+func _set_auth_status(message: String) -> void:
+	auth_status.text = message
+	registration_status.text = message if _registration_flow else ""
+
+
+func _provider_name(provider: String) -> String:
+	match provider:
+		"epic":
+			return "Epic Games"
+		"discord":
+			return "Discord"
+	return provider
 
 
 func clear_name() -> void:
