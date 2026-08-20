@@ -11,12 +11,7 @@ signal race_active_changed(active: bool)
 @onready var finish_center: CenterContainer = $"../UI/FinishCenter"
 @onready var final_time_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/FinalTimeLabel"
 @onready var new_record_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/NewRecordLabel"
-@onready var leaderboard_panel: PanelContainer = %LeaderboardPanel
-@onready var leaderboard_grid: GridContainer = %LeaderboardGrid
-@onready var leaderboard_title: Label = %LeaderboardTitle
-@onready var local_tab: Button = %LocalTab
-@onready var public_tab: Button = %PublicTab
-@onready var public_leaderboard_grid: GridContainer = %PublicLeaderboardGrid
+@onready var leaderboard_ui = %LeaderboardPanel
 @onready var next_player_button: Button = %NextPlayerButton
 @onready var rank_panel: PanelContainer = $"../UI/RankPanel"
 @export var total_checkpoints: int = 2
@@ -26,8 +21,6 @@ const RANKING_UPDATE_INTERVAL: float = 0.15
 var ranking := RaceRanking.new()
 var ranking_update_accum: float = 0.0
 
-var leaderboard: Array = []
-var _showing_public := false
 var player_name: String = ""
 var waiting_for_player: bool = true
 var best_time: float = -1.0
@@ -64,7 +57,7 @@ func restart_race() -> void:
 	countdown_label.scale = Vector2.ONE
 	countdown_label.modulate = Color.WHITE
 	_last_countdown_text = ""
-	
+
 	finish_center.visible = false
 	new_record_label.visible = false
 
@@ -74,7 +67,7 @@ func _process(delta: float) -> void:
 		_race_active = race_active
 		race_active_changed.emit(race_active)
 	time_trial_hud.set_waiting(waiting_for_player)
-	leaderboard_panel.visible = waiting_for_player
+	leaderboard_ui.set_waiting(waiting_for_player)
 	if waiting_for_player:
 		return
 	
@@ -93,7 +86,6 @@ func _process(delta: float) -> void:
 		ranking.emit_changed()
 
 func _ready() -> void:
-	load_leaderboard()
 	load_best_time()
 	refresh_best_time_label()
 	
@@ -101,19 +93,10 @@ func _ready() -> void:
 	start_screen.show_for_waiting()
 	
 	next_player_button.pressed.connect(prepare_next_player)
-	local_tab.pressed.connect(_on_local_tab_pressed)
-	public_tab.pressed.connect(_on_public_tab_pressed)
-	LeaderboardManager.leaderboard_updated.connect(_on_public_leaderboard_updated)
 	
 	countdown_label.text = ""
 
 	rank_panel.visible = false
-
-	# 初始化排行榜分頁狀態（本地為預設）
-	local_tab.disabled = true
-	public_tab.disabled = false
-	leaderboard_grid.visible = true
-	public_leaderboard_grid.visible = false
 
 	# Setup Micro-interactions for interactive UI buttons
 	setup_button_animations(next_player_button)
@@ -209,11 +192,10 @@ func finish_race() -> void:
 	ranking.mark_finished(1)
 	ranking.emit_changed()
 
-	register_score(player_name, race_time)
+	leaderboard_ui.register_score(player_name, race_time)
 
 	# 提交到 EOS 公開排行榜（毫秒）
-	if LeaderboardManager and NetworkManager.is_logged_in:
-		LeaderboardManager.submit_race_time(race_time)
+	leaderboard_ui.submit_public(race_time)
 	
 	time_trial_hud.set_time(race_time)
 	finish_center.visible = true
@@ -335,228 +317,6 @@ func save_best_time() -> void:
 func refresh_best_time_label() -> void:
 	time_trial_hud.set_best_time(best_time)
 
-func load_leaderboard() -> void:
-	var config := ConfigFile.new()
-	var error := config.load(SAVE_PATH)
-
-	if error != OK:
-		return
-
-	var saved_leaderboard = config.get_value(
-		"scores",
-		"leaderboard",
-		[]
-	)
-
-	if saved_leaderboard is Array:
-		leaderboard = saved_leaderboard
-		
-func save_leaderboard() -> void:
-	var config := ConfigFile.new()
-
-	# 先讀取原本的檔案，避免清掉 best_time
-	config.load(SAVE_PATH)
-
-	config.set_value(
-		"scores",
-		"leaderboard",
-		leaderboard
-	)
-
-	var error := config.save(SAVE_PATH)
-
-	if error != OK:
-		push_error("無法儲存排行榜")
-		
-func register_score(score_name: String, score_time: float) -> void:
-	var existing_index: int = -1
-
-	for index in range(leaderboard.size()):
-		var score: Dictionary = leaderboard[index]
-
-		if str(score.get("name", "")) == score_name:
-			existing_index = index
-			break
-	
-	if existing_index == -1:
-		# 第一次使用這個名字
-		leaderboard.append({
-			"name": score_name,
-			"time": score_time
-		})
-
-	elif score_time < float(leaderboard[existing_index]["time"]):
-		# 同名，但這次成績更快
-		leaderboard[existing_index]["time"] = score_time
-
-	else:
-		# 同名，而且沒有刷新紀錄
-		return
-
-	leaderboard.sort_custom(is_score_faster)
-
-	#if leaderboard.size() > 10:
-		#leaderboard.resize(10)
-
-	save_leaderboard()
-	refresh_leaderboard_ui()
-
-	print("目前排行榜：", leaderboard)
-	
-func is_score_faster(score_a: Dictionary, score_b: Dictionary) -> bool:
-	return float(score_a["time"]) < float(score_b["time"])
-	
-
-func _on_local_tab_pressed() -> void:
-	_showing_public = false
-	leaderboard_title.text = "排行榜"
-	leaderboard_grid.visible = true
-	public_leaderboard_grid.visible = false
-	local_tab.disabled = true
-	public_tab.disabled = false
-	refresh_leaderboard_ui()
-
-
-func _on_public_tab_pressed() -> void:
-	_showing_public = true
-	leaderboard_title.text = "公開排行榜"
-	leaderboard_grid.visible = false
-	public_leaderboard_grid.visible = true
-	local_tab.disabled = false
-	public_tab.disabled = true
-	LeaderboardManager.refresh_leaderboard()
-
-
-func _on_public_leaderboard_updated(records: Array) -> void:
-	if not _showing_public:
-		return
-	_refresh_public_leaderboard_ui(records)
-
-
-func _refresh_public_leaderboard_ui(records: Array) -> void:
-	for child in public_leaderboard_grid.get_children():
-		child.queue_free()
-
-	_add_leaderboard_header(public_leaderboard_grid)
-
-	if records.is_empty():
-		_add_leaderboard_row(public_leaderboard_grid, "", "尚無紀錄", "")
-		return
-
-	var count: int = mini(10, records.size())
-	for i in range(count):
-		var rec: Dictionary = records[i]
-		var display_name: String = str(rec.get("display_name", "未知"))
-		var score_int: int = int(rec.get("stat_value", 0))
-		var time_str: String = "%.2f 秒" % (score_int / 1000.0)
-		_add_leaderboard_row(public_leaderboard_grid, str(i + 1), display_name, time_str)
-
-
-func _add_leaderboard_header(grid: GridContainer) -> void:
-	_make_label(grid, "名次", 60.0)
-	_make_label(grid, "姓名", 180.0)
-	_make_label(grid, "時間", 70.0)
-
-
-func _add_leaderboard_row(grid: GridContainer, rank: String, pname: String, time: String) -> void:
-	_make_label(grid, rank, 60.0)
-	_make_label(grid, pname, 180.0)
-	_make_label(grid, time, 70.0)
-
-
-func _make_label(grid: GridContainer, txt: String, min_w: float) -> void:
-	var lbl := Label.new()
-	lbl.text = txt
-	lbl.custom_minimum_size.x = min_w
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 24)
-	grid.add_child(lbl)
-	
-func refresh_leaderboard_ui() -> void:
-	for child in leaderboard_grid.get_children():
-		child.queue_free()
-
-	add_leaderboard_cell(
-		"名次",
-		60.0
-	)
-
-	add_leaderboard_cell(
-		"姓名",
-		180.0
-	)
-
-	add_leaderboard_cell(
-		"時間",
-		70.0
-	)
-
-	if leaderboard.is_empty():
-		add_leaderboard_cell(
-			"",
-			60.0
-		)
-
-		add_leaderboard_cell(
-			"尚無紀錄",
-			180.0
-		)
-
-		add_leaderboard_cell(
-			"",
-			70.0
-		)
-
-		return
-
-	var display_count: int = mini(10, leaderboard.size())
-		
-	for index in range(display_count):
-		var score: Dictionary = leaderboard[index]
-#
-		var score_name: String = str(
-			score.get("name", "未知")
-		)
-
-		var score_time: float = float(
-			score.get("time", 0.0)
-		)
-		
-		
-
-		add_leaderboard_cell(
-			str(index + 1),
-			60.0
-		)
-
-		add_leaderboard_cell(
-			score_name,
-			180.0
-		)
-
-		add_leaderboard_cell(
-			"%.2f 秒" % score_time,
-			70.0
-		)
-
-func add_leaderboard_cell(
-	cell_text: String,
-	minimum_width: float
-) -> void:
-	var cell_label := Label.new()
-
-	cell_label.text = cell_text
-	cell_label.custom_minimum_size.x = minimum_width
-	cell_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cell_label.add_theme_font_size_override("font_size", 24)
-
-	cell_label.add_theme_font_size_override(
-		"font_size",
-		24
-	)
-
-	leaderboard_grid.add_child(cell_label)
-
 func prepare_next_player() -> void:
 	player.respawn_car()
 
@@ -581,7 +341,7 @@ func prepare_next_player() -> void:
 
 	finish_center.visible = false
 	new_record_label.visible = false
-	leaderboard_panel.visible = true
+	leaderboard_ui.set_waiting(true)
 	start_screen.show_for_waiting()
 
 	if ranking.cars.has(1):

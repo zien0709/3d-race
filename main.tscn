@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://bxnmkg3045ww3" path="res://race_map.glb" id="8_map"]
 [ext_resource type="PackedScene" uid="uid://d2g1ppqgwlewj" path="res://player.tscn" id="9_4c57u"]
 [ext_resource type="Script" uid="uid://dti1u6bq7jd1s" path="res://ui/time_trial_hud.gd" id="9_cegan"]
+[ext_resource type="Script" uid="uid://orswd61k0fbt" path="res://ui/time_trial_leaderboard.gd" id="9_getpj"]
 [ext_resource type="Script" uid="uid://jcp3kan67dxe" path="res://race_course_setup.gd" id="9_setup"]
 [ext_resource type="Script" uid="uid://fhnpgubqq5bv" path="res://dashboard.gd" id="10_dashboard"]
 [ext_resource type="Script" uid="uid://bulnt0tdwhscf" path="res://race/player_spawner.gd" id="10_efxa6"]
@@ -524,6 +525,7 @@ offset_right = -16.0
 offset_bottom = -16.0
 grow_horizontal = 0
 theme = ExtResource("5_dg77c")
+script = ExtResource("9_getpj")
 
 [node name="Margin" type="MarginContainer" parent="UI/LeaderboardPanel" unique_id=569051012]
 layout_mode = 2
