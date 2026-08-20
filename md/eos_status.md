@@ -70,6 +70,33 @@
 為了解決原先 UI 上「點擊一次初始化，必須再點擊第二次才能登入」的 UX 問題，我們已將 `res://ui/eos_login_button.gd` 優化：
 *   **調整後**：玩家點擊「登入」時，若 EOS 尚未初始化，會顯示「登入中...」並在背景自動完成 `init_eos()`。初始化成功後，**程式會自動直接觸發登入流程**，玩家僅需點擊一次，即可一步到位完成連線。
 
+## PlayerDataStorage（雲端暱稱）實作註記（B1-B4）
+
+> 需求：註冊後將暱稱上傳到 EOS PlayerDataStorage；帳號本質仍是外部 provider（Epic/Discord），但要連結到使用者的 EOS 並自動建立 PUID。
+
+### 重要觀念（勿再踩坑）
+* **PUID 是插件自動建立的**：`HAuth.login_game_services_async()` 在 Connect 登入回傳 `InvalidUser` 時，會自動呼叫 `_create_user_async()` 建立 PUID（`hauth.gd:539`）。**不需要自己實作 create_user**。
+* **PlayerDataStorage 不需要特殊 Platform flag**：插件 `PlatformFlags`（eos.gd:741）沒有 `EnablePlayerDataStorage` 是正常的。只要 `CreateOptions.encryption_key`（eos_config.cfg `[eos] encryption_key`）+ `cache_directory`（hplatform.gd 預設 `user://eosg-cache`）有設，`EOS_Platform_GetPlayerDataStorageInterface` 就會回傳非 null。
+* 所有 PDS 操作都是**非同步**：用 `await IEOS.playerdatastorage_interface_*_callback` 等結果。
+
+### 低階 API 用法（對應 `src/playerdatastorage_interface.cpp`）
+| 操作 | 呼叫 | 完成訊號 | 回傳字典 key |
+|---|---|---|---|
+| 查檔 | `EOS.PlayerDataStorage.PlayerDataStorageInterface.query_file(opts)` | `playerdatastorage_interface_query_file_callback` | `result_code` |
+| 寫檔 | `...write_file(opts)` | `playerdatastorage_interface_write_file_callback` | `result_code`（SDK 自動切 chunk） |
+| 讀檔 | `...read_file(opts)` | chunk: `playerdatastorage_interface_read_file_data_callback` → 完成: `playerdatastorage_interface_read_file_callback` | chunk 有 `data_chunk`(PackedByteArray)/`is_last_chunk`；完成有 `result_code` |
+* options：`local_user_id`（用 `NetworkManager.product_user_id`）、`filename`、`read_chunk_length_bytes`/`chunk_length_bytes`（4096）、`data`(PackedByteArray)。
+* 結果用 `EOS.is_success(dict)` 判斷（eos.gd:38 接受含 `result_code` 的 Dictionary）。
+
+### 專案實作（`network/player_storage.gd`，autoload `PlayerStorage`）
+* `has_profile()` / `load_profile()` / `save_profile(profile)` / `is_available()`，檔名固定 `profile.json`。
+* `ui/time_trial_start_screen.gd`：
+  * B3 登入成功後 `_restore_display_name()`：先雲端、後本地快取 `user://player_profile.cfg`（B4 fallback）。
+  * B2 註冊按下「建立帳號」時 `save_profile()` 上傳暱稱，仍保留本地快取；雲端失敗不阻擋進 lobby，只提示。
+* PDS 測試帳號：可用 `login_anonymous_async()` 產生 device-id PUID 做 PDS 端到端測試，測試檔可事後 `delete_file` 清除。
+
+---
+
 ## 多人連線測試流程（登入成功後）
 
 1.  **本機雙開測試**：

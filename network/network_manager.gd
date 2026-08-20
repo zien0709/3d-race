@@ -38,6 +38,7 @@ var _oauth_server: TCPServer = null
 var _discord_http: HTTPRequest = null
 var _discord_auth_code := ""
 var _discord_state := ""
+var _suppress_login_error := false
 
 
 func _ready() -> void:
@@ -126,6 +127,7 @@ func init_eos() -> void:
 	hp.log_msg.connect(_on_eos_log, CONNECT_DEFERRED)
 	hauth.logged_in.connect(_on_logged_in)
 	hauth.logged_out.connect(_on_logged_out)
+	hauth.login_error.connect(_on_login_error)
 
 	var setup_success: bool = await hp.setup_eos_async(creds)
 	if not setup_success:
@@ -136,29 +138,30 @@ func init_eos() -> void:
 	eos_initialized.emit(true, "")
 
 
-## 依設定檔 [login] method 選擇登入方式（devtool / account_portal / discord）
-func login() -> void:
+## 統一登入入口：provider 為 "epic" / "discord" / "anonymous" / "devtool"。
+## 未指定時依設定檔 [login] method（預設 account_portal）。
+func login(provider := "") -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化，請先呼叫 init_eos()")
 		return
-	var config := ConfigFile.new()
-	if config.load(EOS_CONFIG_PATH) == OK:
-		var method: String = config.get_value("login", "method", "devtool")
-		if method == "account_portal":
+	var method := provider.strip_edges()
+	if method.is_empty():
+		var config := ConfigFile.new()
+		if config.load(EOS_CONFIG_PATH) == OK:
+			method = config.get_value("login", "method", "account_portal")
+		else:
+			method = "account_portal"
+	match method:
+		"epic", "account_portal":
 			login_account_portal()
-			return
-		if method == "anonymous":
-			login_anonymous()
-			return
-		if method == "discord":
-			var dc_id: String = config.get_value("discord", "client_id", "")
-			if dc_id.is_empty():
-				push_warning("Discord client_id 未設定，退回 DevAuthTool 登入")
-				login_devtool()
-				return
+		"discord":
 			login_discord()
-			return
-	login_devtool()
+		"anonymous":
+			login_anonymous()
+		"devtool":
+			login_devtool()
+		_:
+			login_failed.emit("未知登入方式：%s" % method)
 
 
 ## Epic Dev Auth Tool 登入（開發用，需先開 DevAuthTool）
@@ -210,6 +213,20 @@ func login_anonymous(display_name := "") -> void:
 	var ok: bool = await hauth.login_anonymous_async(display_name)
 	if not ok:
 		login_failed.emit("匿名登入失敗")
+
+
+## 嘗試以先前 Account Portal 登入儲存的 refresh token 自動登入。
+## 若無儲存的 token 或登入失敗，回傳 false（不觸發 login_failed）。
+func try_persistent_login() -> bool:
+	if not is_eos_ready:
+		return false
+	var hauth := _hauth()
+	if hauth == null or not hauth.has_method("login_persistent_auth_async"):
+		return false
+	_suppress_login_error = true
+	var ok: bool = await hauth.login_persistent_auth_async()
+	_suppress_login_error = false
+	return ok
 
 
 # ==========================================================================
@@ -349,8 +366,12 @@ func logout() -> void:
 		return
 	disconnect_from_game()
 	var hauth := _hauth()
-	if hauth != null and hauth.has_method("logout_async"):
-		await hauth.logout_async()
+	if hauth != null:
+		if hauth.has_method("logout_async"):
+			await hauth.logout_async()
+		# 清除儲存的 persistent auth refresh token，避免下次啟動自動登入殘留
+		if hauth.has_method("delete_persistent_auth_async"):
+			await hauth.delete_persistent_auth_async()
 
 
 # ==========================================================================
@@ -451,6 +472,10 @@ func _on_logged_in() -> void:
 	else:
 		display_name = ""
 		product_user_id = ""
+	if product_user_id.is_empty():
+		is_logged_in = false
+		login_failed.emit("登入成功但未取得 Product User ID（請確認 EOS Connect 已建立帳號）")
+		return
 	login_succeeded.emit()
 
 
@@ -459,6 +484,17 @@ func _on_logged_out() -> void:
 	display_name = ""
 	product_user_id = ""
 	logged_out.emit()
+
+
+## 記錄 HAuth 登入失敗的實際 EOS 錯誤碼（提供除錯資訊；UI 訊息由各登入方法負責）。
+func _on_login_error(result_code) -> void:
+	if _suppress_login_error:
+		return
+	var code_name := "Unknown"
+	var eos := _eos_class()
+	if eos != null and eos.has_method("result_str"):
+		code_name = eos.result_str(result_code)
+	push_warning("EOS 登入錯誤：%s" % code_name)
 
 
 func _on_eos_log(msg) -> void:

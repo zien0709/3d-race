@@ -47,6 +47,7 @@ func _ready() -> void:
 	setup_button_animations(discord_register_button)
 	setup_button_animations(create_account_button)
 	_refresh_registration_button()
+	_try_auto_login()
 
 
 func _on_start_pressed(_text: String = "") -> void:
@@ -79,13 +80,7 @@ func _on_eos_initialized(success: bool, message: String) -> void:
 
 func _run_requested_login() -> void:
 	_set_auth_status("正在開啟 %s 授權…" % _provider_name(_requested_provider))
-	match _requested_provider:
-		"epic":
-			NetworkManager.login_account_portal()
-		"discord":
-			NetworkManager.login_discord()
-		_:
-			_on_login_failed("此登入提供者尚未設定")
+	NetworkManager.login(_requested_provider)
 
 
 func _on_login_succeeded() -> void:
@@ -114,6 +109,33 @@ func _on_login_failed(message: String) -> void:
 
 func _on_username_changed(_new_text: String) -> void:
 	_refresh_registration_button()
+
+
+# ==========================================================================
+# 自動登入（persistent auth，D1）
+# ==========================================================================
+
+## 啟動時嘗試以先前 Account Portal 登入儲存的 refresh token 自動登入。
+## 無 token 或失敗時靜默返回，不干擾手動登入流程。
+func _try_auto_login() -> void:
+	if NetworkManager.is_logged_in:
+		return
+	if NetworkManager.is_eos_ready:
+		_do_auto_login()
+		return
+	NetworkManager.eos_initialized.connect(_on_auto_login_eos_ready, CONNECT_ONE_SHOT)
+	NetworkManager.init_eos()
+
+
+func _on_auto_login_eos_ready(success: bool, _message: String) -> void:
+	if success:
+		_do_auto_login()
+
+
+func _do_auto_login() -> void:
+	var ok: bool = await NetworkManager.try_persistent_login()
+	if ok:
+		get_tree().change_scene_to_file("res://ui/lobby.tscn")
 
 
 func _refresh_registration_button(_pressed := false) -> void:
