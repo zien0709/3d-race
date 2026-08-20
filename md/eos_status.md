@@ -12,8 +12,11 @@
 
 ### 1. Anonymous (DeviceID) 登入回報 `EOS_AccessDenied`
 *   **【誤區澄清】**：官方文件與實際機制表明，**Device ID 匿名登入完全可以在 Dev/Stage 等任何私有沙盒 (Sandbox) 中使用**，不限於 Live 沙盒。
-*   **【真正原因】**：會拿到 `Access Denied` 是因為您在 Dev Portal 建立的 **Client Policy（用戶端策略）中，沒有勾選並啟用 `Connect` 的相關權限**（如 `createDeviceId` 或 `authenticate`）。
-*   **【解決方案】**：在 Client Policy 中勾選 Connect 服務，即可立刻成功使用 `anonymous` 模式登入！
+*   **【正確觀念修正（2026-08-20，依官方 Client Policy Reference）】**：
+	*   Client Policy 的 **User Required 必須保持勾選**。官方指引：「Select the **User required** checkbox, **unless the client is a trusted server**」。遊戲客戶端（含 anonymous Device ID、account_portal）都屬於非受信任客戶端，必須勾選。
+	*   **「Connect」服務開關是專用伺服器（Trusted Server）用的**，對應 `queryExternalAccountsForAnyUser` / `queryProductUsersForAnyUser` 等「For Any User」權限（官方標註 Requires a trusted server）。**遊戲客戶端不要開 Connect 開關**，否則與 User Required 衝突（也會是資安風險：「Never ship a client ID tied to a trusted server policy with a public game build」）。
+	*   Anonymous 登入真正需要的是：保持 **User Required 勾選** + 在 Policy 中勾選 **Player Data Storage（PDS）** 權限（`access`/`delete`/`copy`，官方標註 Requires an authenticated player）。不需要另外找 `authenticate`/`createDeviceId` 開關。
+	*   *先前把 AccessDenied 歸因於「未勾選 Connect」的紀錄是錯的，已以此修正取代。*
 
 ### 2. DevAuthTool 登入回報 `EOS_InvalidRequest`
 *   **【真正原因】**：DevAuthTool（`devtool` 模式）本質上是透過 Epic 帳號登入（Epic Account Services, 簡稱 EAS）。如果未將您的 Client 綁定到 EAS，或兩端設定的 Scope 權限不吻合，Epic 伺服器就會拒絕該請求，返回 `EOS_InvalidRequest`。
@@ -25,26 +28,24 @@
 
 請依照以下兩個部分的步驟，在 [Epic Developer Portal](https://dev.epicgames.com/portal/) 中進行設定調整：
 
-### 第一部分：修正 Client Policy 權限（解決 `anonymous` 登入與多人連線功能）
+### 第一部分：修正 Client Policy 權限（遊戲客戶端：anonymous / account_portal / PDS）
+
+> ⚠️ 注意：以下針對**遊戲客戶端**的 Client Policy。**「Connect」服務開關請勿開啟**——那是專用伺服器（TrustedServer）查詢玩家資料用的，會與 User Required 衝突。
 
 1.  登入 **Epic Developer Portal**。
 2.  進入您的 Product，在左側選單點擊 **Product Settings** (產品設定)。
 3.  切換到上方的 **Clients** (用戶端) 標籤。
-4.  在您目前使用的 Client (如 `TestP2P`) 右側，查看它所使用的 **Client Policy** 名稱。點擊 **Manage Policies** (管理策略) 或直接點擊 Policy 名稱進行編輯。
-5.  在 Policy 編輯頁面中，下拉到 **Features** (功能權限) 列表：
-	*   **Connect 服務 (至關重要)**：尋找 `Connect` 欄位並啟用它。務必勾選以下子項目：
-		*   `authenticate` (認證)
-		*   `createDeviceId` (建立裝置識別碼)
-		*   `findProductUserIdMap`
-		*   `queryProductUserIdMappings`
-	*   **Lobby 服務 (開房必備)**：尋找 `Lobby` 欄位並啟用它，務必勾選：
-		*   `createLobby` (建立大廳)
-		*   `joinLobby` (加入大廳)
-		*   `updateLobby` (更新大廳屬性/成員狀態)
-		*   `connect` (連接大廳 RTC)
-	*   **P2P 服務 (傳輸連線)**：尋找 `P2P` 欄位並啟用，勾選或直接全開。
+4.  在您目前使用的 Client 右側，查看它所使用的 **Client Policy** 名稱。點擊 **Manage Policies** (管理策略) 或直接點擊 Policy 名稱進行編輯。
+5.  在 Policy 編輯頁面中：
+	*   **確認「User Required」為勾選狀態**（遊戲客戶端必須勾選；只有專用伺服器才取消）。
+	*   下拉到 **Features** (功能權限) 列表，勾選需要的服務：
+		*   **Player Data Storage（雲端暱稱/存檔必備）**：勾選 `access`（上傳/下載自己的私有檔案）、需要時加 `delete`/`copy`。
+		*   **Lobby 服務 (開房必備)**：勾選 `createLobby`、`joinLobby`、`updateLobby`、`connect`（Lobby RTC）。
+		*   **P2P 服務 (傳輸連線)**：勾選 `createSession`/`joinSession` 等（或該 policy 類型預設已含）。
+		*   **Stats / Leaderboards（排行榜）**：勾選對應權限。
+		*   **請勿**勾選 Connect 服務下的 `queryExternalAccountsForAnyUser` / `queryProductUsersForAnyUser`（Trusted Server 限定）。
 6.  儲存 Policy 設定。
-7.  **驗證**：在 `eos_config.cfg` 中將 `method` 改為 `"anonymous"`，啟動遊戲點擊登入。此時 Device ID 匿名登入應能秒速成功！
+7.  **驗證**：在 `eos_config.cfg` 中將 `method` 改為 `"anonymous"`，啟動遊戲點擊登入。Device ID 匿名登入應能成功（PDS 也可測）。
 
 ---
 
@@ -105,8 +106,9 @@
   * `devtool` → DevAuthTool 未執行（localhost:4545 無服務）。
   * `account_portal` → 需瀏覽器登入 + EAS 已關聯。
   * `discord` → 使用者明確排除，且 client_id 未填。
-  * **待辦**：在 Dev Portal 的 Client Policy 開啟 Connect 權限後，用 `login_anonymous_async` 或手動 Account Portal 登入，執行
+  * **待辦（已定案）**：走 **account_portal** 流程，由使用者在瀏覽器手動登入白名單 Epic 帳號；登入成功後執行
     `PlayerStorage.save_profile()/has_profile()/load_profile()` 三連驗證。
+  * 後續再做：**Device ID 訪客匿名登入** + 之後引導綁定 EAS（Epic 帳號）。屆時 Client Policy 需保持 User Required 勾選並開 PDS 權限。
 
 ---
 
