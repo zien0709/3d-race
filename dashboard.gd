@@ -27,11 +27,17 @@ const TEXT_MUTED := Color(0.55, 0.66, 0.74, 1.0)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if race_manager and race_manager.has_signal("race_active_changed"):
+		race_manager.race_active_changed.connect(_on_race_active_changed)
+		_on_race_active_changed(not bool(race_manager.get("waiting_for_player")))
 	queue_redraw()
 
 
+func _on_race_active_changed(active: bool) -> void:
+	visible = active
+
+
 func _process(delta: float) -> void:
-	visible = not bool(race_manager.get("waiting_for_player"))
 	if not visible:
 		return
 

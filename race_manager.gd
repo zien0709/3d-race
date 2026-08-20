@@ -2,22 +2,15 @@ extends Node
 
 const SAVE_PATH: String = "user://race_scores.cfg"
 
+signal race_active_changed(active: bool)
+
 @onready var player: VehicleBody3D = $"../Player"
-@onready var timer_label: Label = $"../UI/HUD/Margin/VBox/TimerLabel"
+@onready var time_trial_hud = $"../UI/HUD"
 @onready var countdown_label: Label = $"../UI/CountdownCenter/CountdownLabel"
-@onready var checkpoint_label: Label = $"../UI/HUD/Margin/VBox/CheckpointLabel"
-@onready var checkpoint_bar: ProgressBar = $"../UI/HUD/Margin/VBox/CheckpointBar"
-@onready var hud_panel: PanelContainer = $"../UI/HUD"
-@onready var login_button: Button = $"../UI/StartCenter/MainCard/TabHeader/LoginButton"
-@onready var register_button: Button = $"../UI/StartCenter/MainCard/TabHeader/RegisterButton"
-@onready var play_button: Button = $"../UI/StartCenter/MainCard/TabHeader/PlayButton"
+@onready var start_screen = $"../UI/StartCenter"
 @onready var finish_center: CenterContainer = $"../UI/FinishCenter"
 @onready var final_time_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/FinalTimeLabel"
 @onready var new_record_label: Label = $"../UI/FinishCenter/FinishPanel/VBoxContainer/NewRecordLabel"
-@onready var best_time_label: Label = $"../UI/HUD/Margin/VBox/BestTimeLabel"
-@onready var start_center: Control = $"../UI/StartCenter"
-@onready var name_input: LineEdit = $"../UI/StartCenter/MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox/NameInput"
-@onready var start_button: Button = $"../UI/StartCenter/MainCard/ContentArea/Margin/ContentStack/PlayPage/PlayCenter/ContentVBox/Footer/StartButton"
 @onready var leaderboard_panel: PanelContainer = %LeaderboardPanel
 @onready var leaderboard_grid: GridContainer = %LeaderboardGrid
 @onready var leaderboard_title: Label = %LeaderboardTitle
@@ -46,10 +39,10 @@ var next_checkpoint: int = 1
 var race_time: float = 0.0
 var race_finished: bool = false
 
+var _race_active := false
+
 var _last_countdown_text: String = ""
 var _countdown_tween: Tween
-var _bar_tween: Tween
-var _chk_tween: Tween
 var _final_time_tween: Tween
 var _record_pulse_tween: Tween
 
@@ -66,9 +59,7 @@ func restart_race() -> void:
 	countdown_time = 3.0
 	go_display_time = 0.0
 
-	timer_label.text = "0.00"
-	checkpoint_label.text = "檢查點：0 / %d" % total_checkpoints
-	checkpoint_bar.value = 0
+	time_trial_hud.reset(total_checkpoints)
 	countdown_label.text = "3"
 	countdown_label.scale = Vector2.ONE
 	countdown_label.modulate = Color.WHITE
@@ -78,8 +69,11 @@ func restart_race() -> void:
 	new_record_label.visible = false
 
 func _process(delta: float) -> void:
-	hud_panel.visible = not waiting_for_player
-	login_button.visible = waiting_for_player
+	var race_active := not waiting_for_player
+	if race_active != _race_active:
+		_race_active = race_active
+		race_active_changed.emit(race_active)
+	time_trial_hud.set_waiting(waiting_for_player)
 	leaderboard_panel.visible = waiting_for_player
 	if waiting_for_player:
 		return
@@ -90,7 +84,7 @@ func _process(delta: float) -> void:
 		return
 
 	race_time += delta
-	timer_label.text = "%.2f" % race_time
+	time_trial_hud.set_time(race_time)
 
 	ranking_update_accum += delta
 	if ranking_update_accum >= RANKING_UPDATE_INTERVAL:
@@ -103,7 +97,8 @@ func _ready() -> void:
 	load_best_time()
 	refresh_best_time_label()
 	
-	start_center.visible = true
+	start_screen.start_requested.connect(_on_start_requested)
+	start_screen.show_for_waiting()
 	
 	next_player_button.pressed.connect(prepare_next_player)
 	local_tab.pressed.connect(_on_local_tab_pressed)
@@ -111,9 +106,6 @@ func _ready() -> void:
 	LeaderboardManager.leaderboard_updated.connect(_on_public_leaderboard_updated)
 	
 	countdown_label.text = ""
-	start_button.pressed.connect(start_race)
-	name_input.text_submitted.connect(_on_name_submitted)
-	name_input.call_deferred("grab_focus")
 
 	rank_panel.visible = false
 
@@ -124,10 +116,6 @@ func _ready() -> void:
 	public_leaderboard_grid.visible = false
 
 	# Setup Micro-interactions for interactive UI buttons
-	setup_button_animations(login_button)
-	setup_button_animations(register_button)
-	setup_button_animations(play_button)
-	setup_button_animations(start_button)
 	setup_button_animations(next_player_button)
 
 
@@ -180,39 +168,23 @@ func setup_ranking(
 	ranking.register_car(1, "玩家")
 	ranking.changed.connect(rank_panel.update_entries)
 
-func _on_name_submitted(_text: String) -> void:
-	start_race()
-
-
-func start_race() -> void:
-	var entered_name := name_input.text.strip_edges()
+func _on_start_requested(entered_name: String) -> void:
 	if entered_name.is_empty():
-		name_input.placeholder_text = "名字不能空白"
+		start_screen.show_name_error("名字不能空白")
 		return
+	start_race(entered_name)
 
-	player_name = entered_name
+
+func start_race(player_name: String) -> void:
+	self.player_name = player_name
 	waiting_for_player = false
 
-	# Smooth StartCenter Slide & Fade Out
-	start_center.pivot_offset = start_center.size * 0.5
-	var tw := create_tween().set_parallel(true)
-	tw.tween_property(start_center, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	tw.tween_property(start_center, "position:y", start_center.position.y - 40.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	tw.chain().tween_callback(func():
-		start_center.visible = false
-		start_center.modulate.a = 1.0
-		start_center.position.y += 40.0
-	)
+	start_screen.hide_for_race()
 
 	restart_race()
 
 	# HUD Pop In
-	hud_panel.pivot_offset = hud_panel.size * 0.5
-	hud_panel.scale = Vector2(0.8, 0.8)
-	hud_panel.modulate.a = 0.0
-	var hud_tw := create_tween().set_parallel(true)
-	hud_tw.tween_property(hud_panel, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	hud_tw.tween_property(hud_panel, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	time_trial_hud.play_intro()
 
 	ranking.cars[1]["name"] = player_name
 	ranking.emit_changed()
@@ -243,7 +215,7 @@ func finish_race() -> void:
 	if LeaderboardManager and NetworkManager.is_logged_in:
 		LeaderboardManager.submit_race_time(race_time)
 	
-	timer_label.text = "%.2f" % race_time
+	time_trial_hud.set_time(race_time)
 	finish_center.visible = true
 	finish_center.modulate.a = 0.0
 	finish_center.scale = Vector2(0.7, 0.7)
@@ -284,21 +256,7 @@ func register_checkpoint(checkpoint_index: int) -> void:
 		return
 
 	next_checkpoint += 1
-	checkpoint_label.text = "檢查點：%d / %d" % [
-		checkpoint_index,
-		total_checkpoints
-	]
-
-	if _bar_tween and _bar_tween.is_valid():
-		_bar_tween.kill()
-	_bar_tween = create_tween()
-	_bar_tween.tween_property(checkpoint_bar, "value", float(checkpoint_index), 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-
-	checkpoint_label.pivot_offset = checkpoint_label.get_minimum_size() * 0.5
-	if _chk_tween and _chk_tween.is_valid():
-		_chk_tween.kill()
-	_chk_tween = create_tween()
-	_chk_tween.tween_property(checkpoint_label, "scale", Vector2.ONE, 0.3).from(Vector2(1.3, 1.3)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	time_trial_hud.set_checkpoint(checkpoint_index, total_checkpoints)
 
 	ranking.advance_car(1)
 	ranking.emit_changed()
@@ -375,11 +333,7 @@ func save_best_time() -> void:
 		push_error("無法儲存最佳成績")
 		
 func refresh_best_time_label() -> void:
-	if best_time < 0.0:
-		best_time_label.text = "最佳：--"
-		return
-
-	best_time_label.text = "最佳：%.2f 秒" % best_time
+	time_trial_hud.set_best_time(best_time)
 
 func load_leaderboard() -> void:
 	var config := ConfigFile.new()
@@ -607,7 +561,7 @@ func prepare_next_player() -> void:
 	player.respawn_car()
 
 	player_name = ""
-	name_input.text = ""
+	start_screen.clear_name()
 
 	waiting_for_player = true
 	race_started = false
@@ -619,9 +573,7 @@ func prepare_next_player() -> void:
 	countdown_time = 3.0
 	go_display_time = 0.0
 
-	timer_label.text = "0.00"
-	checkpoint_label.text = "檢查點：0 / %d" % total_checkpoints
-	checkpoint_bar.value = 0
+	time_trial_hud.reset(total_checkpoints)
 	countdown_label.text = ""
 	countdown_label.scale = Vector2.ONE
 	countdown_label.modulate = Color.WHITE
@@ -630,12 +582,10 @@ func prepare_next_player() -> void:
 	finish_center.visible = false
 	new_record_label.visible = false
 	leaderboard_panel.visible = true
-	start_center.visible = true
+	start_screen.show_for_waiting()
 
 	if ranking.cars.has(1):
 		ranking.cars[1]["next_index"] = 0
 		ranking.cars[1]["progress"] = 0.0
 		rank_panel.clear_entries()
 	rank_panel.visible = false
-
-	name_input.call_deferred("grab_focus")
