@@ -39,4 +39,5 @@
 
 ### Verification status
 - `ui/time_trial_start_screen.gd` and `.tscn` pass Godot script/scene parsing (verified via editor diagnostics).
-- Runtime launch is currently blocked by pre-existing parse errors in `res://race_manager.gd` (undeclared leaderboard/hud variables) which belong to parallel work and are intentionally not touched by this change. Once that file compiles, the login flow can be exercised end to end.
+- The runtime blocker is resolved. The `res://race_manager.gd` parse errors referenced below were historical entries from an intermediate refactor state, not the current file: it was rewritten to talk only to the decoupled UI controller APIs (commits `fd07ee4`, `66ff194`) and now compiles clean. Verified in-game: the project boots and runs with zero errors, and the login/registration UI (Epic / Discord buttons) loads inside the standalone start-screen scene.
+- End-to-end provider login (Epic/Discord) still requires real EOS credentials and Dev Portal policy configuration as documented in `md/eos_status.md`; it is not exercised automatically.
