@@ -57,6 +57,8 @@
 	*   **Permissions (權限) 標籤**：
 		*   在權限列表中，務必勾選並啟用 **Basic Profile**、**Friends** 與 **Presence**。
 		*   *原因*：GDScript 程式端代碼中預設請求了 `BasicProfile | Presence | FriendsList` 三個 Scopes，如果 EAS portal 中沒有一致啟用，登入即會回報錯誤。
+		*   ⚠️ **必須「剛好」這三項，不能多開**：EOS 不支援增量 scope，後端設定的 scopes 必須與 SDK 請求的完全一致。多開 `Country`/`Email` 或漏開任一項，登入都會回報 `EOS_AuthScopeNotFound`(1016)（「requested consent 不存在於後端」）。
+		*   *實例（2026-08-20）*：EAS Application 誤多開了 **Country** scope，導致 Account Portal 登入回報 `AuthScopeNotFound`；在 Permissions 關閉 Country、僅保留 Basic Profile / Friends / Presence 後即排除。
 	*   **Clients (用戶端) 標籤**：
 		*   點擊 **Associate Client** (關聯用戶端)。
 		*   選擇您的用戶端 `TestP2P`，將其綁定到此 EAS 應用程式中。**（此步驟不可遺漏，是 InvalidRequest 的主要根源）**。
@@ -101,13 +103,16 @@
 * ✅ B3/B4 回退邏輯已用模擬登入狀態驗證：雲端 `read_file` 失敗（假 PUID）→ 正確回退 `user://player_profile.cfg` 本地快取並設定 `NetworkManager.display_name`。
 * ✅ C1 login 統一分派：`login("bogus")` → 正確 emit「未知登入方式」；`login("epic")` → account_portal。
 * ✅ D1 自動登入：無 token 啟動時靜默失敗（`_suppress_login_error` 抑制錯誤記錄），不干擾 UI。
-* ⛔ **B1 live PDS 讀寫尚未驗證**：需要一個真實登入。目前所有登入方式皆受阻：
-  * `anonymous` → `AccessDenied`：Dev Portal Client Policy 未開 Connect 權限（`authenticate`/`createDeviceId`/`queryProductUserIdMappings` 等）。
-  * `devtool` → DevAuthTool 未執行（localhost:4545 無服務）。
-  * `account_portal` → 需瀏覽器登入 + EAS 已關聯。
-  * `discord` → 使用者明確排除，且 client_id 未填。
-  * **待辦（已定案）**：走 **account_portal** 流程，由使用者在瀏覽器手動登入白名單 Epic 帳號；登入成功後執行
-    `PlayerStorage.save_profile()/has_profile()/load_profile()` 三連驗證。
+* ⛔ **B1 live PDS 讀寫尚未驗證**：需要一個真實登入（account_portal）。
+  * `anonymous` → 本次不做（已定案改走 account_portal；後續才做 Device ID 訪客登入）。*過往「AccessDenied 是 Client Policy 未開 Connect」的紀錄是錯的，已於上方「登入失敗原因分析」修正：User Required 需保持勾選、Connect 開關僅限 Trusted Server、匿名登入只需 PDS 權限。*
+  * `devtool` → DevAuthTool 未執行（localhost:4545 無服務），暫不使用。
+  * `discord` → 使用者明確排除，且 client_id 未填，UI 按鈕 disabled。
+  * `account_portal` → **登入錯誤已修復（2026-08-20）**：
+    * 遊戲 log 曾回報 `InvalidAuth`(4)（persistent auth 的失效 token，啟動時靜默）與 `AuthScopeNotFound`(1016)（手動登入失敗）。
+    * 根因：EAS Application Permissions 多開了 **Country** scope，與 SDK 請求的 `BasicProfile|Presence|FriendsList` 不一致（EOS 不支援增量 scope，需完全一致）。
+    * 處置：Dev Portal → Epic Account Services → Application → Permissions，關閉 Country，僅保留 Basic Profile / Friends / Presence 三項，已儲存。**`AuthScopeNotFound` 已排除。**
+  * **待辦（下一步）**：重啟遊戲走 **account_portal** 瀏覽器登入；成功後執行
+	`PlayerStorage.save_profile()/has_profile()/load_profile()` 三連驗證，並更新本節狀態。
   * 後續再做：**Device ID 訪客匿名登入** + 之後引導綁定 EAS（Epic 帳號）。屆時 Client Policy 需保持 User Required 勾選並開 PDS 權限。
 
 ---
