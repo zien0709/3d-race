@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://nbsmht2damso" path="res://ui/time_trial_finish_screen.gd" id="1_script"]
 [ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="2_theme"]
+[ext_resource type="Script" uid="uid://da3fqfqv6gtgm" path="res://addons/godot_ai/runtime/draw_recipe.gd" id="3_sfcax"]
 
 [node name="FinishCenter" type="CenterContainer" unique_id=1846302769]
 anchors_preset = 15
@@ -60,4 +61,23 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "🏠"
+
+[node name="HomeIcon" type="Control" parent="FinishPanel/VBoxContainer/HomeButton" unique_id=1673572602]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("3_sfcax")
+metadata/_ops = [{
+"color": Color(0.101960786, 0.81960785, 1, 1),
+"draw": "polygon",
+"points": PackedVector2Array(32, 8, 8, 30, 56, 30)
+}, {
+"color": Color(0.9098039, 0.96862745, 1, 1),
+"draw": "rect",
+"rect": Rect2(16, 30, 32, 24)
+}, {
+"color": Color(0.101960786, 0.81960785, 1, 1),
+"draw": "rect",
+"rect": Rect2(27, 42, 10, 12)
+}]

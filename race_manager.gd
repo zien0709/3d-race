@@ -86,6 +86,7 @@ func _ready() -> void:
 	countdown.clear()
 
 	rank_panel.hide_panel()
+	finish_screen.hide_results()
 
 func setup_ranking(
 	checkpoint_positions: Array,
