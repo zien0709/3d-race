@@ -18,7 +18,7 @@ func _ready() -> void:
 	var hbox := HBoxContainer.new()
 	hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hbox.offset_left = 12
-	hbox.offset_right = -40
+	hbox.offset_right = -8
 	hbox.add_theme_constant_override("separation", 8)
 	hbox.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(hbox)
@@ -50,7 +50,7 @@ func _ready() -> void:
 	btn.custom_minimum_size = Vector2(32, 32)
 	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	btn.pressed.connect(settings_requested.emit)
-	add_child(btn)
+	hbox.add_child(btn)
 
 func update_display(room_config: Dictionary, players: Array, lobby_manager: Object) -> void:
 	var in_lobby: bool = lobby_manager != null and not lobby_manager.current_lobby.is_empty()

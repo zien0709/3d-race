@@ -9,8 +9,8 @@ signal start_requested(player_name: String)
 @onready var header: Control = $Header
 @onready var inspector: Control = $MainContainer/LeftPanel/Inspector
 @onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
-@onready var showcase: Control = $CenterRightPanel/Showcase
-@onready var ready_button: Control = $CenterRightPanel/ReadyButton
+@onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
+@onready var ready_button: Control = $MainContainer/CenterRightPanel/ReadyButton
 @onready var floating_chat: Control = $FloatingChat
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
@@ -316,7 +316,7 @@ func _refresh_all() -> void:
 func _refresh_header() -> void:
 	var nm_display := ""
 	if lobby_manager != null:
-		nm_display = lobby_manager.get_display_name() or ""
+		nm_display = str(lobby_manager.get_display_name())
 	header.update_user_card(nm_display, lobby_manager)
 	header.update_room_card(room_config, players, lobby_manager)
 

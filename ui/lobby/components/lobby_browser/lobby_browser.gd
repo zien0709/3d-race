@@ -71,10 +71,6 @@ func _make_row(info: Dictionary) -> PanelContainer:
 	hbox.add_theme_constant_override("separation", 12)
 	row.add_child(hbox)
 
-	var info := VBoxContainer.new()
-	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(info)
-
 	var info_col := VBoxContainer.new()
 	info_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(info_col)

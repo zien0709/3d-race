@@ -10,11 +10,14 @@ const CarSlotScript := preload("res://ui/lobby/components/showcase/car_slot.gd")
 var slots: Array = []
 
 func _ready() -> void:
-	add_theme_constant_override("separation", 20)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 20)
+	add_child(row)
 	for i in 2:
 		var slot := PanelContainer.new()
 		slot.set_script(CarSlotScript)
-		add_child(slot)
+		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(slot)
 		slot.slot_clicked.connect(_on_slot_clicked.bind(i))
 		slots.append(slot)
 

@@ -1,12 +1,114 @@
 [gd_scene format=3 uid="uid://bjd51o1dxv34p"]
 
-[ext_resource type="Script" uid="uid://cvbs3fvs00cuk" path="res://ui/lobby_ui.gd" id="1_nmq56"]
+[ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="1_bsayf"]
+[ext_resource type="Script" uid="uid://cs0c1s2cmfhy0" path="res://ui/lobby/components/header/header.gd" id="2_oyvhv"]
+[ext_resource type="Script" uid="uid://b7qjspeswqqbd" path="res://ui/lobby/lobby_main.gd" id="2_x74pg"]
+[ext_resource type="Script" uid="uid://dvxixwrnu3exd" path="res://ui/lobby/components/inspector/inspector.gd" id="3_x74pg"]
+[ext_resource type="Script" uid="uid://dmf44p1byon1g" path="res://ui/lobby/components/chat/chat_trigger.gd" id="4_vgfbg"]
+[ext_resource type="Script" uid="uid://bcjj2tv1bk7k4" path="res://ui/lobby/components/showcase/showcase.gd" id="5_vc1it"]
+[ext_resource type="Script" uid="uid://b4hypcxaird4" path="res://ui/lobby/components/ready_button/ready_button.gd" id="6_xg6h8"]
+[ext_resource type="Script" uid="uid://2stdyw2ubpjd" path="res://ui/lobby/components/chat/floating_chat.gd" id="7_kylly"]
+[ext_resource type="Script" uid="uid://dewipyx436h3v" path="res://ui/lobby/components/room_overlay/room_overlay.gd" id="8_n1208"]
+[ext_resource type="Script" uid="uid://w4483afieja" path="res://ui/lobby/components/lobby_browser/lobby_browser.gd" id="9_n8uyy"]
+[ext_resource type="Script" uid="uid://tmmo6v47gxfi" path="res://ui/lobby/components/customize/customize_view.gd" id="10_8mrmc"]
+[ext_resource type="Script" uid="uid://818c53evv3jo" path="res://ui/lobby/components/toast/toast.gd" id="11_lkqrx"]
 
-[node name="LobbyUI" type="Control" unique_id=762808719]
+[node name="Lobby" type="Control" unique_id=2106021884]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_nmq56")
+theme = ExtResource("1_bsayf")
+script = ExtResource("2_x74pg")
+
+[node name="Header" type="PanelContainer" parent="." unique_id=1379912908]
+layout_mode = 0
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = -12.0
+offset_bottom = 116.0
+script = ExtResource("2_oyvhv")
+
+[node name="MainContainer" type="HBoxContainer" parent="." unique_id=1385647718]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 124.0
+offset_right = -12.0
+offset_bottom = -14.0
+theme_override_constants/separation = 12
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainContainer" unique_id=939387940]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Inspector" type="PanelContainer" parent="MainContainer/LeftPanel" unique_id=1554692965]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3_x74pg")
+
+[node name="ChatTrigger" type="Button" parent="MainContainer/LeftPanel" unique_id=407141638]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+script = ExtResource("4_vgfbg")
+
+[node name="CenterRightPanel" type="VBoxContainer" parent="MainContainer" unique_id=274641255]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="Showcase" type="PanelContainer" parent="MainContainer/CenterRightPanel" unique_id=2145791342]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("5_vc1it")
+
+[node name="ReadyButton" type="Button" parent="MainContainer/CenterRightPanel" unique_id=2085932185]
+custom_minimum_size = Vector2(0, 76)
+layout_mode = 2
+script = ExtResource("6_xg6h8")
+
+[node name="FloatingChat" type="PanelContainer" parent="." unique_id=1533170177]
+visible = false
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -440.0
+offset_top = -430.0
+offset_right = -20.0
+offset_bottom = -90.0
+script = ExtResource("7_kylly")
+
+[node name="RoomOverlay" type="Control" parent="." unique_id=759378977]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("8_n1208")
+
+[node name="LobbyBrowser" type="Control" parent="." unique_id=134340447]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("9_n8uyy")
+
+[node name="CustomizeView" type="Control" parent="." unique_id=1465822682]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("10_8mrmc")
+
+[node name="Toast" type="Control" parent="." unique_id=1727121142]
+anchors_preset = 0
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 124.0
+offset_right = -12.0
+offset_bottom = 146.0
+mouse_filter = 2
+script = ExtResource("11_lkqrx")

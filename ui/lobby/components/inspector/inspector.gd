@@ -89,7 +89,7 @@ func _build_ui() -> void:
 	dots_lbl.add_theme_font_size_override("font_size", 12)
 	dots_lbl.add_theme_color_override("font_color", C_MUTED)
 	vbox.add_child(dots_lbl)
-	_match_dots = PanelContainer.new()
+	_match_dots = HBoxContainer.new()
 	_match_dots.set_script(MatchDotsScript)
 	vbox.add_child(_match_dots)
 
@@ -147,7 +147,7 @@ func _info_row(parent: VBoxContainer, label_text: String, is_rank: bool) -> void
 		_best_lap_value = value_label
 
 func _stat_row(parent: VBoxContainer, stat_text: String, is_speed: bool) -> void:
-	var bar := PanelContainer.new()
+	var bar := HBoxContainer.new()
 	bar.set_script(StatBarScript)
 	parent.add_child(bar)
 	bar.set_stat_name(stat_text)

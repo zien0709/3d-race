@@ -20,7 +20,10 @@ var _select_button: Button
 func _ready() -> void:
 	custom_minimum_size = Vector2(240, 300)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	add_theme_constant_override("separation", 10)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	add_child(vbox)
 
 	var car_display := PanelContainer.new()
 	car_display.custom_minimum_size = Vector2(0, 150)
@@ -39,24 +42,28 @@ func _ready() -> void:
 	_car_label.add_theme_font_size_override("font_size", 13)
 	_car_label.add_theme_color_override("font_color", C_MUTED)
 	car_box.add_child(_car_label)
-	add_child(car_display)
+	vbox.add_child(car_display)
 
 	_player_name_label = Label.new()
 	_player_name_label.text = "空位"
 	_player_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_player_name_label.add_theme_font_size_override("font_size", 16)
-	add_child(_player_name_label)
+	vbox.add_child(_player_name_label)
 
 	_ready_indicator = Label.new()
 	_ready_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_ready_indicator.add_theme_font_size_override("font_size", 12)
-	add_child(_ready_indicator)
+	vbox.add_child(_ready_indicator)
+
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(spacer)
 
 	_select_button = Button.new()
 	_select_button.custom_minimum_size = Vector2(0, 32)
 	_select_button.disabled = true
 	_select_button.pressed.connect(func(): slot_clicked.emit(bool(player_data.get("is_self", false))))
-	add_child(_select_button)
+	vbox.add_child(_select_button)
 
 	set_empty()
 

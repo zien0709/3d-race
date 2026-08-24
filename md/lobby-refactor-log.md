@@ -71,7 +71,56 @@
 - editor log 無解析錯誤（Debugger Errors 分頁已清）
 
 ## 待辦（下一輪）
-1. 用 Godot MCP 編輯器工具重建 `res://ui/lobby.tscn`（扁平節點結構＋掛腳本），取代舊版單體 UI
+1. ~~用 Godot MCP 編輯器工具重建 `res://ui/lobby.tscn`~~ ✅（見下方 Phase B）
 2. Task3：`_refresh_players()` 接真實資料（LeaderboardManager Stats / PlayerStorage）
 3. Task4：房間聊天接 P2P
 4. 整合測試（開房→搜尋→加入→就緒→開始）
+
+---
+
+## Phase B：MCP 編輯器工具重建大廳場景（2026-08-24 同日完成）
+
+### 場景結構（res://ui/lobby.tscn，root Control「Lobby」掛 lobby_main.gd）
+```
+Lobby (Control, theme=race_theme.tres, full rect, script=lobby_main.gd)
+├─ Header (PanelContainer + header.gd)          offset 12/12/10/116
+├─ MainContainer (HBoxContainer)                offset 12/-12/124/-14, sep 12
+│  ├─ LeftPanel (VBox, min 320x0, sep 10)
+│  │  ├─ Inspector (PanelContainer + inspector.gd, expand V)
+│  │  └─ ChatTrigger (Button + chat_trigger.gd, min h48)
+│  └─ CenterRightPanel (VBox, expand both, sep 10)
+│     ├─ Showcase (PanelContainer + showcase.gd, expand both)
+│     └─ ReadyButton (Button + ready_button.gd, min h76)
+├─ FloatingChat (PanelContainer + floating_chat.gd) 右下角錨點, 預設隱藏
+├─ RoomOverlay (Control + room_overlay.gd)      full rect（_ready 自隱藏）
+├─ LobbyBrowser (Control + lobby_browser.gd)    full rect（同上）
+├─ CustomizeView (Control + customize_view.gd)  full rect（同上）
+└─ Toast (Control + toast.gd)                   y=124 橫條, mouse_filter ignore
+```
+以單次 `batch_execute`（69 個子指令，原子回滾）建立。
+
+### 建置過程中發現並修復的 bug
+| 檔案 | 問題 | 修法 |
+|---|---|---|
+| header.gd | 多個子節點直接加在 PanelContainer 上互相疊合拉伸 | 包一層 HBoxContainer |
+| room_card.gd | ⚙按鈕直接加在自身 → 被拉伸成全卡大小吃掉點擊 | 移進 hbox 尾端 |
+| showcase.gd | 兩個車位疊在同一位置 | 包 HBox，雙欄 expand |
+| car_slot.gd | 4 個子節點全部疊合 | 包 VBox＋spacer |
+| inspector.gd | PanelContainer.new() 掛 HBox 系腳本（StatBar/MatchDots）→ 斷點崩潰 | 改 HBoxContainer.new() |
+| lobby_browser.gd | `_make_row` 區域變數 info 與參數撞名 | 刪除無用的重複宣告 |
+| lobby_main.gd | @onready 路徑 $CenterRightPanel/... 與場景不符 | 改 $MainContainer/CenterRightPanel/... |
+| lobby_main.gd | L319 `x = get_display_name() or ""` — GDScript 的 or 回傳 bool | 改 str(...) |
+
+### 重要教訓
+1. **編輯器 stale buffer 覆蓋**：外部（PowerShell/Edit 工具）改完 .gd 後，若直接 `project_run(autosave=true)`，編輯器會把記憶體裡的舊腳本刷回磁碟，覆蓋已提交的修復。對策：外部修改後先 `filesystem_manage(scan)`；跑遊戲一律 `autosave=false`；持久化明確用 `scene_save`。
+2. **PanelContainer 會把每個子節點拉伸填滿自身**——自建 UI 元件的根若是 PanelContainer，永遠只放一個 wrapper container。
+3. **set_script 型別必須與物件原生類別一致**（HBox 系腳本不能掛在 PanelContainer.new() 上，否則載入即斷點）。
+4. **GDScript `or` 回傳 bool**，不是 Python 的「回傳其中一個運算元」。
+5. 建場景時 root 的腳本最容易漏掛（batch 裡只有子節點的 attach_script）。
+6. 背景（未聚焦）遊戲視窗收不到 input_mouse；互動測試改用 `game_eval` 直接呼叫 handler。
+
+### Phase B 驗證結果
+- `project_run(custom: res://ui/lobby.tscn)` 啟動零錯誤、helper live（run_token 22）
+- `get_ui_elements` 確認：Header 三區塊並排不重疊、Inspector 完整（車輛資料/ stat rows/近期比賽/前往改裝）、Showcase 雙車位、ReadyButton 預設「▶ 開始計時賽／單人模式 · 進入賽道」
+- game_eval 實測互動鏈：chat_toggled(true)→FloatingChat 可見✓、message_sent 不炸✓、browser_requested→LobbyBrowser 開啟✓
+- game log 互動期間零 runtime error
