@@ -124,3 +124,36 @@ Lobby (Control, theme=race_theme.tres, full rect, script=lobby_main.gd)
 - `get_ui_elements` 確認：Header 三區塊並排不重疊、Inspector 完整（車輛資料/ stat rows/近期比賽/前往改裝）、Showcase 雙車位、ReadyButton 預設「▶ 開始計時賽／單人模式 · 進入賽道」
 - game_eval 實測互動鏈：chat_toggled(true)→FloatingChat 可見✓、message_sent 不炸✓、browser_requested→LobbyBrowser 開啟✓
 - game log 互動期間零 runtime error
+
+## Phase B2：登入系統修復（NetworkManager not set）
+
+### 症狀與根因
+使用者手動按下登入按鈕，畫面顯示「NetworkManager not set」。
+
+排查發現前次「AuthManager 解耦重構」是半成品：
+1. AuthManager 設計上要求外部呼叫 `set_network_manager()` 注入節點，但**全 repo 無人呼叫**——接線在重構時遺失。
+2. 更嚴重：`init_eos()` 重寫了一整份 EOS 初始化（讀 config、組 HCredentials），卻呼叫了**不存在的 API** `_network_manager.setup_eos_async(creds)`——NetworkManager 從來沒有這個方法（它自己內部才有 setup_eos_async 呼叫 HPlatform）。
+3. 同檔還殘留一整套與 NetworkManager 重複的 Discord OAuth 機器（TCPServer 輪詢 `_process`、state 檢查、token exchange），以及兩份重複的 `_login_anonymous`/`login_anonymous`。
+
+### 修復策略：委託而非重寫
+NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_persistent_login` + 四訊號），AuthManager 改為薄委託層：
+- 新增 `_ensure_network_manager()` / `_ensure_player_storage()` 惰性解析 `/root/<Name>` autoload（保留 setter 注入 API 相容）
+- `init_eos()` → `nm.init_eos()`；`login()` → `nm.login(provider)`；`try_persistent_login()` → `await nm.try_persistent_login()`
+- `_on_nm_eos_initialized` 補上 `_is_eos_ready = true` 同步
+- 刪除全部重複實作：488 行 → 271 行
+- storage 函式（save/load/has_profile、logout 的 delete_persistent_auth）guard 前加 `_ensure_player_storage()`
+
+### 連鎖修復（真實啟動路徑才暴露）
+- `auth_manager.gd:94`：`return bool(nm.try_persistent_login())` 少 await → 「Trying to call an async function without await」+ debugger break。**教訓 7：GDScript 協程的回值被消費時必須 await；語句級 fire-and-forget 才可免。**
+- `time_trial_start_screen.gd _do_auto_login()`：同樣消費了協程回值 → 改 `if await auth.try_persistent_login():`
+
+### 驗證結果（run_token 26）
+- 遊戲日誌：`[HAuth] Logged into Epic Account Services with Epic Account ID: 600d9dc7…`＋`Logged into Epic Games Services with Product User ID: 00021873…`
+- game_eval：`eos_ready=true, logged_in=true, uid=0002187333224d279f9aa50517a084d7, scene=res://ui/lobby.tscn`
+- **自動登入鏈完整走通**：boot → init_eos(委託NM) → eos_initialized(true) 轉發 → _do_auto_login → persistent login 成功 → 自動切換至大廳場景
+- `get_ui_elements`：Header 使用者卡顯示真實 PUID；全版面無重疊
+- 本次 run 零腳本錯誤（僅 HLeaderboards NotFound＝EOS 後端排行榜未建置，既有問題與本次無關）
+
+### 教訓補充
+8. **解耦重構時先盤點被依賴方的既有 API**——本次重構憑空想像出 `setup_eos_async(creds)` 公開方法，導致呼叫必然失敗。
+9. 惰性解析 autoload（`get_node_or_null("/root/X")`）是注入式設計的安全網：保留注入 API、fallback 解析單例，兩者不衝突。

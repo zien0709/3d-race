@@ -153,7 +153,9 @@ func _on_auto_login_eos_ready(success: bool, _message: String) -> void:
 
 func _do_auto_login() -> void:
 	var auth = get_node_or_null("/root/AuthManager")
-	if auth != null and auth.try_persistent_login():
+	if auth == null:
+		return
+	if await auth.try_persistent_login():
 		get_tree().change_scene_to_file("res://ui/lobby.tscn")
 
 
