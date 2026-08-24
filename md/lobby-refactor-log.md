@@ -157,3 +157,35 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 ### 教訓補充
 8. **解耦重構時先盤點被依賴方的既有 API**——本次重構憑空想像出 `setup_eos_async(creds)` 公開方法，導致呼叫必然失敗。
 9. 惰性解析 autoload（`get_node_or_null("/root/X")`）是注入式設計的安全網：保留注入 API、fallback 解析單例，兩者不衝突。
+
+---
+
+## Phase C：房名預設暱稱＋登入自動開房＋搜尋列表本地標記
+
+### 症狀
+1. 進大廳後正上方房名預設寫死 "abc's room"。
+2. 開房需要手動點擊才會建立並廣播。
+3. 搜尋房間列表永遠顯示「Host 的房間 Host . 1/3」，無法辨識哪間是自己剛開的房。
+
+### 根因
+1. `lobby_main.gd` 的 `room_config["name"]` 硬編碼字串；`LobbyManager.create_lobby()` 雖有 `%s 的房間 % display_name` fallback，但 UI 層先塞了寫死值蓋掉。
+2. 建房只掛在 `_on_create_room_requested()`（按鈕事件），登入成功訊號沒有接開房動作。
+3. `lobby_browser.gd` 只顯示 lobby attribute 的 room_name/host_name，未比對 `owner_product_user_id` 與本機 PUID。
+
+### 修復策略
+- `room_config["name"]` 改空字串；新增 `_update_default_room_name()` 以 AuthManager.display_name() 填「<暱稱>的房間」（`_refresh_all()` 前也補一次）。
+- 新增 `_auto_create_room_if_needed()` / `_do_auto_create_room()`：掛在 `login_succeeded` 與 `eos_initialized(true)` 後，guard：已登入、不在房中、設定彈窗未開 → `await lobby_manager.create_lobby(room_config)`（PublicAdvertised 即廣播）。
+- `lobby_browser.set_results()` 對每筆結果加 `info["is_local"] = (lb.owner_product_user_id == 本機 PUID)`；`_make_row()` 為真時前綴「[本地]」。
+
+### 附帶修復
+- `ui/lobby_ui.gd:731`（舊版 UI 遺留檔，場景已改用 lobby_main.gd）誤用未宣告的 `lobby_manager` → parse error 阻擋整個專案載入。改用既有 `_lobby()` helper。**此錯誤曾因編輯器 stale buffer 在 project_run 時反覆回報（教訓 1 重現），reload plugin 後消失。**
+
+### 驗證結果
+- `project_run(custom: res://ui/lobby.tscn)` 啟動、helper live。
+- game log：EOS 登入成功（Product User ID 00021873…），零 parse/runtime error。
+- editor log 僅剩既有 shadowing 警告，與本次改動無關。
+
+### 教訓補充
+10. **UI 層不要硬編碼業務預設值**——房名這類會被上傳到 EOS attribute 的欄位，預設值應由資料層（LobbyManager/AuthManager）提供或 UI 於登入後填入；寫死在 UI 初始化字典裡會蓋掉下層的合理 fallback。
+11. **搜尋列表辨識「自己的房」用 owner_product_user_id 對比本機 PUID**，不要比對 host_name 字串（暱稱可重複、可改）。
+
