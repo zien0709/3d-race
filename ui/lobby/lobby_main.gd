@@ -27,7 +27,7 @@ var is_ready: bool = false
 
 ## Room config (persisted)
 var room_config: Dictionary = {
-	"name": "abc's room",
+	"name": "",
 	"map": "東京灣夜景",
 	"mode": "經典競速",
 	"privacy": "public",
@@ -110,13 +110,44 @@ func _connect_components() -> void:
 ## --- AuthManager signal handlers ---
 
 func _on_auth_succeeded(_display_name: String) -> void:
+	_update_default_room_name()
+	_auto_create_room_if_needed()
 	_refresh_all()
 
 func _on_auth_failed(_message: String) -> void:
 	_refresh_all()
 
 func _on_eos_initialized(_success: bool, _message: String) -> void:
+	if _success:
+		_update_default_room_name()
+		_auto_create_room_if_needed()
 	_refresh_all()
+
+func _update_default_room_name() -> void:
+	if room_config["name"] == "" and auth_manager != null:
+		var display_name: String = str(auth_manager.display_name())
+		if display_name != "":
+			room_config["name"] = "%s的房間" % display_name
+
+func _auto_create_room_if_needed() -> void:
+	if lobby_manager == null:
+		return
+	if not _net_is_logged_in():
+		return
+	if not lobby_manager.current_lobby.is_empty():
+		return
+	if room_overlay_open:
+		return
+	call_deferred("_do_auto_create_room")
+
+func _do_auto_create_room() -> void:
+	if lobby_manager == null or not _net_is_logged_in():
+		return
+	if not lobby_manager.current_lobby.is_empty():
+		return
+	show_toast("正在自動建立房間…")
+	_update_default_room_name()
+	await lobby_manager.create_lobby(room_config)
 
 ## --- LobbyManager signal handlers ---
 
@@ -312,6 +343,7 @@ func show_toast(msg: String) -> void:
 		push_warning(msg)
 
 func _refresh_all() -> void:
+	_update_default_room_name()
 	_refresh_header()
 	_refresh_inspector()
 	_refresh_showcase()
