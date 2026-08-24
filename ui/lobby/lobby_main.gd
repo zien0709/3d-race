@@ -212,6 +212,11 @@ func _on_chat_message_sent(text: String) -> void:
 	var t := text.strip_edges()
 	if t == "":
 		return
+	# Try to send via network manager (EOS P2P chat)
+	var nm := auth_manager
+	if nm != null and nm.has_method("send_chat_message"):
+		nm.send_chat_message(t)
+	# Also display locally for immediate feedback
 	chat_messages.append(["You", t])
 	floating_chat.add_message("You", t, true)
 

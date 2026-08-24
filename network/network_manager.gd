@@ -64,6 +64,16 @@ func is_online() -> bool:
 func is_host() -> bool:
 	return mode == Mode.HOST
 
+func send_chat_message(message: String) -> void:
+	## Send chat message via EOS party system
+	## TODO: Implement actual EOS party chat message sending
+	## For now, print to console for testing
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null:
+		var display: String = nm.get_display_name()
+		if display.is_empty():
+			display = "Player"
+		print("[Chat] %s: %s" % [display, message])
 
 func _hauth() -> Node:
 	return get_node_or_null("/root/HAuth")
