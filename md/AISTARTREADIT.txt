@@ -1,0 +1,171 @@
+這是一個 **Godot 4.x 3D 賽車遊戲**，支援單人計時賽與 **EOS (Epic Online Services) 多人連線**。以下是核心架構：
+
+---
+
+### 📁 專案結構
+```
+res://
+├── main.tscn              # 主場景（根節點 Main：Node3D）
+├── player.tscn            # 玩家車輛（VehicleBody3D + 4 輪 VehicleWheel3D）
+├── *.gd                   # 核心系統腳本
+├── network/               # EOS 多人系統
+├── race/                  # 計分/生成點/排名邏輯
+├── ui/                    # UI 場景與腳本（CanvasLayer 為根）
+├── scripts/               # 環境/水/草 等視覺系統
+└── shaders/               # Grass / Water shader
+```
+
+---
+
+### 🏗️ 核心系統（單例/Autoload）
+| 節點路徑 | 職責 |
+|----------|------|
+| `/root/NetworkManager` | **網路總管**：EOS 初始化、登入、連線、MultiplayerPeer 管理 |
+| `/root/LobbyManager` | **大廳/房間**：EOS Lobbies 創建/搜尋/加入、就緒/開局同步 |
+| `/root/LeaderboardManager` | **排行榜**：EOS Stats + Leaderboards（`race_time_ms`） |
+| `/root/PlayerStorage` | **雲端存檔**：EOS PlayerDataStorage（`profile.json`） |
+| `/root/EnvironmentManager` | **環境單例**：天氣、時間、風、天空/太陽同步、多玩家同步用 |
+
+---
+
+### 🎮 遊戲流程（main.tscn → RaceManager）
+1. **RaceCourseSetup** (`race_course_setup.gd`) 在 `_ready` 動態建立：
+   - 7 個檢查點 (`CheckPoint1~7`)
+   - 終點 (`Finish`)
+   - 玩家生成位置（從 `StartGrid` 取得）
+2. **RaceManager** (`race_manager.gd`) 控制完整流程：
+   - `waiting_for_player` → 等待輸入名字 → `StartCenter` 顯示
+   - 倒數 3 秒 → `GO!` → 開始計時
+   - 通過檢查點順序驗證 → 更新 HUD / 排名
+   - 完成所有檢查點 + 觸發終點 → 結算、存最佳、提交 EOS 排行榜
+3. **UI 流程**：
+   - `StartCenter` → `CountdownCenter` → `HUD` + `RankPanel` → `FinishCenter` → 回 `StartCenter` 或回大廳 (`lobby.tscn`)
+
+---
+
+### 🌐 多人連線架構
+```
+┌─────────────────────────────────────────────┐
+│              NetworkManager                 │
+│  Mode: SINGLEPLAYER | HOST | CLIENT         │
+│  Peer: EOSGMultiplayerPeer (EOS P2P)        │
+│  Host = listen server (peer_id = 1)         │
+└─────────────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+┌───────────────┐       ┌───────────────┐
+│ LobbyManager  │       │ RaceManager   │
+│ (EOS Lobbies) │       │ (本地邏輯)     │
+│ 房間/就緒/順序 │       │ 接收 lobby 的 │
+│ 同步 peer_order│       │ peer_order 依 │
+└───────────────┘       │ 此生成玩家     │
+                        └───────────────┘
+```
+- **PlayerSpawner** (`race/player_spawner.gd`)：MultiplayerSpawner，依 `peer_order` 在 `StartGrid` 12 個格位生成車輛
+- **同步策略**：環境變數（天氣/時間/風）由 `EnvironmentManager` 透過 RPC 同步浮點數，本地各自驅動粒子/物理/著色器
+
+---
+
+### 🚗 車輛物理 (`player.gd`)
+- `VehicleBody3D` + 4 輪 `VehicleWheel3D`
+- 5 前進檔 + 倒檔自動換檔（`UPSHIFT_SPEEDS` / `DOWNSHIFT_SPEEDS`）
+- 路面/草地抓地力切換（射線偵測三角形網格、`road_triangle_grid` 空間索引）
+- 天氣抓地力乘數（`weather_grip_multiplier`，由 `EnvironmentManager` 設定）
+
+---
+
+### 🎨 視覺系統
+| 檔案 | 功能 |
+|------|------|
+| `EnvironmentManager.gd` | 程序天空、太陽軌跡、雨/雪粒子、風向重力 |
+| `scripts/grass_manager.gd` | MultiMeshInstance3D 大量草渲染（風向搖擺） |
+| `scripts/water_animator.gd` / `water_surface.gd` | 水面 Shader 動畫 |
+| `shaders/grass.gdshader` / `water.gdshader` | 自定義 Shader |
+
+---
+
+### 🔑 關鍵設定檔
+- `eos_config.cfg`：EOS 憑證（Product ID、Sandbox ID、Deployment ID、Client ID/Secret、Encryption Key）
+- `user://race_scores.cfg`：本地最佳成績
+- `user://player_profile.cfg`：本地暱稱快取（PDS 雲端失敗時回退）
+
+---
+
+### 🎯 給其他 AI 的修改切入點
+| 想改的功能 | 核心檔案 |
+|------------|----------|
+| 修改車輛操控/物理 | `player.gd` |
+| 增減檢查點/變更賽道 | `race_course_setup.gd` 的 `CHECKPOINTS` 陣列 |
+| 調整 UI 流程/畫面 | `race_manager.gd` + `ui/*.gd` + `ui/*.tscn` |
+| 排行榜/統計上傳 | `network/leaderboard_manager.gd` |
+| 大廳/房間邏輯 | `network/lobby_manager.gd` |
+| 登入/認證流程 | `network/network_manager.gd` + `ui/time_trial_start_screen.gd` |
+| 天氣/時間/環境 | `EnvironmentManager.gd` |
+| 草/水/粒子視覺 | `scripts/grass_manager.gd`、`scripts/water_*.gd` |
+
+---
+
+**主要設計模式**：
+- **單例 Autoload** 管理跨場景狀態（網路、環境、排行榜）
+- **訊號驅動** UI 與遊戲邏輯解耦（`race_active_changed`、`weather_changed`、`ready_state_changed` 等）
+- **動態場景建構** (`race_course_setup.gd`) 而非手動編輯檢查點
+- **EOS 非同步 await** 模式統一處理所有網路呼叫
+
+
+### `lobby_v4.html` 架構分析 — Canvas 單檔原型
+
+**本質**: 純 `Canvas 2D` 指令式渲染 `lobby_v4.html:1`，無框架。所有 UI 皆 `ctx.roundRect/fillText/arc` 手繪，點擊透過自製 `hitboxes[]` 陣列做碰撞檢測 `lobby_v4.html:31`。
+
+#### 1. State 模型 `lobby_v4.html:20`
+```js
+state = { view:'lobby'|'customize', selectedId, chatOpen, chatTab, roomOverlayOpen, roomConfig, toast }
+playerList = [{id,name,carName,score,cls,rank,bestLap,matches[5],stats:{speed,handling,accel},isSelf}]
+roomConfig = {name, map, mode, privacy, maxPlayers, carRestriction, damageMode, autoStart, spectator, inviteCode}
+```
+單一物件驅動全畫面，`render()` 根據 `view` 分流 `renderLobby()` / `renderCustomize()` `lobby_v4.html:45`。無資料持久化、無網路。
+
+#### 2. 版面 (1280x720, `lobby_v4.html:18`)
+```
+Header( y=20,h=65) : [UserName卡] ---置中--- [ROOM卡+⚙]      // 無右側導航，已移除
+Left Column(x=30,w=320): Inspector(h=480)     // 被選車輛資訊
+                          ChatTrigger(h=56)   // 獨立卡，點擊展開FloatingChat
+Center/Right: Showcase(660,420 / 1000,420)     // 2個車位橢圓+卡片
+              StartButton(1030,620)            // READY
+Overlay層: FloatingChat(380x440,向上展開+尾巴) / RoomOverlay(640x650,全屏遮罩) / Toast
+```
+座標皆硬編碼，`SIDEBAR`/`CHAT_TRIGGER` 用常數物件定義 `lobby_v4.html:100,144`。
+
+#### 3. 組件拆解
+
+| 函式 | 職責 | 關鍵邏輯 |
+|---|---|---|
+| `renderHeader()` | 三張獨立卡 | ROOM 卡寬度依文字量動態計算 `lobby_v4.html:65`，點擊 `⚙` 開設定 |
+| `renderInspector()` | 被選車被動展示 | `player(state.selectedId)` 驅動，分數/段位/近5場點/三條性能條 `bar()` |
+| `renderChatTrigger()` | 聊天入口 | toggle `chatOpen` |
+| `renderFloatingChat()` | 懸浮聊天 | Tabs `room/team/global` + 假訊息 + 輸入框，`✕` 關閉 |
+| `drawSlot(cx,cy,p)` | 車位 | 橢圓陰影+卡片，選中加粗；點擊邏輯：選別人→切`selectedId`，再點自己→進`customize` `lobby_v4.html:244` |
+| `renderRoomOverlay()` | 房間設定 | 640寬彈窗，無X只留取消/儲存；`chipRow` 通用膠囊選擇器 + `spectator` toggle |
+| `renderCustomize()` | 改車頁 | 全屏替換，左上返回 |
+
+#### 4. 互動/事件 `lobby_v4.html:380`
+`hit(id,x,y,w,h,fn)` 註冊 → `click` 遍歷 `hitboxes` 反向命中。`mousemove` 改 `cursor:pointer`。`toast()` 2秒自動消失。
+
+流程: `點車位` → 切 Inspector / 進改車；`點輸入框` → 聊天上浮；`點⚙` → 房間設定；`READY` → `toast`；設定內 `chipRow` 直接改 `roomConfig`。
+
+#### 5. 技術特點
+* 優點: 單檔可跑、視覺定版快、狀態集中。
+* 限制: 無響應式/無元件複用、硬編碼座標難維護、無 a11y、無真實資料綁定。
+
+#### 6. 移植到 Godot (`res://ui/lobby.tscn`) 對應
+| HTML | Godot 建議 |
+|---|---|
+| `renderHeader` | `HBoxContainer` : UserCard + RoomCard(置中) |
+| `Inspector` | `PanelContainer` + `VBoxContainer`，`stats` 用 `ProgressBar` |
+| `ChatTrigger`+`FloatingChat` | 獨立 `PanelContainer` + `TabContainer`，用 `visible=chatOpen` |
+| `Showcase/slot` | `HBoxContainer` + 2x `PanelContainer` 車位，`selected` 用 `StyleBoxFlat` 邊框 |
+| `RoomOverlay` | `PopupPanel` / 全屏 `ColorRect` + `PanelContainer`，`chipRow` → `HBoxContainer`+`Button` group |
+| `state` | `LobbyUI.gd` 內 `var selected_id, chat_open, room_config:Dictionary` + `signal` |
+| `playerList` | 接 `LobbyManager.players`，`isSelf = peer_id==1` |
+
+**其他 AI 單功能修改切入點**: 改車輛資訊只動 `renderInspector`/`Inspector`；改聊天只動 `FloatingChat`；改房間規則只動 `roomConfig` + `renderRoomOverlay` 的 `chipRow` 定義，無需讀全檔。
