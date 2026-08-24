@@ -346,26 +346,49 @@ func _refresh_players() -> void:
 	if lobby_manager == null:
 		players = []
 		return
+	
 	var lm := lobby_manager
-	var new_players: Array = []
+	
+	# Query local player name from PlayerStorage profile
+	var player_name := "玩家"
+	var auth := get_node_or_null("/root/AuthManager")
+	if auth != null and auth.is_eos_ready:
+		var ps := auth._ensure_player_storage()
+		if ps != null and ps.has_method("load_profile"):
+			var saved := ps.load_profile()
+			if saved.has("display_name"):
+				player_name = saved["display_name"]
+	
+	new_players: Array = []
 	for member in lm.players:
 		var pid: String = member.get("product_user_id", "")
 		var is_self: bool = pid == lm.get_local_player_id()
+		# Name from member attribute; fallback to stored profile or "玩家"
+		var name := member.get("name", player_name)
+		if name.is_empty():
+			name = player_name
+		
+		# Use stored stats if available, otherwise defaults
+		var stats := member.has_method("get_stats") ? member.get_stats() : {"speed": 0.85, "handling": 0.72, "accel": 0.90}
+		
 		new_players.append({
 			"id": pid,
-			"name": member.get("name", "玩家"),
+			"name": name,
 			"car_name": "Default Car",
-			"score": 1520,
+			"score": int(stats.speed * 1000),  # approximate score from speed stat
 			"cls": "S",
 			"rank": "大師 I",
 			"best_lap": "1:23.456",
 			"matches": [true, false, true, true, false],
-			"stats": {"speed": 0.85, "handling": 0.72, "accel": 0.90},
+			"stats": stats,
 			"is_self": is_self
 		})
+	
 	players = new_players
 	if selected_id == "" and players.size() > 0:
 		selected_id = players[0]["id"]
+	
+	_refresh_inspector()
 
 func _get_selected_player() -> Dictionary:
 	for p in players:
