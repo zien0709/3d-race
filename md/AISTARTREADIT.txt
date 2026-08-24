@@ -1,3 +1,5 @@
+>> 開工前請先讀 md/AI_WORKFLOW.md（工作流程規範、環境陷阱、發佈 SOP）<<
+
 這是一個 **Godot 4.x 3D 賽車遊戲**，支援單人計時賽與 **EOS (Epic Online Services) 多人連線**。以下是核心架構：
 
 ---
