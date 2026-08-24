@@ -24,6 +24,10 @@ var chat_tab := "room"
 var room_overlay_open := false
 var customize_view := false
 var is_ready := false
+# Lobby 狀態
+var browser_open := false
+var browser_busy := false
+var browser_results: Array = []
 
 var room_config := {
 	"name": "abc's room",
@@ -51,6 +55,8 @@ var room_count_label: Label
 var chat_trigger_btn: Button
 var ready_btn: Button
 var ready_sub: Label
+var search_btn: Button
+var leave_lobby_btn: Button
 
 var insp_selected: Label
 var insp_car: Label
@@ -73,6 +79,13 @@ var overlay_input: LineEdit
 var overlay_invite: Label
 var chips: Array = []
 var spectator_btn: Button
+var create_room_btn: Button
+var leave_room_btn: Button
+
+# Browser
+var browser_root: Control
+var browser_list: Control
+var browser_status: Label
 
 var customize_root: Control
 
@@ -191,6 +204,15 @@ func _build_header() -> void:
 	var gear := _btn(room_btn, "⚙", Rect2(c2w - 40, 18, 26, 26), 13, C_ACCENT,
 			Color(0.06, 0.2, 0.31, 0.5), Color(0.55, 0.75, 1, 0.3), 6, 1)
 	gear.pressed.connect(_on_room_pressed)
+
+	# 右側：搜尋房間 / 離開房間
+	search_btn = _btn(self, "🔍 搜尋", Rect2(880, 28, 100, 34), 14, C_ACCENT,
+			Color(0.22, 0.74, 0.97, 0.15), C_ACCENT, 8, 1)
+	search_btn.pressed.connect(_on_search_pressed)
+	leave_lobby_btn = _btn(self, "✕ 離開", Rect2(990, 28, 100, 34), 14, C_MUTED,
+			Color(1, 1, 1, 0.04), C_BORDER, 8, 1)
+	leave_lobby_btn.pressed.connect(_on_leave_lobby_pressed)
+	leave_lobby_btn.visible = false
 
 
 func _build_inspector() -> void:
@@ -369,6 +391,47 @@ func _build_overlay() -> void:
 			C_ACCENT, Color.TRANSPARENT, 6, 1)
 	save.pressed.connect(_on_save_overlay)
 
+	# 開房 / 離開房間（依 lobby 狀態顯示）
+	create_room_btn = _btn(overlay_panel, "開房", Rect2(640 - 280, 616, 70, 34), 14, Color("#0f172a"),
+			C_ACCENT, Color.TRANSPARENT, 6, 1)
+	create_room_btn.pressed.connect(_on_create_room_pressed)
+	leave_room_btn = _btn(overlay_panel, "離開", Rect2(640 - 190, 616, 70, 34), 14, C_MUTED,
+			Color(1, 1, 1, 0.04), C_BORDER, 6, 1)
+	leave_room_btn.pressed.connect(_on_leave_room_pressed)
+
+
+func _build_browser() -> void:
+	browser_root = Control.new()
+	browser_root.name = "LobbyBrowser"
+	browser_root.position = Vector2.ZERO
+	browser_root.size = REF
+	browser_root.visible = false
+	add_child(browser_root)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.031, 0.059, 0.85)
+	dim.position = Vector2.ZERO
+	dim.size = REF
+	browser_root.add_child(dim)
+
+	var panel := _panel(browser_root, Rect2(320, 40, 640, 640), Color("#131b29"), C_ACCENT, 12, 1.5)
+	_label(panel, "搜尋房間", Vector2(0, 26), 20, C_WHITE, HORIZONTAL_ALIGNMENT_CENTER, 640)
+	var close := _btn(panel, "✕", Rect2(640 - 40, 14, 26, 26), 16, C_MUTED,
+			Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 0)
+	close.pressed.connect(func(): _open_browser(false))
+
+	var refresh := _btn(panel, "⟳ 重新搜尋", Rect2(36, 60, 120, 30), 12, C_ACCENT,
+			Color(0.22, 0.74, 0.97, 0.15), C_ACCENT, 6, 1)
+	refresh.pressed.connect(_on_search_pressed)
+
+	browser_list = Control.new()
+	browser_list.position = Vector2(36, 104)
+	browser_list.size = Vector2(568, 520)
+	panel.add_child(browser_list)
+
+	browser_status = _label(panel, "點擊「重新搜尋」尋找公開房間", Vector2(36, 400), 14, C_MUTED,
+			HORIZONTAL_ALIGNMENT_CENTER, 568)
+
 
 func _ov_divider(parent: Node, y: float, label: String) -> void:
 	_panel(parent, Rect2(36, y, 568, 1), Color(0.545, 0.608, 0.706, 0.18), Color.TRANSPARENT, 0, 0)
@@ -442,6 +505,10 @@ func _connect_network() -> void:
 		lm.ready_state_changed.connect(func(_m): _on_network_update())
 	if lm and "match_started" in lm:
 		lm.match_started.connect(_on_match_started)
+	if lm and "lobby_created" in lm:
+		lm.lobby_created.connect(func(info): _on_lobby_result("created", info))
+	if lm and "lobby_joined" in lm:
+		lm.lobby_joined.connect(func(info): _on_lobby_result("joined", info))
 
 
 func _on_network_update() -> void:
@@ -456,7 +523,7 @@ func _on_match_started(_order: Array) -> void:
 func _sync_players() -> void:
 	var lm = _lobby()
 	var nm = _net()
-	if lm == null or (not "players" in lm) or lm.players.is_empty():
+	if not _in_lobby():
 		players = _default_players()
 	else:
 		players = []
@@ -475,10 +542,15 @@ func _sync_players() -> void:
 		selected_id = _self_id()
 	if selected_id == "" and not players.is_empty():
 		selected_id = players[0]["id"]
-	if lm and (not "players" in lm or not lm.players.is_empty()):
+	if _in_lobby():
 		if nm and "LOCAL_PEER_ID" in nm and lm.has_method("get_ready_map"):
 			is_ready = lm.get_ready_map().get(nm.LOCAL_PEER_ID, false)
 	_rebuild_slot_buttons(_slot_layer())
+
+
+func _in_lobby() -> bool:
+	var lm = _lobby()
+	return lm != null and not lm.current_lobby.is_empty()
 
 
 func _slot_layer() -> Control:
@@ -665,6 +737,140 @@ func _on_cancel_overlay() -> void:
 	_refresh()
 
 
+# ==========================================================================
+# Lobby 操作：開房 / 搜房 / 加入 / 離開
+# ==========================================================================
+
+func _on_search_pressed() -> void:
+	_open_browser(true)
+	if not browser_busy:
+		call_deferred("_do_search")
+
+func _do_search() -> void:
+	var nm = _net()
+	if nm == null or not nm.is_logged_in:
+		toast("請先登入（點左上玩家卡）")
+		_open_browser(false)
+		return
+	var lm = _lobby()
+	if lm == null:
+		toast("房間模組未就緒")
+		_open_browser(false)
+		return
+	browser_busy = true
+	browser_status.text = "搜尋中…"
+	_render_browser_list()
+	var results: Array = await lm.search_lobbies()
+	browser_busy = false
+	browser_results = results
+	_render_browser_list()
+
+func _render_browser_list() -> void:
+	for c in browser_list.get_children():
+		c.queue_free()
+	if browser_results.is_empty():
+		if browser_busy:
+			browser_status.text = "搜尋中…"
+		else:
+			browser_status.text = "找不到公開房間（確認 host 已開房且設為公開）"
+		return
+	browser_status.text = "找到 %d 間房間" % browser_results.size()
+	var y := 0.0
+	for i in browser_results.size():
+		var lb = browser_results[i]
+		var host := _lobby_attr(lb, "host_name", "Host")
+		var room := _lobby_attr(lb, "room_name", host + " 的房間")
+		var max_p: int = int(lb.max_members)
+		var avail: int = int(lb.available_slots)
+		var count: int = max_p - avail
+		var row := _panel(browser_list, Rect2(0, y, 568, 64), Color(1, 1, 1, 0.03), C_BORDER, 8, 1)
+		_label(row, room, Vector2(16, 10), 16, C_WHITE)
+		_label(row, "%s  ·  %d/%d" % [host, count, max_p], Vector2(16, 36), 12, C_MUTED)
+		var join := _btn(row, "加入", Rect2(568 - 90, 16, 70, 30), 13, Color("#0f172a"), C_ACCENT, Color.TRANSPARENT, 6, 1)
+		join.pressed.connect(_on_join_pressed.bind(lb))
+		if count >= max_p:
+			join.disabled = true
+			join.text = "已滿"
+		y += 72.0
+
+func _lobby_attr(lb, key: String, fallback: String = "") -> String:
+	if lb == null:
+		return fallback
+	var attr = lb.get_attribute(key)
+	if attr is Dictionary and not attr.is_empty() and attr.has("value"):
+		return str(attr["value"])
+	return fallback
+
+func _on_join_pressed(lb) -> void:
+	var lm = _lobby()
+	if lm == null:
+		toast("房間模組未就緒")
+		return
+	browser_busy = true
+	toast("正在加入房間…")
+	lm.join_lobby(lb)
+	# 結果透過 lobby_joined signal 處理
+
+func _on_create_room_pressed() -> void:
+	var nm = _net()
+	if nm == null:
+		toast("網路模組尚未載入")
+		return
+	if not nm.is_logged_in:
+		toast("請先登入（點左上玩家卡）")
+		return
+	var lm = _lobby()
+	if lm == null:
+		toast("房間模組未就緒")
+		return
+	if not lm.current_lobby.is_empty():
+		toast("已在房間中")
+		return
+	room_overlay_open = false
+	toast("正在建立房間…")
+	lm.create_lobby(room_config)
+
+func _on_leave_room_pressed() -> void:
+	room_overlay_open = false
+	var lm = _lobby()
+	if lm != null and not lm.current_lobby.is_empty():
+		await lm.leave_lobby()
+	toast("已離開房間")
+	_sync_players()
+	_refresh()
+
+func _on_leave_lobby_pressed() -> void:
+	var lm = _lobby()
+	if lm != null and not lm.current_lobby.is_empty():
+		await lm.leave_lobby()
+	toast("已離開房間")
+	_sync_players()
+	_refresh()
+
+func _on_lobby_result(kind: String, info: Dictionary) -> void:
+	browser_busy = false
+	if info.is_empty():
+		toast("失敗：%s 失敗" % ("開房" if kind == "created" else "加入"))
+		return
+	_open_browser(false)
+	room_overlay_open = false
+	# invite code 用 lobby_id 前段
+	room_config["invite_code"] = str(info.get("lobby_id", "")).substr(0, 12).to_upper()
+	if info.get("is_host", false):
+		toast("已開房，等待其他玩家加入")
+	else:
+		toast("已加入房間")
+	_sync_players()
+	_refresh()
+
+func _open_browser(open: bool) -> void:
+	browser_open = open
+	browser_root.visible = open
+	if open:
+		call_deferred("_do_search")
+	_refresh()
+
+
 func _all_lobby_ready() -> bool:
 	var lm = _lobby()
 	if lm == null:
@@ -757,6 +963,24 @@ func _refresh_overlay() -> void:
 	spectator_btn.text = "● 開啟" if on else "○ 關閉"
 	spectator_btn.add_theme_color_override("font_color", C_SELF if on else C_MUTED)
 	overlay_invite.text = room_config["invite_code"]
+	# 依房間狀態顯示 / 隱藏按鈕
+	var in_lobby: bool = _in_lobby()
+	leave_room_btn.visible = in_lobby
+	create_room_btn.visible = not in_lobby
+	# 離開 btn 顯示狀態
+	leave_lobby_btn.visible = in_lobby
+	if in_lobby:
+		var lm = _lobby()
+		if lm and lm.is_host:
+			leave_room_btn.text = "離開房間"
+		else:
+			leave_room_btn.text = "離開"
+	create_room_btn.text = _display_name() + " 的房間"
+	# 房間名稱與人數
+	var lm = _lobby()
+	if in_lobby and lm and lm.current_lobby is Dictionary:
+		room_name_label.text = _lobby_attr(lm.get_attribute("room_name") if "get_attribute" in lm else null, "", room_config["name"])
+		room_count_label.text = "  ·  %d/%d" % [lm.players.size(), lm.max_members]
 
 
 func _is_active(row: String, value: String) -> bool:

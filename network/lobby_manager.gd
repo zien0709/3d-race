@@ -15,6 +15,10 @@ const MAX_PLAYERS := 12
 const BUCKET_ID := "3d_race"
 const ATTR_READY := "ready"
 const ATTR_PEER_ORDER := "peer_order"
+const ATTR_DISPLAY_NAME := "display_name"
+const ATTR_ROOM_NAME := "room_name"
+const ATTR_HOST_NAME := "host_name"
+const ATTR_GAME := "game"
 
 var current_lobby: Dictionary = {}
 var is_host: bool = false
@@ -28,8 +32,9 @@ var _lobby = null
 # 開房 / 搜尋 / 加入 / 離開
 # ==========================================================================
 
-## 開房：建立 12 人 EOS lobby，並在 host 端開 listen server。
-func create_lobby() -> void:
+## 開房：建立 EOS lobby，並在 host 端開 listen server。
+## room_config 可傳 {"name": String, "max_players": int} 讓其他玩家搜到房名與人數。
+func create_lobby(room_config: Dictionary = {}) -> void:
 	if not _nm().is_logged_in:
 		lobby_created.emit({})
 		return
@@ -40,8 +45,11 @@ func create_lobby() -> void:
 		lobby_created.emit({})
 		return
 
+	var max_players: int = int(room_config.get("max_players", MAX_PLAYERS))
+	var room_name: String = str(room_config.get("name", "%s 的房間" % _nm().display_name))
+
 	var opts = eos.Lobby.CreateLobbyOptions.new()
-	opts.max_lobby_members = MAX_PLAYERS
+	opts.max_lobby_members = max_players
 	opts.bucket_id = BUCKET_ID
 	opts.permission_level = eos.Lobby.LobbyPermissionLevel.PublicAdvertised
 	opts.enable_join_by_id = true
@@ -57,12 +65,15 @@ func create_lobby() -> void:
 	is_host = true
 	_bind_lobby(lobby)
 
-	lobby.add_attribute("game", "3d_race")
-	lobby.add_attribute("host_name", _nm().display_name)
+	lobby.add_attribute(ATTR_GAME, "3d_race")
+	lobby.add_attribute(ATTR_HOST_NAME, _nm().display_name)
+	lobby.add_attribute(ATTR_ROOM_NAME, room_name)
+	lobby.add_attribute(ATTR_DISPLAY_NAME, _nm().display_name)
 	await lobby.update_async()
 
 	_sync_members()
-	lobby_created.emit(_lobby_info())
+	current_lobby = _lobby_info()
+	lobby_created.emit(current_lobby)
 
 	# 本機先開 host peer（listen server）
 	_nm().host_game()
@@ -96,8 +107,15 @@ func join_lobby(lobby) -> void:
 
 	is_host = false
 	_bind_lobby(joined)
+
+	# 把自己的暱稱寫進 member attribute，host 端 _sync_members 才看得到名字
+	joined.add_current_member_attribute(ATTR_DISPLAY_NAME, _nm().display_name,
+			EOS.Lobby.LobbyAttributeVisibility.Public)
+	await joined.update_async()
+
 	_sync_members()
-	lobby_joined.emit(_lobby_info())
+	current_lobby = _lobby_info()
+	lobby_joined.emit(current_lobby)
 
 	# client 用 host 的 product user id 建立連線
 	var host_user_id = joined.owner_product_user_id
@@ -113,6 +131,7 @@ func leave_lobby() -> void:
 	is_host = false
 	players = []
 	current_lobby = {}
+	_nm().disconnect_from_game()
 	await lobby.leave_async()
 
 
@@ -130,6 +149,7 @@ func add_player(peer_id: int, display_name: String) -> void:
 
 
 ## 把 lobby member 同步成 players，並把 product_user_id 對應到 peer_id。
+## 會 emit member_joined / member_left 給 UI 更新。
 func _sync_members() -> void:
 	if not _lobby:
 		return
@@ -139,12 +159,34 @@ func _sync_members() -> void:
 		var ready_attr: Dictionary = member.get_attribute(ATTR_READY)
 		if not ready_attr.is_empty():
 			ready = bool(ready_attr.value)
+		# EOSG HLobbyMember.display_name 不會自動填，需從 member attribute 讀取
+		var name: String = ""
+		var name_attr: Dictionary = member.get_attribute(ATTR_DISPLAY_NAME)
+		if not name_attr.is_empty():
+			name = str(name_attr.value)
+		if name.is_empty():
+			name = member.display_name
+		if name.is_empty():
+			name = "玩家"
 		new_players.append({
 			"peer_id": _resolve_peer_id(member.product_user_id),
 			"product_user_id": member.product_user_id,
-			"name": member.display_name,
+			"name": name,
 			"ready": ready,
 		})
+	# diff 舊 players，emit member_joined / member_left
+	var old_ids: Array = []
+	for p in players:
+		old_ids.append(p["product_user_id"])
+	var new_ids: Array = []
+	for p in new_players:
+		new_ids.append(p["product_user_id"])
+	for id in new_ids:
+		if id not in old_ids:
+			member_joined.emit(id)
+	for id in old_ids:
+		if id not in new_ids:
+			member_left.emit(id)
 	players = new_players
 	ready_state_changed.emit(get_ready_map())
 
@@ -252,5 +294,5 @@ func _lobby_info() -> Dictionary:
 		"lobby_id": _lobby.lobby_id if _lobby else "",
 		"is_host": is_host,
 		"player_count": players.size(),
-		"max_players": MAX_PLAYERS,
+		"max_players": _lobby.max_members if _lobby else MAX_PLAYERS,
 	}

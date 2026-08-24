@@ -108,9 +108,9 @@
   * `devtool` → DevAuthTool 未執行（localhost:4545 無服務），暫不使用。
   * `discord` → 使用者明確排除，且 client_id 未填，UI 按鈕 disabled。
   * `account_portal` → **登入錯誤已修復（2026-08-20）**：
-    * 遊戲 log 曾回報 `InvalidAuth`(4)（persistent auth 的失效 token，啟動時靜默）與 `AuthScopeNotFound`(1016)（手動登入失敗）。
-    * 根因：EAS Application Permissions 多開了 **Country** scope，與 SDK 請求的 `BasicProfile|Presence|FriendsList` 不一致（EOS 不支援增量 scope，需完全一致）。
-    * 處置：Dev Portal → Epic Account Services → Application → Permissions，關閉 Country，僅保留 Basic Profile / Friends / Presence 三項，已儲存。**`AuthScopeNotFound` 已排除。**
+	* 遊戲 log 曾回報 `InvalidAuth`(4)（persistent auth 的失效 token，啟動時靜默）與 `AuthScopeNotFound`(1016)（手動登入失敗）。
+	* 根因：EAS Application Permissions 多開了 **Country** scope，與 SDK 請求的 `BasicProfile|Presence|FriendsList` 不一致（EOS 不支援增量 scope，需完全一致）。
+	* 處置：Dev Portal → Epic Account Services → Application → Permissions，關閉 Country，僅保留 Basic Profile / Friends / Presence 三項，已儲存。**`AuthScopeNotFound` 已排除。**
   * **待辦（下一步）**：重啟遊戲走 **account_portal** 瀏覽器登入；成功後執行
 	`PlayerStorage.save_profile()/has_profile()/load_profile()` 三連驗證，並更新本節狀態。
   * 後續再做：**Device ID 訪客匿名登入** + 之後引導綁定 EAS（Epic 帳號）。屆時 Client Policy 需保持 User Required 勾選並開 PDS 權限。

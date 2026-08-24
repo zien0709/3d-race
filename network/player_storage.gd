@@ -27,7 +27,7 @@ func has_profile() -> bool:
 	opts.filename = PROFILE_FILENAME
 	eos.PlayerDataStorage.PlayerDataStorageInterface.query_file(opts)
 	var ret: Dictionary = await IEOS.playerdatastorage_interface_query_file_callback
-	return eos.is_success(ret)
+	return bool(eos.is_success(ret))
 
 
 ## 從雲端讀取 profile。回傳 Dictionary，失敗時為空字典。
@@ -44,7 +44,7 @@ func load_profile() -> Dictionary:
 	eos.PlayerDataStorage.PlayerDataStorageInterface.read_file(opts)
 	var ret: Dictionary = await IEOS.playerdatastorage_interface_read_file_callback
 	IEOS.playerdatastorage_interface_read_file_data_callback.disconnect(_on_read_file_data)
-	if not eos.is_success(ret):
+	if not bool(eos.is_success(ret)):
 		return {}
 	var json_text := _read_buffer.get_string_from_utf8()
 	var parsed: Variant = JSON.parse_string(json_text)
@@ -64,7 +64,7 @@ func save_profile(profile: Dictionary) -> bool:
 	opts.chunk_length_bytes = CHUNK_LENGTH_BYTES
 	eos.PlayerDataStorage.PlayerDataStorageInterface.write_file(opts)
 	var ret: Dictionary = await IEOS.playerdatastorage_interface_write_file_callback
-	var ok: bool = eos.is_success(ret)
+	var ok: bool = bool(eos.is_success(ret))
 	profile_saved.emit(ok)
 	return ok
 

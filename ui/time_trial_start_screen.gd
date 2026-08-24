@@ -89,7 +89,7 @@ func _on_login_succeeded() -> void:
 	_auth_in_progress = false
 	_set_auth_controls(false)
 	# 從雲端（PlayerDataStorage）或本地快取讀回暱稱
-	var saved_name := await _restore_display_name()
+	var saved_name: String = await _restore_display_name()
 	if not _registration_flow:
 		get_tree().change_scene_to_file("res://ui/lobby.tscn")
 		return
