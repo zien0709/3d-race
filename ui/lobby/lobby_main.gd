@@ -109,18 +109,18 @@ func _connect_components() -> void:
 
 ## --- AuthManager signal handlers ---
 
-func _on_auth_succeeded(display_name: String) -> void:
+func _on_auth_succeeded(_display_name: String) -> void:
 	_refresh_all()
 
-func _on_auth_failed(message: String) -> void:
+func _on_auth_failed(_message: String) -> void:
 	_refresh_all()
 
-func _on_eos_initialized(success: bool, message: String) -> void:
+func _on_eos_initialized(_success: bool, _message: String) -> void:
 	_refresh_all()
 
 ## --- LobbyManager signal handlers ---
 
-func _on_member_joined(player_id: String) -> void:
+func _on_member_joined(_player_id: String) -> void:
 	_refresh_players()
 	_refresh_all()
 
@@ -138,10 +138,10 @@ func _on_ready_state_changed(ready_map: Dictionary) -> void:
 func _on_match_started(_order: Array) -> void:
 	start_requested.emit("")
 
-func _on_lobby_created(info: Dictionary) -> void:
+func _on_lobby_created(_info: Dictionary) -> void:
 	_refresh_all()
 
-func _on_lobby_joined(info: Dictionary) -> void:
+func _on_lobby_joined(_info: Dictionary) -> void:
 	_refresh_players()
 	_refresh_all()
 
@@ -164,7 +164,7 @@ func _on_create_room_requested() -> void:
 		return
 	room_overlay_open = false
 	show_toast("正在建立房間…")
-	lobby_manager.create_lobby(room_config)
+	await lobby_manager.create_lobby(room_config)
 
 func _on_leave_room_requested() -> void:
 	room_overlay_open = false
@@ -220,7 +220,7 @@ func _on_chat_message_sent(text: String) -> void:
 	chat_messages.append(["You", t])
 	floating_chat.add_message("You", t, true)
 
-func _on_showcase_slot_selected(index: int, is_self: bool) -> void:
+func _on_showcase_slot_selected(index: int, _is_self: bool) -> void:
 	if index >= players.size():
 		return
 	var p: Dictionary = players[index]
@@ -259,7 +259,7 @@ func _on_room_overlay_saved() -> void:
 		room_config["name"] = new_name
 	room_overlay_open = false
 	if lobby_manager != null and lobby_manager.is_host and not lobby_manager.current_lobby.is_empty():
-		lobby_manager.update_lobby_settings(room_config)
+		await lobby_manager.update_lobby_settings(room_config)
 	show_toast("設定已儲存")
 	_refresh_all()
 
@@ -293,10 +293,9 @@ func _on_lobby_join_requested(lb) -> void:
 		show_toast("Lobby module not loaded")
 		return
 	show_toast("正在加入房間…")
-	lm.join_lobby(lb)
+	await lm.join_lobby(lb)
 
 func _on_lobby_browser_closed() -> void:
-	lobby_browser.close()
 	_refresh_all()
 
 func _on_customize_back() -> void:
@@ -347,40 +346,43 @@ func _refresh_ready_button() -> void:
 	else:
 		ready_button.set_waiting_mode()
 
+@warning_ignore("inferred_declaration", "shadowed_variable")
 func _refresh_players() -> void:
+	# re-parsed
 	if lobby_manager == null:
 		players = []
 		return
 	
 	var lm := lobby_manager
 	
-	# Query local player name from PlayerStorage profile
+	# Query local player name from LobbyManager (sync, avoids async PlayerStorage)
 	var player_name := "玩家"
-	var auth := get_node_or_null("/root/AuthManager")
-	if auth != null and auth.is_eos_ready:
-		var ps := auth._ensure_player_storage()
-		if ps != null and ps.has_method("load_profile"):
-			var saved := ps.load_profile()
-			if saved.has("display_name"):
-				player_name = saved["display_name"]
+	if lm.has_method("get_display_name"):
+		var disp: Variant = lm.get_display_name()
+		if disp is String and not (disp as String).is_empty():
+			player_name = disp as String
+		else:
+			var auth2 := get_node_or_null("/root/AuthManager")
+			if auth2 != null and "display_name" in auth2 and str(auth2.display_name) != "":
+				player_name = str(auth2.display_name)
 	
-	new_players: Array = []
+	var new_players: Array = []
 	for member in lm.players:
 		var pid: String = member.get("product_user_id", "")
 		var is_self: bool = pid == lm.get_local_player_id()
 		# Name from member attribute; fallback to stored profile or "玩家"
-		var name := member.get("name", player_name)
-		if name.is_empty():
-			name = player_name
+		var member_name: String = str(member.get("name", player_name))
+		if member_name.is_empty():
+			member_name = player_name
 		
 		# Use stored stats if available, otherwise defaults
-		var stats := member.has_method("get_stats") ? member.get_stats() : {"speed": 0.85, "handling": 0.72, "accel": 0.90}
+		var stats: Dictionary = member.get_stats() if member.has_method("get_stats") else {"speed": 0.85, "handling": 0.72, "accel": 0.90}
 		
 		new_players.append({
 			"id": pid,
-			"name": name,
+			"name": member_name,
 			"car_name": "Default Car",
-			"score": int(stats.speed * 1000),  # approximate score from speed stat
+			"score": int(stats.speed * 1000),
 			"cls": "S",
 			"rank": "大師 I",
 			"best_lap": "1:23.456",
