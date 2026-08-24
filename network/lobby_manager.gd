@@ -19,13 +19,72 @@ const ATTR_DISPLAY_NAME := "display_name"
 const ATTR_ROOM_NAME := "room_name"
 const ATTR_HOST_NAME := "host_name"
 const ATTR_GAME := "game"
+const ATTR_MAP := "map"
+const ATTR_MODE := "mode"
+const ATTR_DAMAGE := "damage_mode"
+const ATTR_CAR_RESTRICTION := "car_restriction"
+const ATTR_AUTO_START := "auto_start"
 
 var current_lobby: Dictionary = {}
 var is_host: bool = false
 ## players: [{ "peer_id": int, "product_user_id": String, "name": String, "ready": bool }]
 var players: Array = []
 
+## 大廳瀏覽器狀態（UI 搜尋用）
+var browser_busy: bool = false
+var browser_results: Array = []
+
 var _lobby = null
+
+
+# ==========================================================================
+# UI 查詢輔助（大廳介面用）
+# ==========================================================================
+
+func get_display_name() -> String:
+	var nm = _nm()
+	return str(nm.display_name) if nm != null else ""
+
+func get_local_player_id() -> String:
+	var nm = _nm()
+	return str(nm.product_user_id) if nm != null else ""
+
+func is_online() -> bool:
+	var nm = _nm()
+	return nm != null and nm.is_logged_in
+
+func puid_text() -> String:
+	var nm = _nm()
+	if nm == null or not nm.is_logged_in:
+		return "PUID: 未登入"
+	return "PUID: %s" % str(nm.product_user_id)
+
+## 房間人數上限（在房中取 lobby 實際值，否則用常數）
+var max_members: int:
+	get:
+		return int(_lobby.max_members) if _lobby else MAX_PLAYERS
+
+## 讀取目前（或指定）lobby 的 attribute；回傳 default_value 若不存在。
+func lobby_attr(key: String, default_value: Variant = "", lobby: Variant = null) -> Variant:
+	var target = lobby if lobby != null else _lobby
+	if target == null:
+		return default_value
+	var attr: Dictionary = target.get_attribute(key)
+	if attr.is_empty():
+		return default_value
+	return attr.value
+
+## 把搜尋結果整理成 UI 好用的資訊。
+func result_info(lb) -> Dictionary:
+	if lb == null:
+		return {}
+	return {
+		"lobby": lb,
+		"room_name": str(lobby_attr(ATTR_ROOM_NAME, "", lb)),
+		"host_name": str(lobby_attr(ATTR_HOST_NAME, "Host", lb)),
+		"max_members": int(lb.max_members),
+		"available_slots": int(lb.available_slots),
+	}
 
 
 # ==========================================================================
@@ -214,6 +273,26 @@ func get_ready_map() -> Dictionary:
 	for player in players:
 		map[player["peer_id"]] = player["ready"]
 	return map
+
+
+## host 更新房間設定（寫進 lobby attribute，client 端透過 lobby_updated 同步）。
+## max_players 在 EOS 建房後不可改，其餘規則皆可即時更新。
+func update_lobby_settings(room_config: Dictionary) -> void:
+	if not is_host or not _lobby:
+		return
+	if room_config.has("name"):
+		_lobby.add_attribute(ATTR_ROOM_NAME, str(room_config["name"]))
+	if room_config.has("map"):
+		_lobby.add_attribute(ATTR_MAP, str(room_config["map"]))
+	if room_config.has("mode"):
+		_lobby.add_attribute(ATTR_MODE, str(room_config["mode"]))
+	if room_config.has("damage_mode"):
+		_lobby.add_attribute(ATTR_DAMAGE, str(room_config["damage_mode"]))
+	if room_config.has("car_restriction"):
+		_lobby.add_attribute(ATTR_CAR_RESTRICTION, str(room_config["car_restriction"]))
+	if room_config.has("auto_start"):
+		_lobby.add_attribute(ATTR_AUTO_START, str(room_config["auto_start"]))
+	await _lobby.update_async()
 
 
 ## host 呼叫：確認所有人都就緒後開始比賽。
