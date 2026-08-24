@@ -45,6 +45,9 @@ func set_results(results: Array, lobby_manager) -> void:
 		set_status("找不到公開房間（確認 host 已開房且設為公開）")
 		return
 	set_status("找到 %d 間房間" % results.size())
+	var local_puid: String = ""
+	if lobby_manager != null and lobby_manager.has_method("get_local_player_id"):
+		local_puid = lobby_manager.get_local_player_id()
 	for lb in results:
 		var info: Dictionary = {}
 		if lobby_manager != null and lobby_manager.has_method("result_info"):
@@ -52,6 +55,7 @@ func set_results(results: Array, lobby_manager) -> void:
 		else:
 			info = {"lobby": lb, "room_name": "", "host_name": "Host",
 					"max_members": int(lb.max_members), "available_slots": int(lb.available_slots)}
+		info["is_local"] = (local_puid != "" and str(lb.owner_product_user_id) == local_puid)
 		_list_root.add_child(_make_row(info))
 
 func _make_row(info: Dictionary) -> PanelContainer:
@@ -78,6 +82,11 @@ func _make_row(info: Dictionary) -> PanelContainer:
 	var room_name: String = str(info.get("room_name", ""))
 	if room_name == "":
 		room_name = str(info.get("host_name", "Host")) + " 的房間"
+	
+	var is_local: bool = info.get("is_local", false)
+	if is_local:
+		room_name = "[本地]%s" % room_name
+	
 	var max_p := int(info.get("max_members", 0))
 	var available := int(info.get("available_slots", 0))
 	var count: int = max_p - available
