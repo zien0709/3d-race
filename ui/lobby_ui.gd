@@ -687,9 +687,9 @@ func _on_start_pressed() -> void:
 		return
 	is_ready = not is_ready
 	if lm != null and lm.has_method("set_ready"):
-		lm.set_ready(is_ready)
+		await lm.set_ready(is_ready)
 		if lm.is_host and _all_lobby_ready():
-			lm.start_match()
+			await lm.start_match()
 	_refresh()
 
 
@@ -727,9 +727,12 @@ func _on_save_overlay() -> void:
 	var new_name := overlay_input.text.strip_edges()
 	if new_name != "":
 		room_config["name"] = new_name
-	room_overlay_open = false
-	toast("設定已儲存")
-	_refresh()
+		room_overlay_open = false
+		var lm = _lobby()
+		if lm != null and lm.is_host and not lm.current_lobby.is_empty():
+			await lm.update_lobby_settings(room_config)
+		toast("設定已儲存")
+		_refresh()
 
 
 func _on_cancel_overlay() -> void:
@@ -808,7 +811,7 @@ func _on_join_pressed(lb) -> void:
 		return
 	browser_busy = true
 	toast("正在加入房間…")
-	lm.join_lobby(lb)
+	await lm.join_lobby(lb)
 	# 結果透過 lobby_joined signal 處理
 
 func _on_create_room_pressed() -> void:
@@ -828,7 +831,7 @@ func _on_create_room_pressed() -> void:
 		return
 	room_overlay_open = false
 	toast("正在建立房間…")
-	lm.create_lobby(room_config)
+	await lm.create_lobby(room_config)
 
 func _on_leave_room_pressed() -> void:
 	room_overlay_open = false
