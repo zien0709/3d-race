@@ -11,6 +11,14 @@ enum Mode {
 	CLIENT,        ## 加入別人的房
 }
 
+## 傳輸層選擇：開發階段用 ENET（IP 直連本機測試），
+## 多人架構驗證完成後切成 EOS（維持現有 EOSGMultiplayerPeer 流程）。
+## 遊戲邏輯層（RPC / Synchronizer / Spawner）與傳輸層無關，不受此切換影響。
+enum Transport {
+	ENET,
+	EOS,
+}
+
 signal mode_changed(mode: int)
 signal peer_connected(peer_id: int)
 signal peer_disconnected(peer_id: int)
@@ -28,6 +36,8 @@ const EOS_SOCKET_ID := "race_3d"
 const DISCORD_REDIRECT_PORT := 14514
 
 var mode: int = Mode.SINGLEPLAYER
+## 開發階段預設 ENET；架構驗證完成後切到 EOS。
+var transport: int = Transport.ENET
 var is_eos_ready := false
 var is_logged_in := false
 var display_name := ""
@@ -210,7 +220,7 @@ func login_account_portal() -> void:
 
 ## Connect 匿名登入（device id，不需 EAS / Account Portal）。
 ## 適合開發與本機多人測試。
-func login_anonymous(display_name := "") -> void:
+func login_anonymous(p_display_name := "") -> void:
 	if not is_eos_ready:
 		login_failed.emit("EOS 尚未初始化")
 		return
@@ -218,9 +228,9 @@ func login_anonymous(display_name := "") -> void:
 	if hauth == null or not hauth.has_method("login_anonymous_async"):
 		login_failed.emit("EOS 執行期未就緒")
 		return
-	if display_name.is_empty():
-		display_name = "Player_%d" % randi_range(1000, 9999)
-	var ok: bool = await hauth.login_anonymous_async(display_name)
+	if p_display_name.is_empty():
+		p_display_name = "Player_%d" % randi_range(1000, 9999)
+	var ok: bool = await hauth.login_anonymous_async(p_display_name)
 	if not ok:
 		login_failed.emit("匿名登入失敗")
 
@@ -390,33 +400,59 @@ func logout() -> void:
 
 ## 開房：建立 listen server。回傳 OK 或錯誤碼。
 func host_game() -> int:
-	if not is_logged_in:
-		return ERR_UNAUTHORIZED
-	if not ClassDB.class_exists("EOSGMultiplayerPeer"):
-		return ERR_UNAVAILABLE
-	var peer = ClassDB.instantiate("EOSGMultiplayerPeer")
-	var err: int = peer.create_server(EOS_SOCKET_ID)
-	if err != OK:
-		return err
-	peer.set_auto_accept_connection_requests(true)
-	_attach_peer(peer)
-	set_mode(Mode.HOST)
-	return OK
+	match transport:
+		Transport.ENET:
+			var peer := ENetMultiplayerPeer.new()
+			var err := peer.create_server(24565, MAX_PLAYERS)
+			if err != OK:
+				return err
+			_attach_peer(peer)
+			set_mode(Mode.HOST)
+			return OK
+
+		Transport.EOS:
+			if not is_logged_in:
+				return ERR_UNAUTHORIZED
+			if not ClassDB.class_exists("EOSGMultiplayerPeer"):
+				return ERR_UNAVAILABLE
+			var peer = ClassDB.instantiate("EOSGMultiplayerPeer")
+			var err: int = peer.create_server(EOS_SOCKET_ID)
+			if err != OK:
+				return err
+			peer.set_auto_accept_connection_requests(true)
+			_attach_peer(peer)
+			set_mode(Mode.HOST)
+			return OK
+
+	return ERR_UNCONFIGURED
 
 
 ## 加入 host 的房：host_user_id 是 host 的 EOS product user id（從 lobby 取得）。
-func join_game(host_user_id: String) -> int:
-	if not is_logged_in or host_user_id.is_empty():
-		return ERR_UNAUTHORIZED
-	if not ClassDB.class_exists("EOSGMultiplayerPeer"):
-		return ERR_UNAVAILABLE
-	var peer = ClassDB.instantiate("EOSGMultiplayerPeer")
-	var err: int = peer.create_client(EOS_SOCKET_ID, host_user_id)
-	if err != OK:
-		return err
-	_attach_peer(peer)
-	set_mode(Mode.CLIENT)
-	return OK
+func join_game(host_user_id: String, port: int = 24565) -> int:
+	match transport:
+		Transport.ENET:
+			var peer := ENetMultiplayerPeer.new()
+			var err := peer.create_client(host_user_id, port)
+			if err != OK:
+				return err
+			_attach_peer(peer)
+			set_mode(Mode.CLIENT)
+			return OK
+
+		Transport.EOS:
+			if not is_logged_in or host_user_id.is_empty():
+				return ERR_UNAUTHORIZED
+			if not ClassDB.class_exists("EOSGMultiplayerPeer"):
+				return ERR_UNAVAILABLE
+			var peer = ClassDB.instantiate("EOSGMultiplayerPeer")
+			var err: int = peer.create_client(EOS_SOCKET_ID, host_user_id)
+			if err != OK:
+				return err
+			_attach_peer(peer)
+			set_mode(Mode.CLIENT)
+			return OK
+
+	return ERR_UNCONFIGURED
 
 
 ## 斷開網路連線，回到單人模式。
@@ -429,13 +465,13 @@ func disconnect_from_game() -> void:
 
 
 func get_peer_user_id(peer_id: int) -> String:
-	if _peer:
+	if _peer and _peer.has_method("get_peer_user_id"):
 		return _peer.get_peer_user_id(peer_id)
 	return ""
 
 
 func get_peer_id_for_user(user_id: String) -> int:
-	if _peer:
+	if _peer and _peer.has_method("get_peer_id"):
 		return _peer.get_peer_id(user_id)
 	return 0
 
@@ -507,7 +543,7 @@ func _on_login_error(result_code) -> void:
 	push_warning("EOS 登入錯誤：%s" % code_name)
 
 
-func _on_eos_log(msg) -> void:
+func _on_eos_log(_msg) -> void:
 	## 之後可接 UI / 檔案 log
 	pass
 
@@ -588,4 +624,4 @@ func _on_discord_oauth_completed(code: String, error: String) -> void:
 	if code.is_empty():
 		login_failed.emit("Discord 授權失敗")
 		return
-	await _exchange_code_for_token(code)
+	_exchange_code_for_token(code)
