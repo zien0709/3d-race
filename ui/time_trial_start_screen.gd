@@ -22,8 +22,15 @@ var _registration_flow := false
 var _identity_verified := false
 var _requested_provider := ""
 
-
 func _ready() -> void:
+	## Connect to AuthManager signals instead of direct NetworkManager calls
+	var auth = get_node_or_null("/root/AuthManager")
+	if auth != null:
+		auth.login_succeeded.connect(_on_auth_succeeded)
+		auth.login_failed.connect(_on_auth_failed)
+		auth.eos_initialized.connect(_on_eos_initialized)
+	
+	## UI button connections (purely UI actions)
 	start_button.pressed.connect(_on_start_pressed)
 	name_input.text_submitted.connect(_on_start_pressed)
 	epic_login_button.pressed.connect(_begin_login.bind("epic", false))
@@ -33,10 +40,7 @@ func _ready() -> void:
 	terms_check_box.toggled.connect(_refresh_registration_button)
 	username_input.text_changed.connect(_on_username_changed)
 	create_account_button.pressed.connect(_on_create_account_pressed)
-	NetworkManager.eos_initialized.connect(_on_eos_initialized)
-	NetworkManager.login_succeeded.connect(_on_login_succeeded)
-	NetworkManager.login_failed.connect(_on_login_failed)
-
+	
 	setup_button_animations(login_button)
 	setup_button_animations(register_button)
 	setup_button_animations(play_button)
@@ -49,10 +53,58 @@ func _ready() -> void:
 	_refresh_registration_button()
 	_try_auto_login()
 
+## --- AuthManager signal handlers (decoupled) ---
 
-func _on_start_pressed(_text: String = "") -> void:
-	start_requested.emit(name_input.text.strip_edges())
+func _on_eos_initialized(success: bool, message: String) -> void:
+	if not _auth_in_progress:
+		return
+	if not success:
+		_on_auth_failed(message if not message.is_empty() else "EOS 初始化失敗")
+		return
+	_run_requested_login()
 
+
+func _on_auth_succeeded(display_name: String, product_user_id: String) -> void:
+	if not _auth_in_progress:
+		return
+	_auth_in_progress = false
+	_set_auth_controls(false)
+	
+	var auth = get_node_or_null("/root/AuthManager")
+	## Restore display name from cloud or local cache via AuthManager
+	var saved_name := "UserName"
+	if auth != null:
+		var cloud = await auth.load_profile()
+		var cloud_name := str(cloud.get("display_name", ""))
+		if not cloud_name.is_empty():
+			saved_name = cloud_name
+	## Fall back to local if cloud empty
+	if saved_name == "UserName":
+		var cfg := ConfigFile.new()
+		if cfg.load("user://player_profile.cfg") == OK:
+			saved_name = str(cfg.get_value("profile", "display_name", ""))
+	
+	if not _registration_flow:
+		## Login succeeded (not registration) -> go to lobby
+		get_tree().change_scene_to_file("res://ui/lobby.tscn")
+		return
+	
+	## Registration flow: identity verified
+	_identity_verified = true
+	if username_input.text.strip_edges().is_empty():
+		var preferred_name := name_input.text.strip_edges()
+		username_input.text = preferred_name if not preferred_name.is_empty() else saved_name
+	registration_status.text = "帳號已驗證。設定公開暱稱後即可開始。"
+	_refresh_registration_button()
+
+
+func _on_auth_failed(message: String) -> void:
+	_auth_in_progress = false
+	_set_auth_controls(false)
+	_set_auth_status(message if not message.is_empty() else "登入失敗，請再試一次。")
+
+
+## --- Login/Register flow ---
 
 func _begin_login(provider: String, registration: bool) -> void:
 	if _auth_in_progress:
@@ -63,68 +115,35 @@ func _begin_login(provider: String, registration: bool) -> void:
 	_requested_provider = provider
 	_set_auth_controls(true)
 	_set_auth_status("正在初始化 %s 登入…" % _provider_name(provider))
-	if NetworkManager.is_eos_ready:
+	
+	var auth = get_node_or_null("/root/AuthManager")
+	if auth != null and auth.is_eos_ready():
 		_run_requested_login()
 	else:
-		NetworkManager.init_eos()
-
-
-func _on_eos_initialized(success: bool, message: String) -> void:
-	if not _auth_in_progress:
-		return
-	if not success:
-		_on_login_failed(message if not message.is_empty() else "EOS 初始化失敗")
-		return
-	_run_requested_login()
+		if auth != null:
+			auth.init_eos()
 
 
 func _run_requested_login() -> void:
 	_set_auth_status("正在開啟 %s 授權…" % _provider_name(_requested_provider))
-	NetworkManager.login(_requested_provider)
+	var auth = get_node_or_null("/root/AuthManager")
+	if auth != null:
+		auth.login(_requested_provider)
 
 
-func _on_login_succeeded() -> void:
-	if not _auth_in_progress:
-		return
-	_auth_in_progress = false
-	_set_auth_controls(false)
-	# 從雲端（PlayerDataStorage）或本地快取讀回暱稱
-	var saved_name: String = await _restore_display_name()
-	if not _registration_flow:
-		get_tree().change_scene_to_file("res://ui/lobby.tscn")
-		return
-	_identity_verified = true
-	if username_input.text.strip_edges().is_empty():
-		var preferred_name := name_input.text.strip_edges()
-		username_input.text = preferred_name if not preferred_name.is_empty() else saved_name
-	registration_status.text = "帳號已驗證。設定公開暱稱後即可開始。"
-	_refresh_registration_button()
+## --- Auto login (persistent) ---
 
-
-func _on_login_failed(message: String) -> void:
-	_auth_in_progress = false
-	_set_auth_controls(false)
-	_set_auth_status(message if not message.is_empty() else "登入失敗，請再試一次。")
-
-
-func _on_username_changed(_new_text: String) -> void:
-	_refresh_registration_button()
-
-
-# ==========================================================================
-# 自動登入（persistent auth，D1）
-# ==========================================================================
-
-## 啟動時嘗試以先前 Account Portal 登入儲存的 refresh token 自動登入。
-## 無 token 或失敗時靜默返回，不干擾手動登入流程。
 func _try_auto_login() -> void:
-	if NetworkManager.is_logged_in:
+	var auth = get_node_or_null("/root/AuthManager")
+	if auth != null and auth.is_logged_in():
 		return
-	if NetworkManager.is_eos_ready:
+	if auth != null and auth.is_eos_ready():
 		_do_auto_login()
 		return
-	NetworkManager.eos_initialized.connect(_on_auto_login_eos_ready, CONNECT_ONE_SHOT)
-	NetworkManager.init_eos()
+	auth = get_node_or_null("/root/AuthManager")
+	if auth != null:
+		auth.eos_initialized.connect(_on_auto_login_eos_ready, CONNECT_ONE_SHOT)
+		auth.init_eos()
 
 
 func _on_auto_login_eos_ready(success: bool, _message: String) -> void:
@@ -133,14 +152,20 @@ func _on_auto_login_eos_ready(success: bool, _message: String) -> void:
 
 
 func _do_auto_login() -> void:
-	var ok: bool = await NetworkManager.try_persistent_login()
-	if ok:
+	var auth = get_node_or_null("/root/AuthManager")
+	if auth != null and auth.try_persistent_login():
 		get_tree().change_scene_to_file("res://ui/lobby.tscn")
 
+
+## --- Registration button state ---
 
 func _refresh_registration_button(_pressed := false) -> void:
 	var can_create := _identity_verified and terms_check_box.button_pressed and not username_input.text.strip_edges().is_empty()
 	create_account_button.disabled = not can_create
+
+
+func _on_username_changed(_new_text: String) -> void:
+	_refresh_registration_button()
 
 
 func _on_create_account_pressed() -> void:
@@ -148,64 +173,36 @@ func _on_create_account_pressed() -> void:
 	if nickname.is_empty() or not _identity_verified or not terms_check_box.button_pressed:
 		return
 	create_account_button.disabled = true
-	# Credentials remain with the external provider; this only stores display preferences.
+	
 	var profile := {
 		"display_name": nickname,
-		"product_user_id": NetworkManager.product_user_id,
+		"product_user_id": "",
 		"terms_accepted": true,
 	}
+	
+	var auth = get_node_or_null("/root/AuthManager")
 	var cloud_ok := false
-	if PlayerStorage.is_available():
-		registration_status.text = "正在同步暱稱到雲端…"
-		cloud_ok = await PlayerStorage.save_profile(profile)
-	# 無論雲端成功與否都保留本地快取作為 fallback
+	if auth != null:
+		cloud_ok = await auth.save_profile(profile)
+	
+	## Save locally as fallback (AuthManager handles this internally)
 	_save_local_profile(nickname)
-	NetworkManager.display_name = nickname
-	if cloud_ok:
-		registration_status.text = "暱稱已同步到雲端。"
-	else:
-		registration_status.text = "雲端同步未完成，暱稱僅儲存於本機。"
+	
+	## Proceed to lobby - display name will be retrieved from AuthManager state
 	get_tree().change_scene_to_file("res://ui/lobby.tscn")
 
+
+func _on_start_pressed(_text: String = "") -> void:
+	start_requested.emit(name_input.text.strip_edges())
+
+
+## --- UI control helpers ---
 
 func _set_auth_controls(disabled: bool) -> void:
 	epic_login_button.disabled = disabled
 	discord_login_button.disabled = disabled
 	epic_register_button.disabled = disabled
 	discord_register_button.disabled = disabled
-
-
-# ==========================================================================
-# 暱稱同步（EOS PlayerDataStorage + 本地快取）
-# ==========================================================================
-
-## 登入後讀回暱稱：優先雲端，其次本地快取（B3 / B4）。
-func _restore_display_name() -> String:
-	if PlayerStorage.is_available():
-		var cloud := await PlayerStorage.load_profile()
-		var cloud_name := str(cloud.get("display_name", ""))
-		if not cloud_name.is_empty():
-			NetworkManager.display_name = cloud_name
-			return cloud_name
-	var local_name := _load_local_display_name()
-	if not local_name.is_empty():
-		NetworkManager.display_name = local_name
-	return local_name
-
-
-func _load_local_display_name() -> String:
-	var cfg := ConfigFile.new()
-	if cfg.load("user://player_profile.cfg") != OK:
-		return ""
-	return str(cfg.get_value("profile", "display_name", ""))
-
-
-func _save_local_profile(nickname: String) -> void:
-	var cfg := ConfigFile.new()
-	cfg.set_value("profile", "display_name", nickname)
-	cfg.set_value("profile", "product_user_id", NetworkManager.product_user_id)
-	cfg.set_value("profile", "terms_accepted", true)
-	cfg.save("user://player_profile.cfg")
 
 
 func _set_auth_status(message: String) -> void:
@@ -247,6 +244,23 @@ func hide_for_race() -> void:
 func show_name_error(message: String) -> void:
 	name_input.placeholder_text = message
 	name_input.grab_focus()
+
+
+## --- Local profile persistence (fallback) ---
+
+func _save_local_profile(nickname: String) -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("profile", "display_name", nickname)
+	cfg.set_value("profile", "product_user_id", "")
+	cfg.set_value("profile", "terms_accepted", true)
+	cfg.save("user://player_profile.cfg")
+
+
+func _load_local_display_name() -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load("user://player_profile.cfg") != OK:
+		return ""
+	return str(cfg.get_value("profile", "display_name", ""))
 
 
 func setup_button_animations(btn: Button) -> void:
