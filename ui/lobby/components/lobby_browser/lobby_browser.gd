@@ -103,10 +103,15 @@ func _make_row(info: Dictionary) -> PanelContainer:
 
 	var lb = info.get("lobby")
 	var join := Button.new()
-	join.text = "加入"
+	if is_local:
+		join.text = "本地"
+		join.disabled = true
+	else:
+		join.text = "加入"
 	join.custom_minimum_size = Vector2(70, 30)
 	join.add_theme_font_size_override("font_size", 13)
-	join.pressed.connect(func(): join_requested.emit(lb))
+	if not join.disabled:
+		join.pressed.connect(func(): join_requested.emit(lb))
 	if count >= max_p and max_p > 0:
 		join.disabled = true
 		join.text = "已滿"

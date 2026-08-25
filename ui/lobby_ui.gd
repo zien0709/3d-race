@@ -786,14 +786,16 @@ func _render_browser_list() -> void:
 		var room_name := _lobby_attr(lb, "room_name", "")
 		if room_name.is_empty():
 			room_name = host + " 的房間"
-		# Check if local player is the host of this lobby
+		# Check if local player is the host of this lobby (HLobby.owner_product_user_id)
 		var is_local_host: bool = false
 		var lm = _lobby()
 		if lm != null and "get_local_player_id" in lm:
 			var local_pid: String = str(lm.get_local_player_id())
-			var host_id := _lobby_attr(lb, "host_id", "")
-			# Only mark as local host if both IDs are non-empty and match
-			if local_pid != "" and host_id != "" and local_pid == host_id:
+			var owner_id := str(lb.owner_product_user_id) if "owner_product_user_id" in lb else ""
+			# Fallback: try attribute host_id for legacy data
+			if owner_id == "":
+				owner_id = _lobby_attr(lb, "host_id", "")
+			if local_pid != "" and owner_id != "" and local_pid == owner_id:
 				is_local_host = true
 		if is_local_host:
 			room_name = "[本地]" + room_name
@@ -804,7 +806,11 @@ func _render_browser_list() -> void:
 		_label(row, room_name, Vector2(16, 10), 16, C_WHITE)
 		_label(row, "%s  ·  %d/%d" % [host, count, max_p], Vector2(16, 36), 12, C_MUTED)
 		var join := _btn(row, "加入", Rect2(568 - 90, 16, 70, 30), 13, Color("#0f172a"), C_ACCENT, Color.TRANSPARENT, 6, 1)
-		join.pressed.connect(_on_join_pressed.bind(lb))
+		if is_local_host:
+			join.text = "本地"
+			join.disabled = true
+		else:
+			join.pressed.connect(_on_join_pressed.bind(lb))
 		if count >= max_p:
 			join.disabled = true
 			join.text = "已滿"
@@ -823,10 +829,22 @@ func _on_join_pressed(lb) -> void:
 	if lm == null:
 		toast("房間模組未就緒")
 		return
+	# 本地房間無需加入
+	if "owner_product_user_id" in lb and lm.has_method("get_local_player_id"):
+		if str(lb.owner_product_user_id) == str(lm.get_local_player_id()):
+			toast("這是你的房間")
+			return
+	if not lm.current_lobby.is_empty():
+		toast("已在房間中，先離開後再加入…")
+		await lm.leave_lobby()
+		_sync_players()
+		_refresh()
 	browser_busy = true
 	toast("正在加入房間…")
 	await lm.join_lobby(lb)
-	# 結果透過 lobby_joined signal 處理
+	if lm.current_lobby.is_empty():
+		browser_busy = false
+		toast("加入失敗，請再試一次")
 
 func _on_create_room_pressed() -> void:
 	var nm = _net()

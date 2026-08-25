@@ -112,21 +112,9 @@ func save_profile(profile: Dictionary) -> bool:
 		return false
 	if not _player_storage.has_method("is_available") or not _player_storage.is_available():
 		return false
-	
-	var json_text := JSON.stringify(profile)
-	var opts = _player_storage.get_class("PlayerDataStorage").new_write_file_options()
-	opts.local_user_id = _product_user_id
-	opts.filename = "profile.json"
-	opts.data = json_text.to_utf8_buffer()
-	opts.chunk_length_bytes = 4096
-	
-	var write_cb = _player_storage.get_class("PlayerDataStorage").new()
-	write_cb.playerdatastorage_interface_write_file_data_callback.connect(_on_write_file_data)
-	
-	var eos = _player_storage.get_class("PlayerDataStorage").new()
-	eos.PlayerDataStorage.PlayerDataStorageInterface.write_file(opts)
-	var ret = await write_cb
-	return bool(_environment_manager.is_success(ret) if _environment_manager != null else false)
+	if _player_storage.has_method("save_profile"):
+		return await _player_storage.save_profile(profile)
+	return false
 
 func load_profile() -> Dictionary:
 	_ensure_player_storage()
@@ -134,26 +122,9 @@ func load_profile() -> Dictionary:
 		return {}
 	if not _player_storage.has_method("is_available") or not _player_storage.is_available():
 		return {}
-	
-	var opts = _player_storage.get_class("PlayerDataStorage").new_read_file_options()
-	opts.local_user_id = _product_user_id
-	opts.filename = "profile.json"
-	opts.read_chunk_length_bytes = 4096
-	
-	var read_buffer := PackedByteArray()
-	var read_cb = _player_storage.get_class("PlayerDataStorage").new()
-	read_cb.playerdatastorage_interface_read_file_data_callback.connect(_on_read_file_data)
-	
-	var eos = _player_storage.get_class("PlayerDataStorage").new()
-	eos.PlayerDataStorage.PlayerDataStorageInterface.read_file(opts)
-	var ret = await read_cb
-	
-	if not bool(_environment_manager.is_success(ret) if _environment_manager != null else false):
-		return {}
-	
-	var json_text: String = ret.get("data_chunk", PackedByteArray()).get_string_from_utf8()
-	var parsed = JSON.parse_string(json_text)
-	return parsed as Dictionary if parsed is Dictionary else {}
+	if _player_storage.has_method("load_profile"):
+		return await _player_storage.load_profile()
+	return {}
 
 func has_profile() -> bool:
 	_ensure_player_storage()
@@ -161,16 +132,9 @@ func has_profile() -> bool:
 		return false
 	if not _player_storage.has_method("is_available") or not _player_storage.is_available():
 		return false
-	
-	var opts = _player_storage.get_class("PlayerDataStorage").new_query_file_options()
-	opts.local_user_id = _product_user_id
-	opts.filename = "profile.json"
-	
-	var query_cb = _player_storage.get_class("PlayerDataStorage").new()
-	var eos = _player_storage.get_class("PlayerDataStorage").new()
-	eos.PlayerDataStorage.PlayerDataStorageInterface.query_file(opts)
-	var ret = await query_cb
-	return bool(_environment_manager.is_success(ret) if _environment_manager != null else false)
+	if _player_storage.has_method("has_profile"):
+		return await _player_storage.has_profile()
+	return false
 
 ## --- Environment sync (weather, time, wind) ---
 

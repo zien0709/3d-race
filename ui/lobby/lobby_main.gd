@@ -323,8 +323,23 @@ func _on_lobby_join_requested(lb) -> void:
 	if lm == null:
 		show_toast("Lobby module not loaded")
 		return
+	# [本地]房間無需加入
+	if "owner_product_user_id" in lb and lm.has_method("get_local_player_id"):
+		if str(lb.owner_product_user_id) == str(lm.get_local_player_id()):
+			show_toast("這是你的房間")
+			return
+	# 若已在房間中先離開再加入，避免循環阻塞
+	if not lm.current_lobby.is_empty():
+		show_toast("已在房間中，先離開後再加入…")
+		await lm.leave_lobby()
+		_refresh_players()
+		_refresh_all()
 	show_toast("正在加入房間…")
 	await lm.join_lobby(lb)
+	if lm.current_lobby.is_empty():
+		show_toast("加入失敗，請再試一次")
+		# 確保 browser 不會卡在 busy
+		lm.browser_busy = false
 
 func _on_lobby_browser_closed() -> void:
 	_refresh_all()

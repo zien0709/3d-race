@@ -189,3 +189,32 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 10. **UI 層不要硬編碼業務預設值**——房名這類會被上傳到 EOS attribute 的欄位，預設值應由資料層（LobbyManager/AuthManager）提供或 UI 於登入後填入；寫死在 UI 初始化字典裡會蓋掉下層的合理 fallback。
 11. **搜尋列表辨識「自己的房」用 owner_product_user_id 對比本機 PUID**，不要比對 host_name 字串（暱稱可重複、可改）。
 
+---
+
+## Phase C2：修復登入循環卡死與加入房間循環（2026-08-25）
+
+### 症狀（使用者截圖）
+1. 每次登入後卡在 `auth_manager.gd:125` → 報錯「Trying to call an async function without await」並在 Debugger 堆疊顯示 11 次重複錯誤，無法進入 Lobby。
+2. 修復後仍會卡在「加入房間」循環：已在房間中再次點擊加入，或點擊自己的房間導致無限 busy。
+
+### 根因
+1. `scripts/auth_manager.gd` 的 `save_profile / load_profile / has_profile` 在前次重構時被簡化為直接委派 `return _player_storage.save_profile(...)`，但 `PlayerStorage` 的三個方法皆為協程（`await IEOS...callback`），委派端未加 `await`，GDScript 4.3 視為「未等待的協程呼叫」直接報錯並中斷登入流程；上層 `time_trial_start_screen.gd:77` 的 `await auth.load_profile()` 因此永遠拿不到結果，導致登入成功訊號後卡死。
+2. `ui/lobby_ui.gd` 的舊版搜尋列表用 `_lobby_attr(lb, \"host_id\")` 判斷本地房，但 EOS HLobby 並無該 attribute，實際應比對 `lb.owner_product_user_id`（如 `lobby_browser.gd` 已正確實作）。舊版永遠判斷為非本地，[本地] 標記失效，使用者誤點自己房間觸發加入自己房間的無效操作。
+3. `ui/lobby/lobby_main.gd` 與 `ui/lobby_ui.gd` 的 `_on_join_pressed / _on_lobby_join_requested` 未處理「已在房間中」與「加入自己房間」兩種情況，導致已在房間時再次 join 造成 LobbyManager 狀態混亂與 busy 旗標卡死。
+
+### 修復策略
+- `scripts/auth_manager.gd`：三個委派函式改為 `return await _player_storage.xxx(...)`（檔案內含 `await` 即自動成為協程，呼叫端已正確 `await`，符合 Godot 4 協程規則）。
+- `ui/lobby_ui.gd`：`_render_browser_list()` 改為優先讀 `lb.owner_product_user_id`，fallback 才讀 `host_id` attribute；同時禁用本地房的「加入」按鈕（顯示「本地」且 disabled）。
+- `ui/lobby/lobby_main.gd` 與 `ui/lobby_ui.gd` 的加入處理：先檢查 `owner_product_user_id == get_local_player_id()` → 提示「這是你的房間」直接返回；若 `current_lobby` 非空，先 `await leave_lobby()` 再執行 `join_lobby`，並在失敗時清除 `browser_busy` 與提示「加入失敗」。
+- `ui/lobby/components/lobby_browser/lobby_browser.gd`：本地房的加入按鈕改為 disabled 並顯示「本地」，避免誤觸。
+
+### 驗證方式
+- `filesystem_manage(scan)` 後單檔 `write_text` 診斷皆為 clean（`diagnostics: []`）。
+- `editor logs` 需重新 `logs_clear` 後再掃描；若仍見舊錯誤，需重啟 Godot 編輯器使 stale buffer 失效（教訓 1、教訓 12）。
+- `git diff` 確認 `auth_manager.gd` 三處皆含 `await`，`lobby_ui.gd` / `lobby_browser.gd` / `lobby_main.gd` 皆含 `owner_product_user_id` 比對與離開再加入邏輯。
+
+### 教訓補充
+12. **委派協程必須透傳 await**——`PlayerStorage.save/load/has_profile` 皆為協程，薄委派層若寫 `return _player_storage.save_profile(...)` 會回傳 `GDScriptFunctionState` 而非 `bool/Dictionary`，呼叫端 `await` 也拿不到正確結果；必須寫 `return await _player_storage.save_profile(...)`。
+13. **加入房間前先處理既有房間狀態**——EOS 同一時間只能在一個 Lobby，已在房間時必須先 `leave_async` 再 `join_async`，否則 `join_async` 回傳 null 並使 UI 的 `browser_busy` 永久為 true。
+14. **本地房判斷用 owner_product_user_id 而非 attribute**——HLobby 的 owner 是屬性而非 attribute，`get_attribute(\"host_id\")` 永遠取不到；正確做法如 `lobby_browser.gd` 已示範。
+
