@@ -95,14 +95,17 @@
 
 目標：完善大廳流程，支援自動建房與全員準備發車。
 
-1. **自動建房**：在 `lobby_ui.gd` 或 `lobby_main.gd` 初始化完成且偵測到已登入 EOS 時，若無當前房間，自動呼叫 `create_lobby(room_config)` 以 EOS `display_name` 作為預設房名。
-2. **準備系統**：擴充 `set_ready.rpc`，讓各客戶端點擊 Ready 後通知 Host，Host 端收集 ready map，當全員就緒後解鎖房主的「開始比賽」按鈕。
+1. **自動建房**：在 `lobby_ui.gd` / `lobby_main.gd` 初始化完成且偵測到已登入 EOS 時，若無當前房間，自動呼叫 `create_lobby(room_config)` 以 EOS `display_name` 作為預設房名。（**已完成**，見 `lobby_main.gd:_auto_create_room_if_needed`）
+2. **準備系統**：擴充 `set_ready.rpc`，讓各客戶端點擊 Ready 後通知 Host，Host 端收集 ready map，當全員就緒後解鎖房主的「開始比賽」按鈕。（**已完成**，見 `lobby_manager.gd` + `lobby_ui.gd`）
+3. **比賽啟動整合**：`match_started` 觸發換場至 `main.tscn` 後，自動生成遠端車輛並啟動多人計時賽。（**已完成**，見 `race_course_setup.gd:_init_multiplayer_race`、`player.gd` authority-based `is_local_player`、移除 `player_spawner.gd` 硬編碼 `is_local_player`）
 
 ---
 
 ## 4. Phase E：切換回 EOS 傳輸層（正式上線）
 
-當 ENET 架構驗證完畢後，切回 Epic Online Services 傳輸：
-1. 將 `network_manager.gd` 中的 `var transport: int = Transport.ENET` 改為 `Transport.EOS`（或由設定檔讀取）。
-2. 將大廳 UI 的建立/加入按鈕接回 `LobbyManager.create_lobby()` / `LobbyManager.join_lobby()`。
-3. 測試 P2P 聯機、好友邀請與 EOS 雲端存檔。
+**已完成**（2026-08-25）：
+1. `network_manager.gd`：`var transport: int = Transport.EOS`（預設 EOS，開發時可用 `set_transport(Transport.ENET)` 切回本機測試）
+2. 大廳 UI 的建立/加入按鈕已接回 `LobbyManager.create_lobby()` / `LobbyManager.join_lobby()`（內部呼叫 `NetworkManager.host_game/join_game` 自動依 `transport` 選擇 EOSGMultiplayerPeer）
+3. 新增 `NetworkManager.set_transport()` 供開發期切換測試
+
+**待驗證**：需在 `res://eos_config.cfg` 填入有效 EOS 憑證（product_id / sandbox_id / deployment_id / client_id / client_secret / encryption_key）並測試 P2P 聯機、好友邀請與 EOS 雲端存檔。

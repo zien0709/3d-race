@@ -37,7 +37,7 @@ const DISCORD_REDIRECT_PORT := 14514
 
 var mode: int = Mode.SINGLEPLAYER
 ## 開發階段預設 ENET；架構驗證完成後切到 EOS。
-var transport: int = Transport.ENET
+var transport: int = Transport.EOS
 var is_eos_ready := false
 var is_logged_in := false
 var display_name := ""
@@ -65,6 +65,16 @@ func set_mode(new_mode: int) -> void:
 		return
 	mode = new_mode
 	mode_changed.emit(mode)
+
+
+func set_transport(new_transport: int) -> void:
+	if transport == new_transport:
+		return
+	transport = new_transport
+	print("NetworkManager: transport 切換為 %s" % ["ENET", "EOS"][transport])
+	# 若已連線，需重連才生效
+	if is_online():
+		print("警告：已在線上狀態，需重新連線才生效新傳輸層")
 
 
 func is_online() -> bool:
