@@ -50,6 +50,13 @@ var auth_manager: Object = null
 func _ready() -> void:
 	_init_signals()
 	_connect_components()
+	# 若登入已在 _ready 前完成（boot 階段 persistent login），補觸發
+	if auth_manager != null and auth_manager.is_logged_in:
+		_on_auth_succeeded(auth_manager.display_name())
+	if lobby_manager != null and not lobby_manager.is_online():
+		var nm = get_node_or_null("/root/NetworkManager")
+		if nm != null and nm.is_logged_in:
+			_on_auth_succeeded(str(nm.display_name))
 	_refresh_all()
 
 func _init_signals() -> void:
