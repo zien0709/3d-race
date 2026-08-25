@@ -138,6 +138,7 @@ func _update_default_room_name() -> void:
 		var display_name: String = str(auth_manager.display_name())
 		if display_name != "":
 			room_config["name"] = "%s的房間" % display_name
+			room_config["host_name"] = display_name
 
 func _auto_create_room_if_needed() -> void:
 	if lobby_manager == null:

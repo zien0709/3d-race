@@ -113,7 +113,8 @@ func create_lobby(room_config: Dictionary = {}) -> void:
 		return
 
 	var max_players: int = int(room_config.get("max_players", MAX_PLAYERS))
-	var room_name: String = str(room_config.get("name", "%s 的房間" % _nm().display_name))
+	var room_name: String = str(room_config.get("name", "%s的房間" % _nm().display_name))
+	var host_name: String = str(room_config.get("host_name", _nm().display_name))
 
 	var opts = eos.Lobby.CreateLobbyOptions.new()
 	opts.max_lobby_members = max_players
@@ -133,9 +134,9 @@ func create_lobby(room_config: Dictionary = {}) -> void:
 	_bind_lobby(lobby)
 
 	lobby.add_attribute(ATTR_GAME, "3d_race")
-	lobby.add_attribute(ATTR_HOST_NAME, _nm().display_name)
+	lobby.add_attribute(ATTR_HOST_NAME, host_name)
 	lobby.add_attribute(ATTR_ROOM_NAME, room_name)
-	lobby.add_attribute(ATTR_DISPLAY_NAME, _nm().display_name)
+	lobby.add_attribute(ATTR_DISPLAY_NAME, host_name)
 	await lobby.update_async()
 
 	_sync_members()
