@@ -438,9 +438,15 @@ func _get_selected_player() -> Dictionary:
 	return players[0]
 
 func _net_is_logged_in() -> bool:
+	# Method 1: Check via lobby manager (preferred)
 	if lobby_manager != null and lobby_manager.has_method("_nm"):
 		var nm = lobby_manager._nm()
-		return nm != null and nm.is_logged_in
+		if nm != null:
+			return nm.is_logged_in
+	# Method 2: Fallback - check NetworkManager directly
+	var direct_nm = get_node_or_null("/root/NetworkManager")
+	if direct_nm != null and "is_logged_in" in direct_nm:
+		return direct_nm.is_logged_in
 	return false
 
 func _all_lobby_ready() -> bool:

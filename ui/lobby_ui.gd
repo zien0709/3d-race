@@ -782,12 +782,26 @@ func _render_browser_list() -> void:
 	for i in browser_results.size():
 		var lb = browser_results[i]
 		var host := _lobby_attr(lb, "host_name", "Host")
-		var room := _lobby_attr(lb, "room_name", host + " 的房間")
+		# Get the room name, with special format if local is host
+		var room_name := _lobby_attr(lb, "room_name", "")
+		if room_name.is_empty():
+			room_name = host + " 的房間"
+		# Check if local player is the host of this lobby
+		var is_local_host: bool = false
+		var lm = _lobby()
+		if lm != null and "get_local_player_id" in lm:
+			var local_pid: String = str(lm.get_local_player_id())
+			var host_id := _lobby_attr(lb, "host_id", "")
+			# Only mark as local host if both IDs are non-empty and match
+			if local_pid != "" and host_id != "" and local_pid == host_id:
+				is_local_host = true
+		if is_local_host:
+			room_name = "[本地]" + room_name
 		var max_p: int = int(lb.max_members)
 		var avail: int = int(lb.available_slots)
 		var count: int = max_p - avail
 		var row := _panel(browser_list, Rect2(0, y, 568, 64), Color(1, 1, 1, 0.03), C_BORDER, 8, 1)
-		_label(row, room, Vector2(16, 10), 16, C_WHITE)
+		_label(row, room_name, Vector2(16, 10), 16, C_WHITE)
 		_label(row, "%s  ·  %d/%d" % [host, count, max_p], Vector2(16, 36), 12, C_MUTED)
 		var join := _btn(row, "加入", Rect2(568 - 90, 16, 70, 30), 13, Color("#0f172a"), C_ACCENT, Color.TRANSPARENT, 6, 1)
 		join.pressed.connect(_on_join_pressed.bind(lb))
@@ -895,7 +909,11 @@ func _refresh() -> void:
 	user_card_puid.text = _puid_text()
 
 	# room
-	room_name_label.text = room_config["name"]
+	var nm = _net()
+	if nm and nm.is_logged_in and "display_name" in nm and nm.display_name != "":
+		room_name_label.text = "%s的房間" % nm.display_name
+	else:
+		room_name_label.text = room_config["name"]
 	var font := room_name_label.get_theme_font("font")
 	var nw := font.get_string_size(room_name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
 	room_count_label.text = "  ·  %d/%d" % [players.size(), room_config["max_players"]]
