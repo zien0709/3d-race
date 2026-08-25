@@ -81,9 +81,18 @@ func result_info(lb) -> Dictionary:
 	var host_name: String = str(lobby_attr(ATTR_HOST_NAME, "", lb))
 	if host_name.is_empty():
 		host_name = str(lobby_attr(ATTR_DISPLAY_NAME, "", lb))
+	var room_name: String = str(lobby_attr(ATTR_ROOM_NAME, "", lb))
+	# EOS 搜尋結果不帶 attribute，改從本機 lobby 讀取
+	if (host_name.is_empty() or room_name.is_empty()) and _lobby != null:
+		var target_id: String = str(lb.lobby_id) if "lobby_id" in lb else ""
+		var local_id: String = str(_lobby.lobby_id) if "lobby_id" in _lobby else ""
+		if target_id != "" and target_id == local_id:
+			if host_name.is_empty():
+				host_name = str(lobby_attr(ATTR_HOST_NAME, "Host", _lobby))
+			if room_name.is_empty():
+				room_name = str(lobby_attr(ATTR_ROOM_NAME, "", _lobby))
 	if host_name.is_empty():
 		host_name = "Host"
-	var room_name: String = str(lobby_attr(ATTR_ROOM_NAME, "", lb))
 	if room_name.is_empty():
 		room_name = "%s的房間" % host_name
 	return {
