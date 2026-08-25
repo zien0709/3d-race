@@ -78,10 +78,18 @@ func lobby_attr(key: String, default_value: Variant = "", lobby: Variant = null)
 func result_info(lb) -> Dictionary:
 	if lb == null:
 		return {}
+	var host_name: String = str(lobby_attr(ATTR_HOST_NAME, "", lb))
+	if host_name.is_empty():
+		host_name = str(lobby_attr(ATTR_DISPLAY_NAME, "", lb))
+	if host_name.is_empty():
+		host_name = "Host"
+	var room_name: String = str(lobby_attr(ATTR_ROOM_NAME, "", lb))
+	if room_name.is_empty():
+		room_name = "%s的房間" % host_name
 	return {
 		"lobby": lb,
-		"room_name": str(lobby_attr(ATTR_ROOM_NAME, "", lb)),
-		"host_name": str(lobby_attr(ATTR_HOST_NAME, "Host", lb)),
+		"room_name": room_name,
+		"host_name": host_name,
 		"max_members": int(lb.max_members),
 		"available_slots": int(lb.available_slots),
 	}

@@ -86,6 +86,8 @@ func _make_row(info: Dictionary) -> PanelContainer:
 	var is_local: bool = info.get("is_local", false)
 	if is_local:
 		room_name = "[本地]%s" % room_name
+	else:
+		room_name = "[線上]%s" % room_name
 	
 	var max_p := int(info.get("max_members", 0))
 	var available := int(info.get("available_slots", 0))
@@ -103,15 +105,10 @@ func _make_row(info: Dictionary) -> PanelContainer:
 
 	var lb = info.get("lobby")
 	var join := Button.new()
-	if is_local:
-		join.text = "本地"
-		join.disabled = true
-	else:
-		join.text = "加入"
+	join.text = "加入"
 	join.custom_minimum_size = Vector2(70, 30)
 	join.add_theme_font_size_override("font_size", 13)
-	if not join.disabled:
-		join.pressed.connect(func(): join_requested.emit(lb))
+	join.pressed.connect(func(): join_requested.emit(lb))
 	if count >= max_p and max_p > 0:
 		join.disabled = true
 		join.text = "已滿"
