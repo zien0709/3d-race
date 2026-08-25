@@ -90,6 +90,8 @@ func _ready() -> void:
 	_build_road_surface_lookup()
 	spawn_transform = global_transform
 	_apply_local_player_state()
+	# 多人模式：加入群組供檢查點偵測用
+	add_to_group("player_car")
 
 
 func _find_race_manager() -> Node:
