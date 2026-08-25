@@ -94,7 +94,10 @@ func result_info(lb) -> Dictionary:
 	if host_name.is_empty():
 		host_name = "Host"
 	if room_name.is_empty():
-		room_name = "%s的房間" % host_name
+		if host_name.is_empty():
+			room_name = "未命名房間"
+		else:
+			room_name = "%s的房間" % host_name
 	return {
 		"lobby": lb,
 		"room_name": room_name,
