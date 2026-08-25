@@ -177,10 +177,13 @@ func join_lobby(lobby) -> void:
 	if hlobbies == null:
 		lobby_joined.emit({})
 		return
+	print("[LobbyManager] join_lobby: attempting join for lobby_id=", lobby.lobby_id)
 	var joined: Variant = await hlobbies.join_async(lobby)
 	if not joined:
+		print("[LobbyManager] join_lobby: join failed (returned null/false)")
 		lobby_joined.emit({})
 		return
+	print("[LobbyManager] join_lobby: join succeeded")
 
 	is_host = false
 	_bind_lobby(joined)

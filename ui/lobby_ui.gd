@@ -779,6 +779,14 @@ func _render_browser_list() -> void:
 		return
 	browser_status.text = "找到 %d 間房間" % browser_results.size()
 	var y := 0.0
+	var lm := _lobby()
+	var local_puid: String = ""
+	var local_display_name: String = ""
+	if lm != null:
+		if "get_local_player_id" in lm:
+			local_puid = str(lm.get_local_player_id())
+		if "get_display_name" in lm:
+			local_display_name = str(lm.get_display_name())
 	for i in browser_results.size():
 		var lb = browser_results[i]
 		var host := _lobby_attr(lb, "host_name", "")
@@ -792,15 +800,18 @@ func _render_browser_list() -> void:
 			room_name = host + "的房間"
 		# Check if local player is the host of this lobby (HLobby.owner_product_user_id)
 		var is_local_host: bool = false
-		var lm = _lobby()
-		if lm != null and "get_local_player_id" in lm:
-			var local_pid: String = str(lm.get_local_player_id())
+		if local_puid != "":
 			var owner_id := str(lb.owner_product_user_id) if "owner_product_user_id" in lb else ""
 			# Fallback: try attribute host_id for legacy data
 			if owner_id == "":
 				owner_id = _lobby_attr(lb, "host_id", "")
-			if local_pid != "" and owner_id != "" and local_pid == owner_id:
+			if owner_id != "" and local_puid == owner_id:
 				is_local_host = true
+		# EOS 搜尋結果不帶 attribute：本地房用自己暱稱補
+		if is_local_host and local_display_name != "":
+			host = local_display_name
+			if room_name.begins_with("Host") or room_name.is_empty():
+				room_name = "%s的房間" % local_display_name
 		if is_local_host:
 			room_name = "[本地]" + room_name
 		else:

@@ -348,9 +348,18 @@ func _on_lobby_join_requested(lb) -> void:
 		_refresh_players()
 		_refresh_all()
 	show_toast("正在加入房間…")
+	var join_timer := get_tree().create_timer(15.0)
 	await lm.join_lobby(lb)
-	if lm.current_lobby.is_empty():
-		show_toast("加入失敗，請再試一次")
+	if join_timer.time_left > 0.0:
+		# 加入在逾時前完成
+		if lm.current_lobby.is_empty():
+			show_toast("加入失敗，請再試一次")
+			lm.browser_busy = false
+		else:
+			_refresh_players()
+			_refresh_all()
+	else:
+		show_toast("加入逾時，請再試一次")
 		lm.browser_busy = false
 
 func _on_lobby_browser_closed() -> void:

@@ -46,8 +46,11 @@ func set_results(results: Array, lobby_manager) -> void:
 		return
 	set_status("找到 %d 間房間" % results.size())
 	var local_puid: String = ""
+	var local_display_name: String = ""
 	if lobby_manager != null and lobby_manager.has_method("get_local_player_id"):
 		local_puid = lobby_manager.get_local_player_id()
+	if lobby_manager != null and lobby_manager.has_method("get_display_name"):
+		local_display_name = lobby_manager.get_display_name()
 	for lb in results:
 		var info: Dictionary = {}
 		if lobby_manager != null and lobby_manager.has_method("result_info"):
@@ -56,6 +59,11 @@ func set_results(results: Array, lobby_manager) -> void:
 			info = {"lobby": lb, "room_name": "", "host_name": "Host",
 					"max_members": int(lb.max_members), "available_slots": int(lb.available_slots)}
 		info["is_local"] = (local_puid != "" and str(lb.owner_product_user_id) == local_puid)
+		# EOS 搜尋結果不帶 attribute：本地房用自己暱稱補
+		if info["is_local"] and local_display_name != "":
+			info["host_name"] = local_display_name
+			if info["room_name"] == "" or info["room_name"].begins_with("Host"):
+				info["room_name"] = "%s的房間" % local_display_name
 		_list_root.add_child(_make_row(info))
 
 func _make_row(info: Dictionary) -> PanelContainer:
