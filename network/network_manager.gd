@@ -218,6 +218,20 @@ func login_account_portal() -> void:
 		login_failed.emit("Epic Account Portal 登入失敗")
 
 
+## Device ID 登入
+func login_device_id() -> void:
+	if not is_eos_ready:
+		login_failed.emit("EOS 尚未初始化")
+		return
+	var hauth := _hauth()
+	if hauth == null or not hauth.has_method("login_device_id_async"):
+		login_failed.emit("EOS 執行期未就緒")
+		return
+	var ok: bool = await hauth.login_device_id_async("Device")
+	if not ok:
+		login_failed.emit("Device ID 登入失敗")
+
+
 ## Connect 匿名登入（device id，不需 EAS / Account Portal）。
 ## 適合開發與本機多人測試。
 func login_anonymous(p_display_name := "") -> void:
