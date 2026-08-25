@@ -52,11 +52,14 @@ func _ready() -> void:
 	_connect_components()
 	# 若登入已在 _ready 前完成（boot 階段 persistent login），補觸發
 	if auth_manager != null and auth_manager.is_logged_in:
+		# 從 PlayerStorage 讀取暱稱（HAuth 可能沒有 display_name）
+		if auth_manager.display_name().is_empty():
+			var ps = get_node_or_null("/root/PlayerStorage")
+			if ps != null and ps.has_method("is_available") and ps.is_available():
+				var profile = await ps.load_profile()
+				if profile.has("display_name") and str(profile["display_name"]) != "":
+					auth_manager._display_name = str(profile["display_name"])
 		_on_auth_succeeded(auth_manager.display_name())
-	if lobby_manager != null and not lobby_manager.is_online():
-		var nm = get_node_or_null("/root/NetworkManager")
-		if nm != null and nm.is_logged_in:
-			_on_auth_succeeded(str(nm.display_name))
 	_refresh_all()
 
 func _init_signals() -> void:
@@ -376,6 +379,9 @@ func _refresh_header() -> void:
 	var nm_display := ""
 	if lobby_manager != null:
 		nm_display = str(lobby_manager.get_display_name())
+	# Fallback: 從 PlayerStorage 讀暱稱
+	if nm_display.is_empty() and auth_manager != null:
+		nm_display = auth_manager.display_name()
 	header.update_user_card(nm_display, lobby_manager)
 	header.update_room_card(room_config, players, lobby_manager)
 
