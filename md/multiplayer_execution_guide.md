@@ -72,7 +72,7 @@
 - 玩家顯示名稱經 `report_player_name.rpc_id(1, ...)` 由 client 回報 Host（修正 Host 端名次名稱為通用名稱的問題）。
 
 **已知限制 / 待辦**
-- `player.tscn` 尚無 `MultiplayerSynchronizer`（Phase B1），遠端車輛目前不會視覺複製，但 Host 仍能經 `report_progress` 計算名次。
+- ✅ Phase B1 已完成：`player.tscn` 已加 `MultiplayerSynchronizer`（root_path=".."，同步 `transform`，sync_mode=ALWAYS）。遠端車輛現可經 client-authority 視覺複製；`player_spawner.gd` 的 `set_multiplayer_authority(peer_id)` 即為其複製來源。
 - 完賽名次同為 `total+1` 時為平手（未依完賽時間細分），必要時可於 `mark_finished` 帶入 `finish_time` 做二級排序。
 
 ---

@@ -9,6 +9,16 @@ size = Vector3(1.7, 0.8, 4.3)
 [sub_resource type="BoxShape3D" id="BoxShape3D_player"]
 size = Vector3(1.7, 0.8, 4.3)
 
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_player"]
+properties = Array[Dictionary]([
+  {
+    "name": &"transform",
+    "spawn": false,
+    "sync_mode": 0,
+    "watch_enabled": false
+  }
+])
+
 [node name="Player" type="VehicleBody3D" unique_id=488947988]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 mass = 900.0
@@ -85,3 +95,7 @@ current = true
 
 [node name="ConceptCar" parent="." unique_id=1987842562 instance=ExtResource("2_model")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0.32, 0)
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+replication_config = SubResource("SceneReplicationConfig_player")
