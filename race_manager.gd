@@ -326,6 +326,8 @@ func update_start_countdown(delta: float) -> void:
 
 		if countdown_time > 0.0:
 			countdown.set_text(str(ceili(countdown_time)), Color.WHITE)
+			if _is_host and multiplayer.has_multiplayer_peer():
+				set_countdown_sync.rpc(str(ceili(countdown_time)), Color.WHITE)
 		else:
 			race_started = true
 			countdown.set_text("GO!", Color(0.15, 1.0, 0.4))
@@ -334,6 +336,7 @@ func update_start_countdown(delta: float) -> void:
 			# host 廣播比賽正式開始
 			if _is_host and multiplayer.has_multiplayer_peer():
 				rpc("race_started_sync")
+				set_countdown_sync.rpc("GO!", Color(0.15, 1.0, 0.4))
 
 		return
 
@@ -342,11 +345,18 @@ func update_start_countdown(delta: float) -> void:
 
 		if go_display_time <= 0.0:
 			countdown.set_text("", Color.WHITE)
+			if _is_host and multiplayer.has_multiplayer_peer():
+				set_countdown_sync.rpc("", Color.WHITE)
 
 
 @rpc("any_peer", "call_remote", "reliable")
 func race_started_sync() -> void:
 	race_started = true
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func set_countdown_sync(text: String, color: Color) -> void:
+	countdown.set_text(text, color)
 
 func load_best_time() -> void:
 	var config := ConfigFile.new()
