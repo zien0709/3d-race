@@ -7,9 +7,11 @@ signal create_room_requested()
 
 const C_ACCENT := Color(0.22, 0.74, 0.97)
 const C_MUTED := Color(0.6, 0.65, 0.7)
+@onready var _ui_animations := UIAnimations
 
 var _room_name_label: Label
 var _player_count_label: Label
+var _settings_btn: Button
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(280, 46)
@@ -50,6 +52,11 @@ func _ready() -> void:
 	btn.custom_minimum_size = Vector2(32, 32)
 	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	btn.pressed.connect(settings_requested.emit)
+	btn.mouse_entered.connect(func(): _ui_animations.kill_tweens(btn); _ui_animations.scale_to(btn, 1.05, 0.12, Tween.TRANS_SINE, Tween.EASE_OUT))
+	btn.mouse_exited.connect(func(): _ui_animations.kill_tweens(btn); _ui_animations.scale_to(btn, 1.0, 0.12, Tween.TRANS_SINE, Tween.EASE_OUT))
+	btn.button_down.connect(func(): _ui_animations.kill_tweens(btn); _ui_animations.scale_to(btn, 0.95, 0.07, Tween.TRANS_SINE, Tween.EASE_OUT))
+	btn.button_up.connect(func(): _ui_animations.kill_tweens(btn); _ui_animations.scale_to(btn, 1.05, 0.12, Tween.TRANS_SINE, Tween.EASE_OUT))
+	_settings_btn = btn
 	hbox.add_child(btn)
 
 func update_display(room_config: Dictionary, players: Array, lobby_manager: Object) -> void:

@@ -1,12 +1,13 @@
 extends Control
 
-## Toast - 短暫通知（頂部置中，自動淡出）
+## Toast - 短暫通知（頂部置中，滑入滑出）
 
 const C_ACCENT := Color(0.22, 0.74, 0.97)
 
+@onready var _ui_animations := UIAnimations
+
 var _panel: PanelContainer
 var _label: Label
-var _tween: Tween
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -32,14 +33,29 @@ func _ready() -> void:
 	_panel.add_child(_label)
 
 	_panel.modulate.a = 0.0
+	_panel.position.y = -_panel.size.y
 
 func show_message(msg: String) -> void:
 	if _label == null:
 		return
 	_label.text = msg
-	if _tween != null and _tween.is_valid():
-		_tween.kill()
-	_panel.modulate.a = 1.0
-	_tween = create_tween()
-	_tween.tween_interval(1.4)
-	_tween.tween_property(_panel, "modulate:a", 0.0, 0.5)
+	_ui_animations.kill_tweens(_panel)
+	_ui_animations.kill_tweens(self)
+	var tween := _ui_animations.create_tween().set_parallel(true)
+	tween.tween_property(_panel, "position:y", 0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_panel, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(_start_hide_timer.bind())
+
+func _start_hide_timer() -> void:
+	var timer = create_tween()
+	timer.tween_interval(1.4)
+	timer.finished.connect(_hide)
+
+func _hide() -> void:
+	_ui_animations.kill_tweens(_panel)
+	_ui_animations.kill_tweens(self)
+	var tween := _ui_animations.create_tween().set_parallel(true)
+	var target_y := -_panel.size.y
+	tween.tween_property(_panel, "position:y", target_y, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tween.tween_property(_panel, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tween.finished.connect(queue_free)

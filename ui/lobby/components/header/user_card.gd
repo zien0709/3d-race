@@ -3,6 +3,7 @@ extends Button
 ## UserCard - 玩家資料卡（header 左側，點擊觸發登入）
 
 const C_MUTED := Color(0.6, 0.65, 0.7)
+@onready var _ui_animations := UIAnimations
 
 var _name_label: Label
 var _puid_label: Label
@@ -31,6 +32,11 @@ func _ready() -> void:
 	_puid_label.add_theme_color_override("font_color", C_MUTED)
 	_puid_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(_puid_label)
+
+	mouse_entered.connect(func(): _ui_animations.kill_tweens(self); _ui_animations.scale_to(self, 1.05, 0.12, Tween.TRANS_SINE, Tween.EASE_OUT))
+	mouse_exited.connect(func(): _ui_animations.kill_tweens(self); _ui_animations.scale_to(self, 1.0, 0.12, Tween.TRANS_SINE, Tween.EASE_OUT))
+	button_down.connect(func(): _ui_animations.kill_tweens(self); _ui_animations.scale_to(self, 0.95, 0.07, Tween.TRANS_SINE, Tween.EASE_OUT))
+	button_up.connect(func(): _ui_animations.kill_tweens(self); _ui_animations.scale_to(self, 1.05, 0.12, Tween.TRANS_SINE, Tween.EASE_OUT))
 
 func update_display(display_name: String, lobby_manager: Object) -> void:
 	if _name_label == null:

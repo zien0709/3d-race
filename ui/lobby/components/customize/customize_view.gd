@@ -3,6 +3,8 @@ extends Control
 ## CustomizeView - 車輛改裝全屏視圖（佔滿大廳，含返回鈕）
 ## 自建子節點，場景只需掛一個空的 Control 加此腳本。
 
+@onready var _ui_animations := UIAnimations
+
 signal back_requested()
 
 const C_MUTED := Color(0.6, 0.65, 0.7)
@@ -27,9 +29,13 @@ func _ready() -> void:
 	_build_ui()
 
 func open() -> void:
-	visible = true
+	_ui_animations.kill_tweens(self)
+	_ui_animations.panel_open(self, 0.25)
 
 func close() -> void:
+	_ui_animations.kill_tweens(self)
+	var tween := _ui_animations.panel_close(self, 0.2)
+	await tween.finished
 	visible = false
 
 ## --- UI building ---
@@ -139,5 +145,18 @@ func _on_upgrade_pressed() -> void:
 	if _bars.is_empty():
 		return
 	var entry: Dictionary = _bars[0]
-	entry["bar"].value = minf(entry["bar"].value + 5.0, 100.0)
-	entry["label"].text = str(int(entry["bar"].value))
+	var new_value := minf(entry["bar"].value + 5.0, 100.0)
+	_ui_animations.animate_progress_bar(entry["bar"], new_value, 0.5)
+	entry["label"].text = str(int(new_value))
+
+func update_stat(index: int, value: float) -> void:
+	if index < 0 or index >= _bars.size():
+		return
+	var entry: Dictionary = _bars[index]
+	value = clampf(value, 0.0, 100.0)
+	_ui_animations.animate_progress_bar(entry["bar"], value, 0.5)
+	entry["label"].text = str(int(value))
+
+func update_stats(values: Array[float]) -> void:
+	for i in range(min(values.size(), _bars.size())):
+		update_stat(i, values[i])

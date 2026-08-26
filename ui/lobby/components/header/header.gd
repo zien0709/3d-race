@@ -11,6 +11,7 @@ signal browser_requested()
 
 const UserCardScript := preload("res://ui/lobby/components/header/user_card.gd")
 const RoomCardScript := preload("res://ui/lobby/components/header/room_card.gd")
+@onready var _ui_animations := UIAnimations
 
 const C_MUTED := Color(0.6, 0.65, 0.7)
 
@@ -55,5 +56,35 @@ func _make_action_button(parent: Node, label_text: String, target_signal: Signal
 	b.add_theme_font_size_override("font_size", 13)
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(func(): target_signal.emit())
+
+	var is_hovered := false
+
+	b.mouse_entered.connect(func():
+		is_hovered = true
+		_ui_animations.kill_tweens(b)
+		var tween := create_tween()
+		tween.tween_property(b, "scale", Vector2(1.03, 1.03), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	)
+
+	b.mouse_exited.connect(func():
+		is_hovered = false
+		_ui_animations.kill_tweens(b)
+		var tween := create_tween()
+		tween.tween_property(b, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	)
+
+	b.button_down.connect(func():
+		_ui_animations.kill_tweens(b)
+		var tween := create_tween()
+		tween.tween_property(b, "scale", Vector2(0.95, 0.95), 0.07).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	)
+
+	b.button_up.connect(func():
+		_ui_animations.kill_tweens(b)
+		var target_scale = Vector2.ONE if not is_hovered else Vector2(1.03, 1.03)
+		var tween := create_tween()
+		tween.tween_property(b, "scale", target_scale, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	)
+
 	parent.add_child(b)
 	return b

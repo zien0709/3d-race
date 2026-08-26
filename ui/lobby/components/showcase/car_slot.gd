@@ -9,6 +9,8 @@ const C_ACCENT := Color(0.22, 0.74, 0.97)
 const C_SELF := Color(0.062, 0.724, 0.508)
 const C_BORDER := Color(0.545, 0.608, 0.706, 0.18)
 
+@onready var _ui_animations := UIAnimations
+
 var player_data: Dictionary = {}
 var is_selected: bool = false
 
@@ -16,6 +18,7 @@ var _car_label: Label
 var _player_name_label: Label
 var _ready_indicator: Label
 var _select_button: Button
+var _style_box: StyleBoxFlat
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(240, 300)
@@ -63,6 +66,10 @@ func _ready() -> void:
 	_select_button.custom_minimum_size = Vector2(0, 32)
 	_select_button.disabled = true
 	_select_button.pressed.connect(func(): slot_clicked.emit(bool(player_data.get("is_self", false))))
+	_select_button.mouse_entered.connect(_on_button_mouse_entered)
+	_select_button.mouse_exited.connect(_on_button_mouse_exited)
+	_select_button.button_down.connect(_on_button_down)
+	_select_button.button_up.connect(_on_button_up)
 	vbox.add_child(_select_button)
 
 	set_empty()
@@ -104,7 +111,25 @@ func _gui_input(event: InputEvent) -> void:
 func _refresh_style() -> void:
 	var bg := Color(1, 1, 1, 0.04) if is_selected else Color(1, 1, 1, 0.02)
 	var border := C_ACCENT if is_selected else C_BORDER
-	_style_panel(self, bg, border)
+	
+	if _style_box == null:
+		_style_panel(self, bg, border)
+	else:
+		_style_box.bg_color = bg
+		_animate_border_color(border)
+	
+	if is_selected:
+		_ui_animations.kill_tweens(self)
+		_ui_animations.scale_pop(self, 1.02, 0.15)
+	else:
+		_ui_animations.kill_tweens(self)
+		_ui_animations.scale_release(self, 0.15)
+
+func _animate_border_color(target_color: Color) -> void:
+	if _style_box == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(_style_box, "border_color", target_color, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 func _style_panel(panel: PanelContainer, bg: Color, border: Color = C_BORDER) -> void:
 	var sb := StyleBoxFlat.new()
@@ -117,3 +142,25 @@ func _style_panel(panel: PanelContainer, bg: Color, border: Color = C_BORDER) ->
 	sb.content_margin_top = 10
 	sb.content_margin_bottom = 10
 	panel.add_theme_stylebox_override("panel", sb)
+	_style_box = sb
+
+func _on_button_mouse_entered() -> void:
+	if _select_button.disabled:
+		_ui_animations.kill_tweens(_select_button)
+		var tween := create_tween()
+		tween.tween_property(_select_button, "scale", Vector2(1.02, 1.02), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _on_button_mouse_exited() -> void:
+	if _select_button.disabled:
+		_ui_animations.kill_tweens(_select_button)
+		_ui_animations.scale_release(_select_button, 0.12)
+
+func _on_button_down() -> void:
+	if _select_button.disabled:
+		_ui_animations.kill_tweens(_select_button)
+		_ui_animations.scale_press(_select_button, 0.96, 0.08)
+
+func _on_button_up() -> void:
+	if _select_button.disabled:
+		_ui_animations.kill_tweens(_select_button)
+		_ui_animations.scale_pop(_select_button, 1.02, 0.12)

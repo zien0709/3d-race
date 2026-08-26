@@ -6,11 +6,33 @@ extends Button
 const C_SELF := Color(0.062, 0.724, 0.508)
 const C_ACCENT := Color(0.22, 0.74, 0.97)
 
+@onready var _ui_animations := UIAnimations
+
 var _sub_label: Label
+var _visual_container: PanelContainer
+var _is_hovered: bool = false
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(320, 64)
 	add_theme_font_size_override("font_size", 22)
+	
+	# Create visual container that holds the StyleBox (animated instead of Button)
+	_visual_container = PanelContainer.new()
+	_visual_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_visual_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_visual_container.offset_left = 0
+	_visual_container.offset_top = 0
+	_visual_container.offset_right = 0
+	_visual_container.offset_bottom = 0
+	add_child(_visual_container)
+	
+	# Make Button itself transparent (no visual style)
+	var transparent_sb := StyleBoxFlat.new()
+	transparent_sb.bg_color = Color(0, 0, 0, 0)
+	add_theme_stylebox_override("normal", transparent_sb)
+	add_theme_stylebox_override("hover", transparent_sb)
+	add_theme_stylebox_override("pressed", transparent_sb)
+	
 	_sub_label = Label.new()
 	_sub_label.text = ""
 	_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -20,7 +42,12 @@ func _ready() -> void:
 	_sub_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_sub_label.offset_top = -22
 	_sub_label.offset_bottom = -6
-	add_child(_sub_label)
+	_visual_container.add_child(_sub_label)
+	
+	# Connect signals for animations
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
+	
 	set_offline_mode()
 
 func set_offline_mode() -> void:
@@ -79,12 +106,36 @@ func _set_style(bg_color: Color, border_color: Color) -> void:
 	sb.set_border_width_all(2)
 	sb.border_color = border_color
 	sb.set_corner_radius_all(12)
-	add_theme_stylebox_override("normal", sb)
+	_visual_container.add_theme_stylebox_override("panel", sb)
 
 	var hover_sb: StyleBoxFlat = sb.duplicate()
 	hover_sb.bg_color = bg_color.lightened(0.15)
-	add_theme_stylebox_override("hover", hover_sb)
+	_visual_container.add_theme_stylebox_override("panel_hover", hover_sb)
 
 	var pressed_sb: StyleBoxFlat = sb.duplicate()
 	pressed_sb.bg_color = bg_color.darkened(0.15)
-	add_theme_stylebox_override("pressed", pressed_sb)
+	_visual_container.add_theme_stylebox_override("panel_pressed", pressed_sb)
+
+func _on_mouse_entered() -> void:
+	_is_hovered = true
+	_ui_animations.kill_tweens(_visual_container)
+	var tween := create_tween()
+	tween.tween_property(_visual_container, "scale", Vector2(1.02, 1.02), 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _on_mouse_exited() -> void:
+	_is_hovered = false
+	_ui_animations.kill_tweens(_visual_container)
+	var tween := create_tween()
+	tween.tween_property(_visual_container, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_ui_animations.kill_tweens(_visual_container)
+			var tween := create_tween()
+			tween.tween_property(_visual_container, "scale", Vector2(0.96, 0.96), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		else:
+			_ui_animations.kill_tweens(_visual_container)
+			var target_scale = Vector2(1.02, 1.02) if _is_hovered else Vector2(1.0, 1.0)
+			var tween := create_tween()
+			tween.tween_property(_visual_container, "scale", target_scale, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

@@ -11,6 +11,8 @@ const C_MUTED := Color(0.6, 0.65, 0.7)
 const C_ACCENT := Color(0.22, 0.74, 0.97)
 const C_BORDER := Color(0.545, 0.608, 0.706, 0.18)
 
+@onready var _ui_animations := UIAnimations
+
 var _status_label: Label
 var _list_root: VBoxContainer
 var _scroll: ScrollContainer
@@ -22,9 +24,13 @@ func _ready() -> void:
 	_build_ui()
 
 func open() -> void:
-	visible = true
+	_ui_animations.kill_tweens(self)
+	_ui_animations.panel_open(self, 0.25)
 
 func close() -> void:
+	_ui_animations.kill_tweens(self)
+	var tween := _ui_animations.panel_close(self, 0.2)
+	await tween.finished
 	visible = false
 	closed.emit()
 

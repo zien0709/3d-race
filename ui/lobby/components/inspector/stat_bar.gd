@@ -3,6 +3,7 @@ extends HBoxContainer
 ## StatBar - 車輛性能條（標籤 + 進度條）
 
 const C_MUTED := Color(0.6, 0.65, 0.7)
+@onready var _ui_animations := UIAnimations
 
 var _name_label: Label
 var _progress_bar: ProgressBar
@@ -39,7 +40,7 @@ func set_stat_name(text: String) -> void:
 func set_value(value: float, color: Color) -> void:
 	if _progress_bar == null:
 		return
-	_progress_bar.value = value
+	_ui_animations.animate_progress_bar(_progress_bar, value, 0.5)
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = color
 	fill.set_corner_radius_all(3)

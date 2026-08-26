@@ -33,6 +33,7 @@ HStats="*res://addons/epic-online-services-godot/heos/hstats.gd"
 HLeaderboards="*res://addons/epic-online-services-godot/heos/hleaderboards.gd"
 HAchievements="*res://addons/epic-online-services-godot/heos/hachievements.gd"
 HSessions="*res://addons/epic-online-services-godot/heos/hsessions.gd"
+UIAnimations="*res://scripts/UIAnimations.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 
 [display]
