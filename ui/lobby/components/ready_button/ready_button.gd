@@ -43,15 +43,24 @@ func set_host_ready_mode() -> void:
 	_sub_label.text = "所有人已就緒"
 	_set_style(Color(0.95, 0.55, 0.13, 1.0), Color(1, 0.7, 0.2))
 
-func update_ready_state(is_ready: bool, lobby_manager: Object) -> void:
+func set_auto_start_mode(countdown: int) -> void:
+	text = "⏳  自動開始"
+	_sub_label.text = "%d 秒後自動開始比賽" % countdown
+	_set_style(Color(0.95, 0.55, 0.13, 1.0), Color(1, 0.7, 0.2))
+
+func update_ready_state(is_ready: bool, lobby_manager: Object, auto_start_countdown: int = 0) -> void:
 	var online: bool = lobby_manager != null and lobby_manager.has_method("is_online") and lobby_manager.is_online()
 
 	if not online:
 		set_offline_mode()
 		return
-	if lobby_manager != null and lobby_manager.is_host and _all_lobby_ready(lobby_manager):
-		set_host_ready_mode()
-		return
+	if lobby_manager != null and lobby_manager.is_host:
+		if auto_start_countdown > 0:
+			set_auto_start_mode(auto_start_countdown)
+			return
+		if _all_lobby_ready(lobby_manager):
+			set_host_ready_mode()
+			return
 	if is_ready:
 		set_ready_mode()
 	else:

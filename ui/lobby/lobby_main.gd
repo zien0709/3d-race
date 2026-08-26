@@ -24,6 +24,7 @@ var chat_tab: String = "room"
 var room_overlay_open: bool = false
 var customize_view_open: bool = false
 var is_ready: bool = false
+var auto_start_countdown_end: float = 0.0
 
 ## Room config (persisted)
 var room_config: Dictionary = {
@@ -309,8 +310,10 @@ func check_auto_start() -> void:
 			start_auto_countdown()
 
 func start_auto_countdown() -> void:
+	auto_start_countdown_end = Time.get_time_dict_from_system()["unix"] + 10.0
 	var timer = get_tree().create_timer(10.0)
 	await timer.timeout
+	auto_start_countdown_end = 0.0
 	if lobby_manager.is_host and _all_lobby_ready(lobby_manager):
 		show_toast("自動啟動比賽...")
 		lobby_manager.start_match(true)
@@ -474,13 +477,10 @@ func _refresh_ready_button() -> void:
 	if not online:
 		ready_button.set_offline_mode()
 		return
-	if lm != null and lm.is_host and _all_lobby_ready(lm):
-		ready_button.set_host_ready_mode()
-		return
-	if is_ready:
-		ready_button.set_ready_mode()
-	else:
-		ready_button.set_waiting_mode()
+	var countdown := 0
+	if auto_start_countdown_end > 0:
+		countdown = max(0, int(auto_start_countdown_end - Time.get_time_dict_from_system()["unix"]))
+	ready_button.update_ready_state(is_ready, lm, countdown)
 
 @warning_ignore("inferred_declaration", "shadowed_variable")
 func _refresh_players() -> void:
