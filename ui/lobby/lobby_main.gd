@@ -78,6 +78,7 @@ func _init_signals() -> void:
 		lobby_manager.match_started.connect(_on_match_started)
 		lobby_manager.lobby_created.connect(_on_lobby_created)
 		lobby_manager.lobby_joined.connect(_on_lobby_joined)
+		lobby_manager.room_config_updated.connect(_on_room_config_updated)
 
 func _connect_components() -> void:
 	## Header signals
@@ -189,11 +190,22 @@ func _on_lobby_joined(_info: Dictionary) -> void:
 	_refresh_players()
 	_refresh_all()
 
+func _on_room_config_updated(rc: Dictionary) -> void:
+	# 非房主即時同步房主設定
+	if lobby_manager != null and not lobby_manager.is_host:
+		room_config = rc.duplicate(true)
+		if room_overlay_open:
+			room_overlay.open(room_config, false)
+		_refresh_all()
+
 ## --- Component signal handlers ---
 
 func _on_room_settings_requested() -> void:
 	room_overlay_open = true
-	room_overlay.open(room_config)
+	var host_flag: bool = false
+	if lobby_manager != null:
+		host_flag = lobby_manager.is_host
+	room_overlay.open(room_config, host_flag)
 	_refresh_all()
 
 func _on_create_room_requested() -> void:
@@ -468,6 +480,10 @@ func _refresh_inspector() -> void:
 	inspector.update_player(p)
 
 func _refresh_showcase() -> void:
+	var max_p := int(room_config.get("max_players", 4))
+	if max_p <= 0:
+		max_p = 4
+	showcase.set_max_slots(max_p)
 	showcase.update_slots(players, selected_id)
 
 func _refresh_ready_button() -> void:
