@@ -25,6 +25,7 @@ const ATTR_MODE := "mode"
 const ATTR_DAMAGE := "damage_mode"
 const ATTR_CAR_RESTRICTION := "car_restriction"
 const ATTR_AUTO_START := "auto_start"
+const ATTR_MAX_PLAYERS := "max_players"
 
 var current_lobby: Dictionary = {}
 var is_host: bool = false
