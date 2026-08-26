@@ -62,7 +62,10 @@ func update_display(room_config: Dictionary, players: Array, lobby_manager: Obje
 	else:
 		_room_name_label.text = str(room_config.get("name", ""))
 		_room_name_label.tooltip_text = "點擊卡片建立房間"
-		_player_count_label.text = "%d/%d" % [players.size(), int(room_config.get("max_players", 3))]
+		var max_p := int(room_config.get("max_players", 0))
+		if max_p <= 0:
+			max_p = 3  # fallback
+		_player_count_label.text = "%d/%d" % [players.size(), max_p]
 
 	if in_lobby:
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND

@@ -31,7 +31,7 @@ var room_config: Dictionary = {
 	"map": "東京灣夜景",
 	"mode": "經典競速",
 	"privacy": "public",
-	"max_players": 3,
+	"max_players": 0,
 	"car_restriction": "全開放",
 	"damage_mode": "輕度",
 	"auto_start": "倒數10秒",

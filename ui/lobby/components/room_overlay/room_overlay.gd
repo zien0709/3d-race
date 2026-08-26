@@ -15,12 +15,21 @@ const C_BORDER := Color(0.545, 0.608, 0.706, 0.18)
 const CHIP_DEFS := [
 	["map", "地圖", ["東京灣夜景", "阿爾卑斯山道", "城市街道"]],
 	["mode", "模式", ["經典競速", "淘汰賽", "計時挑戰"]],
-	["maxp", "最大人數", ["2人", "3人", "4人"]],
+	["maxp", "最大人數", []],
 	["privacy", "隱私設定", ["公開", "私人", "好友"]],
 	["carr", "車輛限制", ["全開放", "僅S級", "僅A級"]],
 	["dmg", "傷害模式", ["關閉", "輕度", "完整"]],
 	["auto", "自動開始", ["立即開始", "倒數10秒"]],
 ]
+
+func _get_maxp_options() -> Array:
+	var max_p := int(room_config.get("max_players", 0))
+	if max_p <= 0:
+		max_p = 4
+	var opts := []
+	for i in range(2, max_p + 1):
+		opts.append("%d人" % i)
+	return opts
 
 var room_config: Dictionary = {}
 var is_host: bool = false
@@ -179,7 +188,13 @@ func _add_chip_row(parent: VBoxContainer, def: Array) -> void:
 	var row := HBoxContainer.new()
 	row.set_script(chip_script)
 	var initial := _config_value_for(str(def[0]))
-	row.setup(str(def[0]), str(def[1]), def[2], initial)
+	
+	# 對 maxp 使用動態選項
+	var opts := def[2]
+	if str(def[0]) == "maxp":
+		opts = _get_maxp_options()
+	
+	row.setup(str(def[0]), str(def[1]), opts, initial)
 	row.value_changed.connect(_on_chip_changed)
 	parent.add_child(row)
 	_chip_rows[str(def[0])] = row
@@ -198,7 +213,7 @@ func _divider(parent: VBoxContainer, label_text: String) -> void:
 func _config_value_for(row_key: String) -> String:
 	match row_key:
 		"maxp":
-			return "%d人" % int(room_config.get("max_players", 3))
+			return "%d人" % int(room_config.get("max_players", 4))
 		"privacy":
 			for pair in [["公開", "public"], ["私人", "private"], ["好友", "friends"]]:
 				if room_config.get("privacy", "public") == pair[1]:
