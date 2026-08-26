@@ -380,3 +380,53 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 21. **game_eval 不支援 `:=` 型別推斷**——需用 `var x = value` 或 `var x: Type = value`
 22. **RPC 函式名與 signal 不可同名**——signal `chat_message_received` 與 func `chat_message_received` 衝突，func 改名 `remote_chat_message`
 
+---
+
+## Phase F：UI 動畫系統優化（2026-08-26）
+
+### 目標
+建立現代化、可複用的 UI 動畫系統，提升使用者體驗（Juice）。
+
+### 實作內容
+1. **UIAnimations.gd 自動載入單例** — 13 個可複用動畫輔助函式：
+   - 進場/離場：`fade_in/out`、`slide_in/out_from_top`、`slide_in/out_from_right`、`panel_open/close`
+   - 互動回饋：`scale_pop`、`scale_press`、`scale_release`、`scale_to`
+   - 數值動畫：`animate_progress_bar`
+   - 工具：`kill_tweens`（防連點）
+
+2. **元件動畫更新**：
+   | 元件 | 動畫 |
+   |------|------|
+   | Toast | 滑入/出 + 淡入/出 (0.25s/0.3s) |
+   | ReadyButton | 懸停 1.02x、按下 0.96x、釋放彈回 |
+   | ChipRow | 懸停 1.03x、按下 0.95x、TRANS_BACK 彈回 |
+   | ChatTrigger | 懸停/按下 + 開啟脈衝 1.1x |
+   | RoomOverlay/LobbyBrowser/CustomizeView | 面板開關：縮放 0.9→1.0 + 淡入/出 |
+   | FloatingChat | 分頁顏色漸變 0.15s、訊息右滑入 0.2s |
+   | StatBar (Inspector/CustomizeView) | 進度條數值動畫 0.5s (TRANS_QUAD) |
+   | Header 按鈕 | 懸停 1.03x、按下 0.95x |
+   | CarSlot | 選取邊框色漸變 + 1.02x 彈跳 |
+   | RoomOverlay 旁觀切換 | 縮放 + 背景色動畫 |
+   | Showcase 空車位 | 懸停 1.02x |
+
+3. **緩動標準化**：
+   - 入場：`TRANS_SINE` + `EASE_OUT`（快進慢出，自然）
+   - 彈跳：`TRANS_BACK` + `EASE_OUT`（超調回彈，有手感）
+   - 進度條：`TRANS_QUAD` + `EASE_IN_OUT`（S 曲線平滑）
+   - 離場：`TRANS_SINE` + `EASE_IN`（慢進快出）
+
+4. **防連點保護**：所有互動元件在動畫前呼叫 `kill_tweens()`
+
+### 驗證結果
+- `project_run` 零 parse error，helper live
+- 所有按鈕懸停/按下有明確視覺回饋
+- 面板開關平滑過渡，無瞬間閃爍
+- 進度條數值變化平滑動畫
+- 聊天訊息右滑入，分頁切換平滑漸變
+
+### 教訓補充
+23. **@onready 需顯式型別**——`@onready var x: Type = Autoload`，否則 GDScript 無法推斷 autoload 型別
+24. **類別本體不能有可執行陳述式**——如 `_select_button = Button.new()` 必須在 `_ready()` 內
+25. **編輯器錯誤快取會誤導**——修正後需 `filesystem_manage(scan)` 或重啟插件才能看到真實狀態
+26. **集中式動畫單例優於分散式 Tween**——統一緩動標準、易維護、防衝突
+
