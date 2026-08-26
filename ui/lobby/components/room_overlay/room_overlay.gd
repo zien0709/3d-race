@@ -250,12 +250,12 @@ func _toggle_host_controls(host: bool) -> void:
 		var row = _chip_rows["carr"]
 		row.set_disabled(not host)
 		if not host:
-			row.set_tooltip_text("高級規則 - 僅房主開放 (Future feature)")
+			row.set_chip_tooltip("高級規則 - 僅房主開放 (Future feature)")
 	if _chip_rows.has("dmg"):
 		var row = _chip_rows["dmg"]
 		row.set_disabled(not host)
 		if not host:
-			row.set_tooltip_text("高級規則 - 僅房主開放 (Future feature)")
+			row.set_chip_tooltip("高級規則 - 僅房主開放 (Future feature)")
 
 ## --- Handlers ---
 

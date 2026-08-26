@@ -88,6 +88,6 @@ func set_disabled(disabled: bool) -> void:
 	for b in _buttons:
 		b.disabled = disabled
 
-func set_tooltip_text(text: String) -> void:
+func set_chip_tooltip(text: String) -> void:
 	for b in _buttons:
 		b.tooltip_text = text
