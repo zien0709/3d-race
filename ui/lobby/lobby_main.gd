@@ -173,9 +173,10 @@ func _on_member_left(player_id: String) -> void:
 	_refresh_all()
 
 func _on_ready_state_changed(ready_map: Dictionary) -> void:
-	is_ready = ready_map.get("local_player_peer_id", false) or ready_map.size() > 0
+	is_ready = bool(ready_map.get("local_player_peer_id", false))
 	ready_button.update_ready_state(is_ready, lobby_manager)
 	_refresh_all()
+	check_auto_start()
 
 func _on_match_started(_order: Array) -> void:
 	start_requested.emit("")
@@ -274,7 +275,71 @@ func _on_showcase_slot_selected(index: int, _is_self: bool) -> void:
 	_refresh_all()
 
 func _on_ready_pressed() -> void:
-	start_requested.emit("")
+	if lobby_manager == null:
+		show_toast("Lobby module not loaded")
+		return
+	if not _net_is_logged_in():
+		show_toast("請先登入（點左上玩家卡）")
+		return
+	
+	if lobby_manager.is_host:
+		# House: 檢查是否所有人都已準備，若是則開始比賽
+		if _all_lobby_ready(lobby_manager):
+			show_toast("正在開始比賽...")
+			start_race()
+		else:
+			show_toast("請等待所有玩家準備")
+	else:
+		# Client: 切換自己的就緒狀態
+		if lobby_manager.has_method("set_ready"):
+			var ready_map = lobby_manager.get_ready_map()
+			var current_ready = bool(ready_map.get("local_player_peer_id", false))
+			lobby_manager.set_ready(not current_ready)
+		_refresh_all()
+
+func check_auto_start() -> void:
+	if not lobby_manager.is_host:
+		return
+	if _all_lobby_ready(lobby_manager):
+		var auto_start = room_config.get("auto_start", "倒數10秒")
+		if auto_start == "立即開始":
+			show_toast("自動啟動比賽...")
+			lobby_manager.start_match(true)
+		elif auto_start == "倒數10秒":
+			start_auto_countdown()
+
+func start_auto_countdown() -> void:
+	var timer = get_tree().create_timer(10.0)
+	await timer.timeout
+	if lobby_manager.is_host and _all_lobby_ready(lobby_manager):
+		show_toast("自動啟動比賽...")
+		lobby_manager.start_match(true)
+
+func start_race() -> void:
+	if lobby_manager == null:
+		show_toast("Lobby module not loaded")
+		return
+	
+	if room_config["name"] == "":
+		show_toast("請先設定房間名稱")
+		return
+	
+	if not lobby_manager.is_host:
+		show_toast("只有房主可以開始比賽")
+		return
+	
+	if lobby_manager.current_lobby.is_empty():
+		show_toast("目前沒有可開始的房間")
+		return
+	
+	var auto_start: bool = room_config.get("auto_start", "倒數10秒") == "立即開始"
+	
+	if auto_start:
+		show_toast("自動啟動比賽...")
+		lobby_manager.start_match(true)
+	else:
+		show_toast("正在開始比賽...")
+		lobby_manager.start_match()
 
 func _on_room_config_changed(row: String, value: String) -> void:
 	match row:
@@ -409,7 +474,7 @@ func _refresh_ready_button() -> void:
 	if not online:
 		ready_button.set_offline_mode()
 		return
-	if lm != null and lm.is_host and _all_lobby_ready():
+	if lm != null and lm.is_host and _all_lobby_ready(lm):
 		ready_button.set_host_ready_mode()
 		return
 	if is_ready:
@@ -488,8 +553,7 @@ func _net_is_logged_in() -> bool:
 		return direct_nm.is_logged_in
 	return false
 
-func _all_lobby_ready() -> bool:
-	var lm := lobby_manager
+func _all_lobby_ready(lm) -> bool:
 	if lm == null:
 		return false
 	var lp: Array = lm.players if "players" in lm else []
