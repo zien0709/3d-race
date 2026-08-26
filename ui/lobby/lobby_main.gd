@@ -11,7 +11,7 @@ signal start_requested(player_name: String)
 @onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
 @onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
 @onready var ready_button: Control = $MainContainer/CenterRightPanel/ReadyButton
-@onready var floating_chat: Control = $FloatingChat
+@onready var floating_chat: Control = $MainContainer/LeftPanel/FloatingChat
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
 @onready var customize_view: Control = $CustomizeView
@@ -69,6 +69,10 @@ func _init_signals() -> void:
 		auth_manager.login_succeeded.connect(_on_auth_succeeded)
 		auth_manager.login_failed.connect(_on_auth_failed)
 		auth_manager.eos_initialized.connect(_on_eos_initialized)
+
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null:
+		nm.chat_message_received.connect(_on_chat_message_received)
 
 	lobby_manager = get_node_or_null("/root/LobbyManager")
 	if lobby_manager != null:
@@ -251,30 +255,47 @@ func _on_customize_requested() -> void:
 func _on_chat_toggled(opened: bool) -> void:
 	chat_open = opened
 	floating_chat.visible = chat_open
+	inspector.visible = not chat_open
 	if chat_open:
 		floating_chat.focus_input()
 	_refresh_all()
 
 func _on_chat_closed() -> void:
 	chat_open = false
+	floating_chat.visible = false
+	inspector.visible = true
 	chat_trigger.set_chat_open(false)
 	_refresh_all()
 
 func _on_chat_tab_changed(tab: String) -> void:
 	chat_tab = tab
 	floating_chat.set_active_tab(chat_tab)
+	_load_chat_history_for_tab(chat_tab)
+
+func _load_chat_history_for_tab(tab: String) -> void:
+	floating_chat.clear_messages()
+	for msg in chat_messages:
+		if msg.get("tab", "") == tab:
+			var sender = msg.get("sender", "")
+			var text = msg.get("text", "")
+			var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
+			floating_chat.add_message(sender, text, is_self)
+
+func _on_chat_message_received(sender: String, text: String, tab: String) -> void:
+	chat_messages.append({"sender": sender, "text": text, "tab": tab})
+	if tab == chat_tab:
+		var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
+		floating_chat.add_message(sender, text, is_self)
 
 func _on_chat_message_sent(text: String) -> void:
 	var t := text.strip_edges()
 	if t == "":
 		return
-	# Try to send via network manager (EOS P2P chat)
-	var nm := auth_manager
+	# Send via NetworkManager (EOS P2P chat)
+	var nm = get_node_or_null("/root/NetworkManager")
 	if nm != null and nm.has_method("send_chat_message"):
-		nm.send_chat_message(t)
-	# Also display locally for immediate feedback
-	chat_messages.append(["You", t])
-	floating_chat.add_message("You", t, true)
+		nm.send_chat_message(t, chat_tab)
+	# RPC will echo back; _on_chat_message_received handles display
 
 func _on_showcase_slot_selected(index: int, _is_self: bool) -> void:
 	if index >= players.size():

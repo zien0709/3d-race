@@ -45,6 +45,13 @@ custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="FloatingChat" type="PanelContainer" parent="MainContainer/LeftPanel" unique_id=1533170177]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("7_kylly")
+
 [node name="Inspector" type="PanelContainer" parent="MainContainer/LeftPanel" unique_id=1554692965]
 layout_mode = 2
 size_flags_vertical = 3
@@ -71,19 +78,6 @@ script = ExtResource("5_vc1it")
 custom_minimum_size = Vector2(0, 76)
 layout_mode = 2
 script = ExtResource("6_xg6h8")
-
-[node name="FloatingChat" type="PanelContainer" parent="." unique_id=1533170177]
-visible = false
-layout_mode = 0
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -440.0
-offset_top = -430.0
-offset_right = -20.0
-offset_bottom = -90.0
-script = ExtResource("7_kylly")
 
 [node name="RoomOverlay" type="Control" parent="." unique_id=759378977]
 anchors_preset = 0

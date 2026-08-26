@@ -28,6 +28,7 @@ signal login_failed(message: String)
 signal logged_out
 signal discord_oauth_started
 signal discord_oauth_completed(code: String, error: String)
+signal chat_message_received(sender: String, text: String, tab: String)
 
 const LOCAL_PEER_ID := 1
 const MAX_PLAYERS := 12  ## 連線數上限（配合 12 格出發位置）
@@ -84,16 +85,18 @@ func is_online() -> bool:
 func is_host() -> bool:
 	return mode == Mode.HOST
 
-func send_chat_message(message: String) -> void:
-	## Send chat message via EOS party system
-	## TODO: Implement actual EOS party chat message sending
-	## For now, print to console for testing
-	var nm = get_node_or_null("/root/NetworkManager")
-	if nm != null:
-		var display: String = nm.get_display_name()
-		if display.is_empty():
-			display = "Player"
-		print("[Chat] %s: %s" % [display, message])
+func send_chat_message(message: String, tab: String = "room") -> void:
+	var sender_name := display_name
+	if sender_name.is_empty():
+		sender_name = "Player"
+	rpc("remote_chat_message", sender_name, message, tab)
+	chat_message_received.emit(sender_name, message, tab)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func remote_chat_message(sender: String, text: String, tab: String) -> void:
+	chat_message_received.emit(sender, text, tab)
+
 
 func _hauth() -> Node:
 	return get_node_or_null("/root/HAuth")

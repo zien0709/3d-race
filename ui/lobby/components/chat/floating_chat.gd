@@ -22,7 +22,7 @@ var _scroll: ScrollContainer
 var _line_edit: LineEdit
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(300, 360)
+	custom_minimum_size = Vector2(280, 200)
 	_build_ui()
 	set_active_tab(active_tab)
 
@@ -49,6 +49,11 @@ func add_message(sender: String, text: String, is_self: bool) -> void:
 func focus_input() -> void:
 	if _line_edit != null:
 		_line_edit.grab_focus()
+
+func clear_messages() -> void:
+	if _message_list != null:
+		for child in _message_list.get_children():
+			child.queue_free()
 
 ## --- UI building ---
 
