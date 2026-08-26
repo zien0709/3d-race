@@ -6,16 +6,16 @@ extends Control
 signal start_requested(player_name: String)
 
 ## Component references
-@onready var header: Control = 
-@onready var inspector: Control = /LeftPanel/Inspector
-@onready var chat_trigger: Control = /LeftPanel/ChatTrigger
-@onready var showcase: Control = /CenterRightPanel/Showcase
-@onready var ready_button: Control = /CenterRightPanel/ReadyButton
-@onready var floating_chat: Control = 
-@onready var room_overlay: Control = 
-@onready var lobby_browser: Control = 
-@onready var customize_view: Control = 
-@onready var toast: Control = 
+@onready var header: Control = $Header
+@onready var inspector: Control = $MainContainer/LeftPanel/Inspector
+@onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
+@onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
+@onready var ready_button: Control = $MainContainer/CenterRightPanel/ReadyButton
+@onready var floating_chat: Control = $FloatingChat
+@onready var room_overlay: Control = $RoomOverlay
+@onready var lobby_browser: Control = $LobbyBrowser
+@onready var customize_view: Control = $CustomizeView
+@onready var toast: Control = $Toast
 
 ## State
 var selected_id: String = ""
