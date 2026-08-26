@@ -333,3 +333,50 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 18. **非房主 UI 必須有視覺回饋**——唯讀/禁用狀態需有明確灰化與 tooltip，不能只有邏輯攔截
 19. **auto_start 需在 ready_state_changed 觸發**——不能放在 ready_pressed，因為可能是其他玩家準備觸發
 
+---
+
+## Phase E：聊天 RPC + 面板切換（2026-08-26）
+
+### 目標
+1. 實作 Godot RPC 聊天：透過 NetworkManager 發送/接收訊息
+2. FloatingChat 從右下角懸浮改為取代 Inspector 面板位置
+
+### 修復策略
+1. **network_manager.gd**：
+   - 新增 `signal chat_message_received(sender, text, tab)`
+   - `send_chat_message(message, tab)` 改用 `rpc("remote_chat_message", ...)` 發送
+   - 新增 `@rpc("any_peer","call_remote","reliable") func remote_chat_message(...)` 接收端
+
+2. **lobby_main.gd**：
+   - `_on_chat_toggled(opened)` 切換時同時控制 `inspector.visible = not opened`
+   - `_on_chat_closed()` 恢復 Inspector
+   - `_on_chat_message_received()` 接收 NetworkManager 訊號，存入 `chat_messages`
+   - `_load_chat_history_for_tab(tab)` 切換分頁時重新顯示歷史訊息
+   - `_on_chat_message_sent()` 改指向 NetworkManager（非 AuthManager）
+
+3. **floating_chat.gd**：
+   - 新增 `clear_messages()` 清空訊息列表
+   - `custom_minimum_size` 從 300×360 縮為 280×200
+
+4. **lobby.tscn**：
+   - FloatingChat 從 root `.` 移到 `MainContainer/LeftPanel`
+   - 設定 `size_flags_horizontal=3, size_flags_vertical=3`（expand+fill）
+   - 調整 Inspector 為 `size_flags_vertical=3`
+
+5. **lobby_ui.gd:782**：`var lm := _lobby()` → `var lm: Variant = _lobby()` 修正 Variant 推斷
+
+### @onready 路徑修正
+- `$FloatingChat` → `$MainContainer/LeftPanel/FloatingChat`（移動後路徑失效）
+
+### 驗證結果
+- `project_run` 啟動零 parse error
+- ChatTrigger 點擊後：Inspector 隱藏、FloatingChat 顯示（320×659）
+- 輸入 "hello world" → 訊息 "Player: hello world" 正確顯示
+- 再次點擊 ChatTrigger：Inspector 恢復、FloatingChat 隱藏
+- lobby_manager.gd:149 的 "Standalone lambdas" parse error 已不存在（僅剩 warnings）
+
+### 教訓補充
+20. **節點移動後 @onready 路徑必須同步更新**——scene 中移動 FloatingChat 後，@onready 讀到 null instance，導致 pressed.emit() 時 crash
+21. **game_eval 不支援 `:=` 型別推斷**——需用 `var x = value` 或 `var x: Type = value`
+22. **RPC 函式名與 signal 不可同名**——signal `chat_message_received` 與 func `chat_message_received` 衝突，func 改名 `remote_chat_message`
+

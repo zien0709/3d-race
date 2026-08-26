@@ -38,12 +38,12 @@
 ├── Header (PanelContainer) - 顶部栏
 ├── MainContainer (HBoxContainer)
 │   ├── LeftPanel (VBoxContainer)
+│   │   ├── FloatingChat (PanelContainer) - 聊天面板（預設隱藏，開啟時取代 Inspector）
 │   │   ├── Inspector (PanelContainer) - 玩家查看面板
 │   │   └── ChatTrigger (Button) - 聊天触发器
 │   └── CenterRightPanel (VBoxContainer)
 │       ├── Showcase (PanelContainer) - 车辆/玩家展示
 │       └── ReadyButton (Button) - 准备按钮
-├── FloatingChat (PanelContainer) - 悬浮聊天窗
 ├── RoomOverlay (Control) - 房间设置覆盖层
 ├── LobbyBrowser (Control) - 大厅浏览器
 ├── CustomizeView (Control) - 自定义视图
@@ -111,6 +111,10 @@
 - `host_game()` - 创建 EOSGMultiplayerPeer listen server (peer_id=1)
 - `join_game(host_user_id)` - 连接到 host 的 P2P 会话
 - `disconnect_from_game()` - 断开连接回单人模式
+- `send_chat_message(message, tab)` - 发送聊天消息到指定标签页
+- `remote_chat_message(sender, text, tab)` - RPC 接收远端聊天消息
+
+**信号**: `chat_message_received(sender, text, tab)` - 聊天消息收到
 
 **EOS配置文件** (`res://eos_config.cfg`):
 ```

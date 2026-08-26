@@ -73,6 +73,7 @@
 
 **已知限制 / 待辦**
 - ✅ Phase B1 已完成：`player.tscn` 已加 `MultiplayerSynchronizer`（root_path=".."，同步 `transform`，sync_mode=ALWAYS）。遠端車輛現可經 client-authority 視覺複製；`player_spawner.gd` 的 `set_multiplayer_authority(peer_id)` 即為其複製來源。
+- ✅ 聊天 RPC 已完成（見 Phase D 第 4 點）：`NetworkManager` 的 `send_chat_message` / `remote_chat_message` RPC 已實作，支援 room / team / global 三種 tab 頻道，由 `lobby_main.gd` 路由與顯示。
 - 完賽名次同為 `total+1` 時為平手（未依完賽時間細分），必要時可於 `mark_finished` 帶入 `finish_time` 做二級排序。
 
 ---
@@ -98,6 +99,12 @@
 1. **自動建房**：在 `lobby_ui.gd` / `lobby_main.gd` 初始化完成且偵測到已登入 EOS 時，若無當前房間，自動呼叫 `create_lobby(room_config)` 以 EOS `display_name` 作為預設房名。（**已完成**，見 `lobby_main.gd:_auto_create_room_if_needed`）
 2. **準備系統**：擴充 `set_ready.rpc`，讓各客戶端點擊 Ready 後通知 Host，Host 端收集 ready map，當全員就緒後解鎖房主的「開始比賽」按鈕。（**已完成**，見 `lobby_manager.gd` + `lobby_ui.gd`）
 3. **比賽啟動整合**：`match_started` 觸發換場至 `main.tscn` 後，自動生成遠端車輛並啟動多人計時賽。（**已完成**，見 `race_course_setup.gd:_init_multiplayer_race`、`player.gd` authority-based `is_local_player`、移除 `player_spawner.gd` 硬編碼 `is_local_player`）
+
+4. **聊天 RPC 系統**（**已完成**）：
+   - `network_manager.gd` 提供 `send_chat_message(message, tab)` 與 `remote_chat_message(sender, text, tab)`，均使用 `@rpc("any_peer", "call_remote", "reliable")` 保證送達。
+   - 訊號 `chat_message_received(sender, text, tab)` 於收到遠端訊息時觸發。
+   - Tab 系統支援三種頻道：`"room"`（房間內）、`"team"`（隊伍）、`"global"`（全域）。
+   - 流程：`lobby_main.gd` 呼叫 `NetworkManager.send_chat_message()` → RPC 傳送 → 對端 `remote_chat_message()` 接收後 `emit` `chat_message_received` → `lobby_main.gd._on_chat_message_received()` 存入聊天紀錄並更新 UI 顯示。
 
 ---
 

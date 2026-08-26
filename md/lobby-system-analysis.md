@@ -16,15 +16,23 @@ The lobby system consists of:
 
 The controller connects signals between components and the LobbyManager:
 1. **Header** (`header.gd`) - User card, Room card, action buttons (create/leave/browser)
-2. **Inspector** (`inspector.gd`) - Left panel showing selected player's car info, stats, rank
-3. **Chat Trigger** (`chat_trigger.gd`) - Button to open floating chat
-4. **Showcase** (`showcase.gd`) - Two car display slots with slot selection
-5. **Ready Button** (`ready_button.gd`) - Bottom right, shows different states based on role
-6. **Floating Chat** (`floating_chat.gd`) - Tabbed chat (room/team/global) with input
-7. **Room Overlay** (`room_overlay.gd`) - Modal for room settings with chip-row selectors
-8. **Lobby Browser** (`lobby_browser.gd`) - Modal for searching/joining public lobbies
-9. **Customize View** (`customize_view.gd`) - Car customization placeholder
-10. **Toast** (`toast.gd`) - Temporary notifications
+2. **LeftPanel** (VBoxContainer) - Left column containing chat + inspector:
+   - **FloatingChat** (`floating_chat.gd`) - Tabbed chat (room/team/global) with input,  預設隱藏
+   - **Inspector** (`inspector.gd`) - Selected player's car info, stats, rank
+   - **ChatTrigger** (`chat_trigger.gd`) - Button to open floating chat
+3. **Showcase** (`showcase.gd`) - Two car display slots with slot selection
+4. **Ready Button** (`ready_button.gd`) - Bottom right, shows different states based on role
+5. **Room Overlay** (`room_overlay.gd`) - Modal for room settings with chip-row selectors
+6. **Lobby Browser** (`lobby_browser.gd`) - Modal for searching/joining public lobbies
+7. **Customize View** (`customize_view.gd`) - Car customization placeholder
+8. **Toast** (`toast.gd`) - Temporary notifications
+
+```
+LeftPanel (VBoxContainer)
+├── FloatingChat (PanelContainer)  ← 預設隱藏
+├── Inspector (PanelContainer)
+└─ ChatTrigger (Button)
+```
 
 All components are **self-building** - they create their own child nodes programmatically. No .tscn files needed for components.
 
@@ -90,6 +98,7 @@ All components are **self-building** - they create their own child nodes program
 | `logged_out` | | Logged out |
 | `discord_oauth_started` | | Discord OAuth started |
 | `discord_oauth_completed` | code: String, error: String | OAuth callback result |
+| `chat_message_received` | sender: String, text: String, tab: String | Incoming chat message from peer |
 
 ### Component Signals (to LobbyMain)
 
@@ -114,6 +123,17 @@ All components are **self-building** - they create their own child nodes program
 | Lobby Browser | `join_requested` | lobby_info: Dictionary |
 | Lobby Browser | `closed` | |
 | Customize View | `back_requested` | |
+| NetworkManager | `chat_message_received` | sender: String, text: String, tab: String |
+
+#### LobbyMain Chat Handlers
+
+| Handler | Trigger | Behavior |
+|---------|---------|----------|
+| `_on_chat_toggled(opened: bool)` | ChatTrigger pressed | Toggles FloatingChat / Inspector visibility |
+| `_on_chat_closed()` | FloatingChat closed | Restores Inspector |
+| `_on_chat_tab_changed(tab: String)` | FloatingChat tab switched | Switches tab + loads history |
+| `_on_chat_message_received(sender, text, tab)` | NetworkManager signal | Stores message + displays if current tab |
+| `_on_chat_message_sent(text)` | FloatingChat message_sent | Routes through `NetworkManager.send_chat_message()` |
 
 ### LobbyManager Public API
 
@@ -151,6 +171,25 @@ All components are **self-building** - they create their own child nodes program
 | Chat | ✅ Working | P2P via NetworkManager |
 | Auto-create room on login | ✅ Working | Phase C implementation |
 | Local room identification | ✅ Working | `owner_product_user_id` comparison |
+
+### Chat RPC Architecture
+
+Chat messages flow through NetworkManager via RPC:
+
+```
+FloatingChat.message_sent
+  → lobby_main.gd._on_chat_message_sent()
+    → NetworkManager.send_chat_message(message, tab)
+      → rpc("remote_chat_message", sender, text, tab)
+        → NetworkManager.remote_chat_message(sender, text, tab)
+          → emits chat_message_received(sender, text, tab)
+            → lobby_main.gd._on_chat_message_received()
+              → FloatingChat.display_message()
+```
+
+- `send_chat_message(message, tab)` calls `rpc("remote_chat_message", sender, text, tab)` to all peers.
+- `@rpc("any_peer", "call_remote", "reliable") func remote_chat_message(sender, text, tab)` emits `chat_message_received` signal.
+- All peers receive the message; lobby_main.gd filters by tab and updates the UI.
 
 ### Issues Identified (To Be Addressed in Phase D)
 
