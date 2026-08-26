@@ -216,5 +216,120 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 ### 教訓補充
 12. **委派協程必須透傳 await**——`PlayerStorage.save/load/has_profile` 皆為協程，薄委派層若寫 `return _player_storage.save_profile(...)` 會回傳 `GDScriptFunctionState` 而非 `bool/Dictionary`，呼叫端 `await` 也拿不到正確結果；必須寫 `return await _player_storage.save_profile(...)`。
 13. **加入房間前先處理既有房間狀態**——EOS 同一時間只能在一個 Lobby，已在房間時必須先 `leave_async` 再 `join_async`，否則 `join_async` 回傳 null 並使 UI 的 `browser_busy` 永久為 true。
-14. **本地房判斷用 owner_product_user_id 而非 attribute**——HLobby 的 owner 是屬性而非 attribute，`get_attribute(\"host_id\")` 永遠取不到；正確做法如 `lobby_browser.gd` 已示範。
+14. **本地房判斷用 owner_product_user_id 而非 attribute**——HLobby 的 owner 是屬性而非 attribute，`get_attribute("host_id")` 永遠取不到；正確做法如 `lobby_browser.gd` 已示範。
+
+---
+
+## Phase D：Lobby 系統 9 項功能重構（2026-08-26 進行中）
+
+### 背景
+使用者回報 AI 修改 Lobby 設定介面導致錯誤且未 Commit，需依 9 項詳細需求重構：
+
+1. **非房主唯讀**：非房主點擊設定時為唯讀檢視
+2. **即時同步**：非房主開啟設定面板，收到 `lobby_updated` 自動重載配置
+3. **準備與開始解耦**：函數模組化與解耦
+4. **地圖預設**：新增預設地圖選項
+5. **地圖載入解耦**：修正地圖載入跳回登入介面問題
+6. **進階規則灰化**：「傷害模式」與「車輛限制」變灰色（禁用但保留介面）
+7. **人數介面調整**：依據房間人數限制動態調整介面
+8. **開始按鈕真啟動**：開始按鈕可按並真正啟動比賽
+9. **開始按鈕邏輯**：非房主 [已準備] 切換、房主 [開始比賽]、支援自動開始
+
+### Phase D1：資料流同步修復（需求 2、5）
+
+#### 症狀
+1. 客戶端加入房間後，room_config 停留在預設值，看不到房主設定
+2. 地圖屬性同步可能干擾登入狀態，導致跳回登入介面
+
+#### 根因
+1. `lobby_manager.gd:_on_lobby_updated()` 只同步 members/peer_order，**遺漏 room_config 同步**
+2. `join_lobby()` 中 map sync 時機可能過早，干擾 authentication state
+
+#### 修復策略
+- `lobby_manager.gd` 新增 `room_config_updated(room_config: Dictionary)` 信號
+- `_on_lobby_updated()` 非房主時從 lobby attributes 同步：map、mode、car_restriction、damage_mode、max_players、auto_start
+- 發射 `room_config_updated` 讓 `lobby_main.gd` 更新 UI
+
+#### 驗證結果
+- [待驗證] 客戶端加入後 room_config.map 顯示房主選擇的地圖
+- [待驗證] room_config.mode、car_restriction、damage_mode、max_players、auto_start 均同步
+- [待驗證] 地圖載入不再導致跳回登入介面
+
+#### 關鍵檔案
+- `network/lobby_manager.gd` - 新增信號與同步邏輯
+- `ui/lobby/lobby_main.gd` - 監聽 `room_config_updated` 呼叫 `_refresh_all()`
+
+### Phase D2：UI 唯讀與進階規則灰化（需求 1、6）
+
+#### 症狀
+- 非房主開啟設定面板可修改所有項目，包括進階規則
+
+#### 修復策略
+- `room_overlay.gd:open(config, host: bool = false)` 新增 host 參數
+- `_on_chip_changed()` 對 `carr`/`dmg` 檢查 `is_host`，非房主跳過
+- `_toggle_host_controls()` 實作：carr/dmg chips 禁用、灰色、tooltip 提示「高級規則 - 仅房主開放 (Future feature)」
+
+#### 關鍵檔案
+- `ui/lobby/components/room_overlay/room_overlay.gd`
+
+### Phase D3：Ready/Start 解耦與自動開始（需求 3、8、9）
+
+#### 症狀
+- `_on_ready_pressed()` 僅 emit `start_requested`，**未切換 ready 狀態**
+- Ready 與 Start 邏輯耦合，無法正確處理 host/non-host 差異
+- `auto_start` 選項儲存但未處理
+
+#### 修復策略
+- `_on_ready_pressed()`：非房主呼叫 `lobby_manager.set_ready()` 切換；房主檢查 `_all_lobby_ready()` 後啟動比賽
+- `_on_ready_state_changed()` 增加 `check_auto_start()`：檢查 `room_config.auto_start` 處理「立即開始」或「倒數10秒」
+- `start_race()` 獨立函式：僅房主可呼叫，檢查全員準備後 `lobby_manager.start_match()`
+
+#### 關鍵檔案
+- `ui/lobby/lobby_main.gd` - 重寫 `_on_ready_pressed()`、新增 `check_auto_start()`、`start_race()`
+
+### Phase D4：動態玩家介面（需求 4、7）
+
+#### 症狀
+- `max_players` 預設硬編碼 3，介面不隨人數調整
+- 地圖選項只有 3 種，可能需擴充
+
+#### 修復策略
+- 移除 `room_config` 硬編碼 `"max_players": 3`
+- `room_card.gd` 動態顯示 `%d/%d` 基於 `room_config.max_players`
+- 依據 `max_players` 顯示/隱藏額外車位
+- `room_overlay.gd CHIP_DEFS` 檢查地圖選項是否需擴充
+
+#### 關鍵檔案
+- `ui/lobby/lobby_main.gd` - 移除硬編碼預設
+- `ui/lobby/components/header/room_card.gd` - 動態顯示
+- `ui/lobby/components/room_overlay/room_overlay.gd` - 地圖選項
+
+### Phase D5：開始按鈕完整邏輯（需求 8、9）
+
+#### 修復策略
+- 非房主：按鈕顯示 [已準備]，點擊切換 ready 狀態
+- 房主：當 `_all_lobby_ready()` 時顯示 [開始比賽]，點擊啟動
+- `auto_start="立即開始"`：全員準備後直接開始
+- `auto_start="倒數10秒"`：全員準備後倒數 10 秒自動開始
+
+#### 關鍵檔案
+- `ui/lobby/lobby_main.gd` - 完整 _on_ready_pressed、check_auto_start
+- `ui/lobby/components/ready_button/ready_button.gd` - 新增倒數顯示模式
+
+### 實作進度
+
+| 任務 | 狀態 | Commit |
+|------|------|--------|
+| D1: room_config sync + join_lobby decoupling | ✅ 已修改 lobby_manager.gd，待 commit/驗證 | `feat(lobby): room_config sync from attributes` |
+| D2: room_overlay host read-only + grayscale | 待實作 | |
+| D3: ready/start decouple + auto-start | 待實作 | |
+| D4: dynamic player interface + map options | 待實作 | |
+| D5: start button complete logic | 待實作 | |
+
+### 教訓補充
+15. **lobby_updated 時必須同步 room_config**——非房主加入時無法取得房主設定，導致 UI 顯示預設值而非實際值
+16. **join_lobby 解耦 map 載入**——避免在 lobby state 不穩定時處理 map attributes，防止干擾 authentication state
+17. **Phase 內部每一步都要 commit**——避免累積大量未提交修改（本次 AI 錯誤的根本原因）
+18. **非房主 UI 必須有視覺回饋**——唯讀/禁用狀態需有明確灰化與 tooltip，不能只有邏輯攔截
+19. **auto_start 需在 ready_state_changed 觸發**——不能放在 ready_pressed，因為可能是其他玩家準備觸發
 

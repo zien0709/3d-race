@@ -3,6 +3,7 @@
 > 本文件給所有在此專案工作的 AI 助手。架構知識請讀 `md/AISTARTREADIT.txt`；
 > 本文件講的是「怎麼工作」——流程規範、環境陷阱、發佈 SOP。
 > 內容全部來自實戰踩雷，違反者會浪費大量除錯時間。
+> **更新日期：2026-08-26**（Phase D Lobby 重構進行中）
 
 ---
 
@@ -113,14 +114,16 @@
 
 ---
 
-## 5. 已知問題快照（2026-08-24，v1.05 時點）
+## 5. 已知問題快照（2026-08-26，Phase D 進行中）
 
 | 問題 | 性質 |
 |------|------|
 | `HLeaderboards NotFound` | EOS 後端排行榜未建置，非腳本錯誤，忽略即可 |
 | `NetworkManager.send_chat_message` | placeholder（只 print），EOS party chat 實際傳輸待做 |
-| AuthManager | 已改為 NetworkManager 的薄委託層（271 行），勿再往裡塞重複實作 |
+| AuthManager | 已改為 NetworkManager 的薄委託層（271 行），勿再塞重複實作 |
 | `md/EXPLORATION_REPORT.md`、`md/multiplayer_plan.md` 等 | 其他 AI 的工作產物，**不要動、不要清** |
+| Lobby 非房主可修改設定 | Phase D 修復中：需唯讀 + 進階規則灰化 |
+| Ready/Start 邏輯耦合 | Phase D 修復中：需解耦 + auto-start 實作 |
 
 ---
 
