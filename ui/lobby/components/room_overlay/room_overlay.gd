@@ -1,4 +1,4 @@
-extends Control
+﻿extends Control
 
 ## RoomOverlay - 房間設定彈窗（全屏遮罩 + 設定面板）
 ## 自建子節點，場景只需掛一個空的 Control 加此腳本。
@@ -23,6 +23,7 @@ const CHIP_DEFS := [
 ]
 
 var room_config: Dictionary = {}
+var is_host: bool = false
 
 var _dim: ColorRect
 var _panel: PanelContainer
@@ -36,14 +37,16 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	_build_ui()
 
-func open(config: Dictionary) -> void:
+func open(config: Dictionary, host: bool = false) -> void:
 	room_config = config.duplicate(true)
+	is_host = host
 	if _room_name_input != null:
 		_room_name_input.text = str(room_config.get("name", ""))
 	_update_chips()
 	_update_spectator()
 	_invite_value.text = str(room_config.get("invite_code", ""))
 	visible = true
+	_toggle_host_controls(is_host)
 
 func get_room_name() -> String:
 	return _room_name_input.text.strip_edges() if _room_name_input != null else ""
@@ -226,6 +229,19 @@ func _style_toggle(b: Button, on: bool) -> void:
 	b.remove_theme_stylebox_override("hover")
 	b.remove_theme_stylebox_override("pressed")
 
+func _toggle_host_controls(host: bool) -> void:
+	# 針對 carr (車輛限制) 和 dmg (傷害模式) 兩個進階規則
+	if _chip_rows.has("carr"):
+		var row = _chip_rows["carr"]
+		row.set_disabled(not host)
+		if not host:
+			row.set_tooltip_text("高級規則 - 僅房主開放 (Future feature)")
+	if _chip_rows.has("dmg"):
+		var row = _chip_rows["dmg"]
+		row.set_disabled(not host)
+		if not host:
+			row.set_tooltip_text("高級規則 - 僅房主開放 (Future feature)")
+
 ## --- Handlers ---
 
 func _on_chip_changed(row: String, value: String) -> void:
@@ -237,8 +253,16 @@ func _on_chip_changed(row: String, value: String) -> void:
 				if value == pair[0]:
 					room_config["privacy"] = pair[1]
 		"carr":
+			if not is_host:
+				push_warning("車輛限制：僅房主可修改")
+				_update_chips()
+				return
 			room_config["car_restriction"] = value
 		"dmg":
+			if not is_host:
+				push_warning("傷害模式：僅房主可修改")
+				_update_chips()
+				return
 			room_config["damage_mode"] = value
 		"auto":
 			room_config["auto_start"] = value

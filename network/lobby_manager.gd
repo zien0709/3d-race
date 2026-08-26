@@ -10,6 +10,7 @@ signal member_joined(member_id: String)
 signal member_left(member_id: String)
 signal ready_state_changed(ready_map: Dictionary)
 signal match_started(peer_order: Array)
+signal room_config_updated(room_config: Dictionary)
 
 const MAX_PLAYERS := 12
 const BUCKET_ID := "3d_race"
@@ -373,11 +374,21 @@ func _bind_lobby(lobby) -> void:
 func _on_lobby_updated() -> void:
 	_sync_members()
 	if not is_host and _lobby:
-		var order_attr: Dictionary = _lobby.get_attribute(ATTR_PEER_ORDER)
-		if not order_attr.is_empty() and order_attr.value is String:
-			var order = JSON.parse_string(order_attr.value)
-			if order is Array and not order.is_empty():
-				match_started.emit(order)
+		# Sync room_config from lobby attributes
+		var rc: Dictionary = {
+			'map': lobby_attr(ATTR_MAP, '', _lobby),
+			'mode': lobby_attr(ATTR_MODE, '', _lobby),
+			'car_restriction': lobby_attr(ATTR_CAR_RESTRICTION, '', _lobby),
+			'damage_mode': lobby_attr(ATTR_DAMAGE, '', _lobby),
+			'max_players': int(lobby_attr(ATTR_MAX_PLAYERS, MAX_PLAYERS, _lobby)),
+			'auto_start': lobby_attr(ATTR_AUTO_START, '', _lobby),
+		}
+		room_config_updated.emit(rc)
+	var order_attr: Dictionary = _lobby.get_attribute(ATTR_PEER_ORDER)
+	if not order_attr.is_empty() and order_attr.value is String:
+		var order = JSON.parse_string(order_attr.value)
+		if order is Array and not order.is_empty():
+			match_started.emit(order)
 
 
 func _on_kicked() -> void:

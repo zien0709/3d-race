@@ -1,4 +1,4 @@
-extends HBoxContainer
+﻿extends HBoxContainer
 
 ## ChipRow - 膠囊選擇列：一組互斥選項按鈕（房間設定 overlay 用）
 
@@ -82,3 +82,12 @@ func _style_button(b: Button, bg: Color, border: Color) -> void:
 	pressed.bg_color = bg.darkened(0.12)
 	b.add_theme_stylebox_override("pressed", pressed)
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+
+## 新增方法：支援 host 權限控制
+func set_disabled(disabled: bool) -> void:
+	for b in _buttons:
+		b.disabled = disabled
+
+func set_tooltip_text(text: String) -> void:
+	for b in _buttons:
+		b.tooltip_text = text
