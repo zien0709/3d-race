@@ -6,16 +6,16 @@ extends Control
 signal start_requested(player_name: String)
 
 ## Component references
-@onready var header: Control = $Header
-@onready var inspector: Control = $MainContainer/LeftPanel/Inspector
-@onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
-@onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
-@onready var ready_button: Control = $MainContainer/CenterRightPanel/ReadyButton
-@onready var floating_chat: Control = $FloatingChat
-@onready var room_overlay: Control = $RoomOverlay
-@onready var lobby_browser: Control = $LobbyBrowser
-@onready var customize_view: Control = $CustomizeView
-@onready var toast: Control = $Toast
+@onready var header: Control = 
+@onready var inspector: Control = /LeftPanel/Inspector
+@onready var chat_trigger: Control = /LeftPanel/ChatTrigger
+@onready var showcase: Control = /CenterRightPanel/Showcase
+@onready var ready_button: Control = /CenterRightPanel/ReadyButton
+@onready var floating_chat: Control = 
+@onready var room_overlay: Control = 
+@onready var lobby_browser: Control = 
+@onready var customize_view: Control = 
+@onready var toast: Control = 
 
 ## State
 var selected_id: String = ""
@@ -291,6 +291,16 @@ func _on_ready_pressed() -> void:
 	if lobby_manager == null:
 		show_toast("Lobby module not loaded")
 		return
+	
+	# 檢查是否為線上模式
+	var online: bool = lobby_manager.has_method("is_online") and lobby_manager.is_online()
+	
+	if not online:
+		# 離線模式：直接開始計時賽
+		start_race()
+		return
+	
+	# 線上模式邏輯
 	if not _net_is_logged_in():
 		show_toast("請先登入（點左上玩家卡）")
 		return
@@ -339,11 +349,13 @@ func start_race() -> void:
 		show_toast("請先設定房間名稱")
 		return
 	
-	if not lobby_manager.is_host:
+	# 離線模式不需要檢查 is_host
+	var online: bool = lobby_manager.has_method("is_online") and lobby_manager.is_online()
+	if online and not lobby_manager.is_host:
 		show_toast("只有房主可以開始比賽")
 		return
 	
-	if lobby_manager.current_lobby.is_empty():
+	if online and lobby_manager.current_lobby.is_empty():
 		show_toast("目前沒有可開始的房間")
 		return
 	

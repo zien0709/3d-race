@@ -19,15 +19,26 @@ func _rebuild_slots() -> void:
 		s.queue_free()
 	slots.clear()
 	
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 20)
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(row)
+	# 2 人以下用 HBoxContainer（並排），3-4 人用 GridContainer（2x2 田字排列）
+	var container: Container
+	if max_slots <= 2:
+		container = HBoxContainer.new()
+		container.add_theme_constant_override("separation", 20)
+	else:
+		container = GridContainer.new()
+		container.columns = 2
+		container.add_theme_constant_override("h_separation", 20)
+		container.add_theme_constant_override("v_separation", 20)
+	
+	container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(container)
+	
 	for i in max_slots:
 		var slot := PanelContainer.new()
 		slot.set_script(CarSlotScript)
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(slot)
+		slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		container.add_child(slot)
 		slot.slot_clicked.connect(_on_slot_clicked.bind(i))
 		slots.append(slot)
 
