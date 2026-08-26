@@ -190,7 +190,7 @@ func _add_chip_row(parent: VBoxContainer, def: Array) -> void:
 	var initial := _config_value_for(str(def[0]))
 	
 	# 對 maxp 使用動態選項
-	var opts := def[2]
+	var opts: Array = def[2]
 	if str(def[0]) == "maxp":
 		opts = _get_maxp_options()
 	
