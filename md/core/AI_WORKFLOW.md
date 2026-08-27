@@ -114,24 +114,46 @@
 
 ---
 
-## 5. 已知問題快照（2026-08-26，Phase D 進行中）
+## 5. 文件地圖與讀取規則
 
-| 問題 | 性質 |
-|------|------|
-| `HLeaderboards NotFound` | EOS 後端排行榜未建置，非腳本錯誤，忽略即可 |
-| `NetworkManager.send_chat_message` | placeholder（只 print），EOS party chat 實際傳輸待做 |
-| AuthManager | 已改為 NetworkManager 的薄委託層（271 行），勿再塞重複實作 |
-| `md/EXPLORATION_REPORT.md`、`md/multiplayer_plan.md` 等 | 其他 AI 的工作產物，**不要動、不要清** |
-| Lobby 非房主可修改設定 | Phase D 修復中：需唯讀 + 進階規則灰化 |
-| Ready/Start 邏輯耦合 | Phase D 修復中：需解耦 + auto-start 實作 |
+### 5.1 資料夾結構
 
----
+```
+md/
+├── core/                     ← 開工必讀，力求精簡
+│   ├── AI_WORKFLOW.md        ← 流程規範＋環境陷阱＋發佈 SOP（本檔）
+│   └── AISTARTREADIT.txt     ← 架構總覽
+├── status/                   ← 「現況真相」，只能覆寫、不能疊加新報告
+│   ├── PROJECT_STATUS.md     ← 目前 Phase 與已知問題快照
+│   ├── eos_status.md         ← EOS 整合進度
+│   └── lobby-system-analysis.md ← 大廳系統分析與 Phase D 任務拆解
+├── domain/                   ← 特定任務類型才需要讀
+│   ├── vehicle_model_analysis.md
+│   ├── multiplayer_execution_guide.md
+│   └── login_interface_decoupling.md
+├── logs/                     ← 疊加型日誌，教訓編號持續往下接，不覆寫
+│   └── lobby-refactor-log.md
+├── archive/                  ← 歷史快照，不代表現況，除非被明確指名否則不讀
+│   └── EXPLORATION_REPORT.md
+└── multiplayer_plan.md       ← 其他 AI 的工作產物，**不要動、不要清**
+```
 
-## 6. 文件地圖
+### 5.2 讀取規則
 
-| 檔案 | 內容 |
-|------|------|
-| `md/AISTARTREADIT.txt` | 專案架構總覽（新 session 必讀） |
-| `md/AI_WORKFLOW.md` | 本文件：流程規範＋環境陷阱＋發佈 SOP |
-| `md/lobby-refactor-log.md` | 大廳重構全紀錄＋教訓清單（格式範本） |
-| `md/eos_status.md` | EOS 整合現狀 |
+> **開工必讀 core/ 全部 → 讀 status/PROJECT_STATUS.md 確認現況 → 依任務類型讀對應 domain/ 檔案 → archive/ 除非被 status 文件或使用者明確指名，否則不讀**
+
+### 5.3 檔案速查表
+
+| 路徑 | 內容 | 何時讀 |
+|------|------|--------|
+| `md/core/AI_WORKFLOW.md` | 流程規範、環境陷阱、發佈 SOP | **每次開工必讀** |
+| `md/core/AISTARTREADIT.txt` | 專案架構總覽 | **每次開工必讀** |
+| `md/status/PROJECT_STATUS.md` | 目前 Phase、已知問題快照 | **每次開工必讀** |
+| `md/status/lobby-system-analysis.md` | 大廳架構、訊號、Phase D 任務 | Lobby 相關任務 |
+| `md/status/eos_status.md` | EOS 登入/PDS/權限配置詳情 | EOS 相關任務 |
+| `md/domain/vehicle_model_analysis.md` | 車模結構、材質、整合細節 | 車輛模型/物理任務 |
+| `md/domain/multiplayer_execution_guide.md` | ENET→EOS 多人實施步驟 | 多人聯機任務 |
+| `md/domain/login_interface_decoupling.md` | AuthManager 解耦記錄 | 登入/認證任務 |
+| `md/logs/lobby-refactor-log.md` | 重構完整日誌＋教訓 1-26 | 需查歷史決策/教訓 |
+| `md/archive/EXPLORATION_REPORT.md` | 2026-08-24 探索快照 | **除非被明確指名否則不讀** |
+| `md/multiplayer_plan.md` | 無 EOS 多人建置規劃 | **不要動、不要清** |
