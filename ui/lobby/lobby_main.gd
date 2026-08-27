@@ -11,6 +11,8 @@ signal start_requested(player_name: String)
 @onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
 @onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
 @onready var ready_button: Control = $MainContainer/CenterRightPanel/BottomBar/ReadyButton
+@onready var chat_preview: Control = $MainContainer/CenterRightPanel/BottomBar/ChatPreview
+@onready var quick_phrases: Control = $MainContainer/CenterRightPanel/BottomBar/QuickPhrases
 @onready var floating_chat: Control = $MainContainer/LeftPanel/LeftContent/FloatingChat
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
@@ -103,6 +105,12 @@ func _connect_components() -> void:
 	## Showcase signals
 	showcase.slot_selected.connect(_on_showcase_slot_selected)
 
+	## Bottom bar signals
+	if quick_phrases != null and quick_phrases.has_signal("phrase_selected"):
+		quick_phrases.phrase_selected.connect(_on_quick_phrase_selected)
+	if chat_preview != null and chat_preview.has_signal("preview_clicked"):
+		chat_preview.preview_clicked.connect(_on_chat_preview_clicked)
+
 	## Ready button signals
 	ready_button.pressed.connect(_on_ready_pressed)
 
@@ -179,7 +187,7 @@ func _on_member_left(player_id: String) -> void:
 
 func _on_ready_state_changed(ready_map: Dictionary) -> void:
 	is_ready = bool(ready_map.get("local_player_peer_id", false))
-	ready_button.update_ready_state(is_ready, lobby_manager)
+	_refresh_ready_button()
 	_refresh_all()
 	check_auto_start()
 
@@ -187,6 +195,7 @@ func _on_match_started(_order: Array) -> void:
 	start_requested.emit("")
 
 func _on_lobby_created(_info: Dictionary) -> void:
+	_refresh_players()
 	_refresh_all()
 
 func _on_lobby_joined(_info: Dictionary) -> void:
@@ -250,6 +259,20 @@ func _on_chat_toggled(opened: bool) -> void:
 
 func _on_chat_closed() -> void:
 	chat_open = false
+
+func _on_quick_phrase_selected(phrase: String) -> void:
+	var sender_name := "玩家"
+	if lobby_manager != null:
+		sender_name = str(lobby_manager.get_display_name())
+	_on_chat_message_received(sender_name, phrase, "room")
+	if chat_preview != null and chat_preview.has_method("update_preview"):
+		chat_preview.update_preview(sender_name, phrase)
+
+func _on_chat_preview_clicked() -> void:
+	chat_open = true
+	floating_chat.visible = true
+	inspector.visible = false
+	floating_chat.focus_input()
 	floating_chat.visible = false
 	inspector.visible = true
 	chat_trigger.set_chat_open(false)
@@ -481,6 +504,7 @@ func show_toast(msg: String) -> void:
 
 func _refresh_all() -> void:
 	_update_default_room_name()
+	_refresh_players()
 	_refresh_header()
 	_refresh_inspector()
 	_refresh_showcase()
@@ -527,7 +551,8 @@ func _refresh_ready_button() -> void:
 	var lm := lobby_manager
 	var online: bool = nm != null and lm != null and lm.has_method("is_online") and lm.is_online()
 	if not online:
-		ready_button.set_offline_mode()
+		# Offline mode: always host, always enabled
+		ready_button.set_mode(true, true, false)
 		return
 	var all_rdy: bool = _all_lobby_ready(lm)
 	ready_button.set_mode(lm.is_host, all_rdy, is_ready)
@@ -549,8 +574,8 @@ func _refresh_players() -> void:
 			player_name = disp as String
 		else:
 			var auth2 := get_node_or_null("/root/AuthManager")
-			if auth2 != null and "display_name" in auth2 and str(auth2.display_name) != "":
-				player_name = str(auth2.display_name)
+			if auth2 != null and auth2.has_method("display_name") and str(auth2.display_name()) != "":
+				player_name = str(auth2.display_name())
 	
 	# Get host's product_user_id to reorder players (host first = slot 1)
 	var host_puid: String = ""
@@ -581,6 +606,25 @@ func _refresh_players() -> void:
 			"stats": stats,
 			"is_self": is_self,
 			"is_host": pid == host_puid
+		})
+	
+	# Offline mode fallback: add mock local player if lobby has no members
+	if new_players.is_empty():
+		var local_id := "local_player"
+		if lm.has_method("get_local_player_id"):
+			local_id = str(lm.get_local_player_id())
+		new_players.append({
+			"id": local_id,
+			"name": player_name,
+			"car_name": "Default Car",
+			"score": 850,
+			"cls": "S",
+			"rank": "大師 I",
+			"best_lap": "1:23.456",
+			"matches": [true, false, true, true, false],
+			"stats": {"speed": 0.85, "handling": 0.72, "accel": 0.90},
+			"is_self": true,
+			"is_host": true
 		})
 	
 	# Reorder: host first (slot 1), then self if not host, then others

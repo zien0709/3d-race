@@ -12,6 +12,8 @@
 [ext_resource type="Script" uid="uid://w4483afieja" path="res://ui/lobby/components/lobby_browser/lobby_browser.gd" id="9_n8uyy"]
 [ext_resource type="Script" uid="uid://tmmo6v47gxfi" path="res://ui/lobby/components/customize/customize_view.gd" id="10_8mrmc"]
 [ext_resource type="Script" uid="uid://818c53evv3jo" path="res://ui/lobby/components/toast/toast.gd" id="11_lkqrx"]
+[ext_resource type="Script" path="res://ui/lobby/components/chat/chat_preview.gd" id="7_cp"]
+[ext_resource type="Script" path="res://ui/lobby/components/chat/quick_phrases.gd" id="8_qp"]
 
 [sub_resource type="Animation" id="Animation_oyvhv"]
 length = 0.25
@@ -200,7 +202,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_vc1it")
 
-[node name="BottomBar" type="PanelContainer" parent="MainContainer/CenterRightPanel"]
+[node name="BottomBar" type="HBoxContainer" parent="MainContainer/CenterRightPanel"]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -211,10 +213,22 @@ offset_left = 8.0
 offset_right = -8.0
 grow_horizontal = 2
 grow_vertical = 0
+theme_override_constants/separation = 8
+
+[node name="ChatPreview" type="PanelContainer" parent="MainContainer/CenterRightPanel/BottomBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("7_cp")
+
+[node name="QuickPhrases" type="HBoxContainer" parent="MainContainer/CenterRightPanel/BottomBar"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("8_qp")
 
 [node name="ReadyButton" type="Button" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=2085932185]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 10
 size_flags_vertical = 3
 script = ExtResource("6_xg6h8")
 

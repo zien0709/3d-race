@@ -44,7 +44,7 @@ func _ready() -> void:
 
 func _build_profile_box(parent: Node) -> void:
 	var box := PanelContainer.new()
-	box.custom_minimum_size = Vector2(220, 0)
+	box.custom_minimum_size = Vector2(180, 0)
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.12, 0.14, 0.18)
@@ -117,7 +117,7 @@ func _build_profile_box(parent: Node) -> void:
 
 func _build_room_capsule(parent: Node) -> void:
 	var capsule := PanelContainer.new()
-	capsule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	capsule.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	capsule.custom_minimum_size = Vector2(0, 48)
 
 	var style := StyleBoxFlat.new()
@@ -130,60 +130,22 @@ func _build_room_capsule(parent: Node) -> void:
 	row.add_theme_constant_override("separation", 8)
 	capsule.add_child(row)
 
-	# Globe icon
-	var globe := Label.new()
-	globe.text = "🌐"
-	globe.add_theme_font_size_override("font_size", 16)
-	globe.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(globe)
-
 	# Room name
 	_room_name_label = Label.new()
 	_room_name_label.text = "我的房間"
 	_room_name_label.add_theme_font_size_override("font_size", 14)
 	_room_name_label.add_theme_color_override("font_color", C_TEXT)
 	_room_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_room_name_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_room_name_label.clip_text = true
 	row.add_child(_room_name_label)
 
 	# Badges container
 	_badges_container = HBoxContainer.new()
 	_badges_container.add_theme_constant_override("separation", 4)
 	_badges_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_badges_container.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	row.add_child(_badges_container)
-
-	# Spacer
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-
-	# Player count
-	_player_count_label = Label.new()
-	_player_count_label.text = "👥 0/0"
-	_player_count_label.add_theme_font_size_override("font_size", 13)
-	_player_count_label.add_theme_color_override("font_color", C_TEXT)
-	_player_count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(_player_count_label)
-
-	# Gear button
-	_gear_btn = Button.new()
-	_gear_btn.text = "⚙️"
-	_gear_btn.add_theme_font_size_override("font_size", 16)
-	_gear_btn.custom_minimum_size = Vector2(32, 32)
-	_gear_btn.pressed.connect(func(): room_settings_requested.emit())
-	row.add_child(_gear_btn)
-
-	# Settings link
-	_settings_link = Label.new()
-	_settings_link.text = "房間設定 ›"
-	_settings_link.add_theme_font_size_override("font_size", 11)
-	_settings_link.add_theme_color_override("font_color", C_MUTED)
-	_settings_link.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_settings_link.mouse_filter = Control.MOUSE_FILTER_STOP
-	_settings_link.gui_input.connect(func(event: InputEvent):
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			room_settings_requested.emit()
-	)
-	row.add_child(_settings_link)
 
 	parent.add_child(capsule)
 
@@ -191,18 +153,26 @@ func _build_room_capsule(parent: Node) -> void:
 
 func _build_action_buttons(parent: Node) -> void:
 	var box := HBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 4)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
-	# Invite button
-	_invite_btn = _make_button(box, "🔗 邀請好友 / 複製房號", false)
-	_invite_btn.pressed.connect(func(): invite_requested.emit())
+	# Player count
+	_player_count_label = Label.new()
+	_player_count_label.text = "👥 0/0"
+	_player_count_label.add_theme_font_size_override("font_size", 12)
+	_player_count_label.add_theme_color_override("font_color", C_TEXT)
+	_player_count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.add_child(_player_count_label)
 
-	# System settings button
-	_make_icon_button(box, "⚙️ 系統設定", func(): system_settings_requested.emit())
+	# Gear button (room settings)
+	_gear_btn = _make_icon_button(box, "⚙️", func(): room_settings_requested.emit())
+
+	# Invite button
+	_invite_btn = _make_icon_button(box, "🔗", func(): invite_requested.emit())
 
 	# Leave button (danger)
-	_leave_btn = _make_danger_button(box, "🚪 離開房間")
+	_leave_btn = _make_danger_button(box, "🚪")
+	_leave_btn.custom_minimum_size = Vector2(36, 36)
 	_leave_btn.pressed.connect(func(): leave_room_requested.emit())
 
 	parent.add_child(box)
