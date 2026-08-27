@@ -581,7 +581,8 @@ func _refresh_players() -> void:
 			"best_lap": "1:23.456",
 			"matches": [true, false, true, true, false],
 			"stats": stats,
-			"is_self": is_self
+			"is_self": is_self,
+			"is_host": pid == host_puid
 		})
 	
 	# Reorder: host first (slot 1), then self if not host, then others
