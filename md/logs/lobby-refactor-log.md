@@ -541,4 +541,10 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 ### 教訓補充
 39. **Mock data 降級策略**——缺失 API 時 UI 先用假資料運作，定義清楚的接入點與 fallback 分支，避免阻塞 UI 開發
 40. **Node 路徑異動防護**——重寫 .tscn 前先盤點所有 @onready 路徑，確保新結構的葉節點名稱與舊腳本相容，或在同一步驟更新腳本
+41. **Plugin reload 清 stale cache**——parse error 重現時，執行 `editor_reload_plugin` 清除 Godot 的腳本緩存，避免 stale cache 誤判
+42. **命名衝突遮蔽**——GDScript 中 `var pressed :=` 會遮蔽 Button 的 `pressed` 信號，`var disabled :=` 會遮蔽 Button 的 `disabled` 屬性，導致後續賦值型別錯誤。使用 `style_pressed` / `style_disabled` 前綴避免衝突
+
+### Phase H 完成狀態（2026-08-27）
+- Step 1-14 全部完成，Git commits: `7aa4893` `fd8a8c2` `725fc69` `635fc49` `fb7b88e` `c1ebe78` `d071927` `b87aab5` `88dac5f` `77b8c7d` `31403bd`
+- 遊戲運行零 errors，所有元件正常渲染
 
