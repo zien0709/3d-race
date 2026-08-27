@@ -494,3 +494,51 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 37. **動態排版優於硬編碼**——HBoxContainer/GridContainer 組合可輕鬆支援 2/3/4 人房自適應
 38. **自動載入單例需顯式型別**——`@onready var x: Type = Autoload`，否則類型推斷失敗
 
+---
+
+## Phase H：Lobby UI 全面重構——規格驅動（2026-08-27 進行中）
+
+### 目標
+依據完整 UI 規格重構大廳，涵蓋：頂部導航列（Profile + Room Capsule + Action Buttons）、左側車輛檢視器、中央卡槽網格（2×2 / 不對稱 3 人）、底部操作列（聊天預覽 + 快捷短語 + Ready 按鈕）。
+
+### 規格需求摘要
+1. **頂部導航列 64px**：ProfileBox（頭像+等級+PUID+連線）、RoomCapsule（badges+人數+gear）、ActionButtons（邀請+設定+離開）
+2. **左側面板**：車輛資料（score/class/rank/best_lap/matches）+ 三維進度條 + 車庫入口
+3. **卡槽網格**：4 人=2×2、3 人=上方 1 大欄+下方 2 欄、2 人=1×2；Active Glow Border、皇冠、speech bubble
+4. **底部欄**：聊天預覽條、快捷短語（Ready/GG/表情）、Ready 按鈕（房主🚀/隊員✅）
+5. **語音 SDK**：需整合，當前用純 UI 佔位降級
+6. **等級/ping**：無真實 API，用 mock data 降級
+
+### 缺失 API 降級策略
+- 等級 `Lv.1`：硬編碼，待 PlayerDataStorage schema 定義後接入
+- 段位 `🥉 青銅 I`：硬編碼，待 leaderboard percentile 計算
+- Score/Class：硬編碼，待 EOS Stats 新增
+- Ping：`"--ms 🟢"`，待 RPC 往返計時實作
+- 語音：純 UI 佔位，待 EOS RTC 或第三方 SDK
+- 詳見 `md/status/missing-apis.md`
+
+### 實作步驟（14 步）
+1. `md/status/missing-apis.md` — API 設計方案文檔 ✅
+2. `md/logs/lobby-refactor-log.md` — Phase H 計畫 + lessons 39-40
+3. `ui/lobby.tscn` — 三段式佈局骨架
+4. `header.gd` — ProfileBox + RoomCapsule + ActionButtons
+5. `user_card.gd` + `room_card.gd` — 合併/刪除
+6. `inspector.gd` — 車輛資料 + 車庫入口
+7. `car_slot.gd` — Active Glow + 皇冠 + Bubble + 空位
+8. `showcase.gd` — 3 人房不對稱排版
+9. `quick_phrases.gd` — 快捷短語列
+10. `chat_preview.gd` — 聊天預覽條
+11. `ready_button.gd` — 房主/隊員按鈕
+12. `lobby_main.gd` — 信號整合
+13. `room_overlay.gd` — badges 格式對齊
+14. 全面驗證
+
+### 實作注意事項
+- **Node 路徑異動防護**：Step 3 改寫 .tscn 時，需確保佔位節點名稱與舊 @onready 相容，避免中途 null instance
+- **Glow 邊框裁切**：Step 7 的 StyleBoxFlat 外發光需確認父層未勾選 Clip Contents
+- **3 人房比例**：Step 8 大卡槽的車輛模型縮放需注意 Aspect Ratio
+
+### 教訓補充
+39. **Mock data 降級策略**——缺失 API 時 UI 先用假資料運作，定義清楚的接入點與 fallback 分支，避免阻塞 UI 開發
+40. **Node 路徑異動防護**——重寫 .tscn 前先盤點所有 @onready 路徑，確保新結構的葉節點名稱與舊腳本相容，或在同一步驟更新腳本
+
