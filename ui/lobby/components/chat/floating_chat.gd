@@ -35,15 +35,16 @@ func set_active_tab(tab_id: String) -> void:
 		var b: Button = _tab_buttons[id]
 		var on: bool = id == tab_id
 		if not _tab_styleboxes.has(id):
-			var sb := StyleBoxFlat.new()
-			sb.set_corner_radius_all(6)
-			_tab_styleboxes[id] = sb
-			b.add_theme_stylebox_override("normal", sb)
+			var new_sb := StyleBoxFlat.new()
+			new_sb.bg_color = Color.TRANSPARENT
+			new_sb.set_corner_radius_all(6)
+			_tab_styleboxes[id] = new_sb
+			b.add_theme_stylebox_override("normal", new_sb)
 		var sb: StyleBoxFlat = _tab_styleboxes[id]
 		var target_color := Color(1, 1, 1, 0.06) if on else Color.TRANSPARENT
-		var tween := create_tween().set_parallel(true)
+		var tween := create_tween()
 		tween.tween_property(sb, "bg_color", target_color, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_property(b, "theme_override_colors/font_color", Color(1, 1, 1) if on else C_MUTED, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		b.add_theme_color_override("font_color", C_ACCENT if on else C_MUTED)
 
 func add_message(sender: String, text: String, is_self: bool) -> void:
 	if _message_list == null:
