@@ -429,4 +429,9 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 24. **類別本體不能有可執行陳述式**——如 `_select_button = Button.new()` 必須在 `_ready()` 內
 25. **編輯器錯誤快取會誤導**——修正後需 `filesystem_manage(scan)` 或重啟插件才能看到真實狀態
 26. **集中式動畫單例優於分散式 Tween**——統一緩動標準、易維護、防衝突
+27. **`Node.get_tweens()` 在 Godot 4.7 不存在**——用 Dictionary 自行追蹤活躍 Tween，或用 `SceneTree.get_processed_tweens()` 全域查詢
+28. **Lambda 捕獲 Tween 物件會在 kill 後變 null**——不要在 lambda 內 capture tween，改用 Dictionary 清理或 await
+29. **`StyleBoxFlat.bg_color` 預設為 null**——必須手動 `sb.bg_color = Color.TRANSPARENT` 後才能 tween，否則 Nil→Color 類型不匹配
+30. **`theme_override_colors/font_color` 無法 tween**——theme override 不是真實屬性，用 `add_theme_color_override()` 直接設定
+31. **`Tween.TRANS_SINE` 需完整路徑**——GDScript 不支援裸枚舉 `TRANS_SINE`，必須寫 `Tween.TRANS_SINE`
 
