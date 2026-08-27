@@ -1,152 +1,95 @@
 extends Button
 
-## ReadyButton - 主行動按鈕（開始計時賽 / READY / 開始比賽）
-## 自建子節點（副標籤），場景只需掛一個空的 Button 加此腳本。
+## ReadyButton - 底部核心按鈕（房主🚀/隊員✅）
 
-const C_SELF := Color(0.062, 0.724, 0.508)
-const C_ACCENT := Color(0.22, 0.74, 0.97)
+const C_TEXT := Color(0.85, 0.88, 0.92)
+const C_GREEN := Color(0.3, 0.9, 0.4)
+const C_GREEN_BG := Color(0.15, 0.4, 0.2)
+const C_MUTED := Color(0.5, 0.55, 0.6)
+const C_DISABLED_BG := Color(0.15, 0.17, 0.22)
 
 @onready var _ui_animations := UIAnimations
 
-var _sub_label: Label
-var _visual_container: PanelContainer
-var _is_hovered: bool = false
+var _is_host: bool = false
+var _all_ready: bool = false
+var _is_ready: bool = false
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(320, 64)
-	add_theme_font_size_override("font_size", 22)
-	
-	# Create visual container that holds the StyleBox (animated instead of Button)
-	_visual_container = PanelContainer.new()
-	_visual_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_visual_container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_visual_container.offset_left = 0
-	_visual_container.offset_top = 0
-	_visual_container.offset_right = 0
-	_visual_container.offset_bottom = 0
-	add_child(_visual_container)
-	
-	# Make Button itself transparent (no visual style)
-	var transparent_sb := StyleBoxFlat.new()
-	transparent_sb.bg_color = Color(0, 0, 0, 0)
-	add_theme_stylebox_override("normal", transparent_sb)
-	add_theme_stylebox_override("hover", transparent_sb)
-	add_theme_stylebox_override("pressed", transparent_sb)
-	
-	_sub_label = Label.new()
-	_sub_label.text = ""
-	_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_sub_label.add_theme_font_size_override("font_size", 12)
-	_sub_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
-	_sub_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_sub_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_sub_label.offset_top = -22
-	_sub_label.offset_bottom = -6
-	_visual_container.add_child(_sub_label)
-	
-	# Connect signals for animations
-	mouse_entered.connect(_on_mouse_entered)
-	mouse_exited.connect(_on_mouse_exited)
-	
-	set_offline_mode()
+	custom_minimum_size = Vector2(0, 48)
+	add_theme_font_size_override("font_size", 16)
+
+	# Default style
+	var style := StyleBoxFlat.new()
+	style.bg_color = C_DISABLED_BG
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(8)
+	add_theme_stylebox_override("normal", style)
+
+	var hover := style.duplicate()
+	hover.bg_color = C_DISABLED_BG.lightened(0.05)
+	add_theme_stylebox_override("hover", hover)
+
+	var style_pressed := style.duplicate()
+	style_pressed.bg_color = C_DISABLED_BG.darkened(0.1)
+	add_theme_stylebox_override("pressed", style_pressed)
+
+	var style_disabled := style.duplicate()
+	style_disabled.bg_color = C_DISABLED_BG
+	add_theme_stylebox_override("disabled", style_disabled)
+
+	add_theme_color_override("font_color", C_MUTED)
+	add_theme_color_override("font_disabled_color", C_MUTED)
+
+	text = "🚀 開始比賽"
+	disabled = true
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	pressed.connect(_on_pressed)
+
+func set_mode(is_host: bool, all_ready: bool = false, is_ready: bool = false) -> void:
+	_is_host = is_host
+	_all_ready = all_ready
+	_is_ready = is_ready
+
+	if is_host:
+		text = "🚀 開始比賽"
+		if all_ready:
+			_set_enabled_style()
+		else:
+			_set_disabled_style()
+	else:
+		if is_ready:
+			text = "❌ 取消準備"
+			_set_enabled_style()
+		else:
+			text = "✅ 準備就緒"
+			_set_enabled_style()
 
 func set_offline_mode() -> void:
-	text = "▶  開始計時賽"
-	_sub_label.text = "單人模式 · 進入賽道"
-	_set_style(Color(0.062, 0.724, 0.508, 0.95), C_SELF)
+	text = " offline"
+	disabled = true
+	_set_disabled_style()
 
-func set_waiting_mode(all_ready: bool = false) -> void:
-	if all_ready:
-		text = "READY"
-		_sub_label.text = "所有人已就緒"
-		_set_style(Color(0.062, 0.724, 0.508, 0.95), C_SELF)
-	else:
-		text = "READY"
-		_sub_label.text = "等待玩家就緒…"
-		_set_style(Color(0.3, 0.35, 0.4, 0.6), Color(0.4, 0.45, 0.5, 0.8))
-		disabled = true
-
-func set_ready_mode() -> void:
-	text = "✔  已準備"
-	_sub_label.text = "點擊取消準備"
-	_set_style(Color(0.1, 0.5, 0.4, 0.95), C_SELF)
-
-func set_host_ready_mode() -> void:
-	text = "🏁  開始比賽"
-	_sub_label.text = "所有人已就緒"
-	_set_style(Color(0.95, 0.55, 0.13, 1.0), Color(1, 0.7, 0.2))
-
-func set_auto_start_mode(countdown: int) -> void:
-	text = "⏳  自動開始"
-	_sub_label.text = "%d 秒後自動開始比賽" % countdown
-	_set_style(Color(0.95, 0.55, 0.13, 1.0), Color(1, 0.7, 0.2))
-
-func update_ready_state(is_ready: bool, lobby_manager: Object, auto_start_countdown: int = 0) -> void:
-	var online: bool = lobby_manager != null and lobby_manager.has_method("is_online") and lobby_manager.is_online()
-
-	if not online:
-		set_offline_mode()
-		return
+func _set_enabled_style() -> void:
 	disabled = false
-	if lobby_manager != null and lobby_manager.is_host:
-		if auto_start_countdown > 0:
-			set_auto_start_mode(auto_start_countdown)
-			return
-		var all_ready := _all_lobby_ready(lobby_manager)
-		if all_ready:
-			set_host_ready_mode()
-			return
-		set_waiting_mode(all_ready)
-		return
-	var all_ready := _all_lobby_ready(lobby_manager)
-	if is_ready:
-		set_ready_mode()
-	else:
-		set_waiting_mode(all_ready)
+	var style = get_theme_stylebox("normal")
+	if style is StyleBoxFlat:
+		style.bg_color = C_GREEN_BG
+	var hover = get_theme_stylebox("hover")
+	if hover is StyleBoxFlat:
+		hover.bg_color = C_GREEN_BG.lightened(0.1)
+	add_theme_color_override("font_color", C_GREEN)
 
-func _all_lobby_ready(lm) -> bool:
-	var lp: Array = lm.players if "players" in lm else []
-	for p in lp:
-		if p is Dictionary and not bool(p.get("ready", false)):
-			return false
-	return true
+func _set_disabled_style() -> void:
+	disabled = true
+	var style = get_theme_stylebox("normal")
+	if style is StyleBoxFlat:
+		style.bg_color = C_DISABLED_BG
+	add_theme_color_override("font_color", C_MUTED)
 
-func _set_style(bg_color: Color, border_color: Color) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg_color
-	sb.set_border_width_all(2)
-	sb.border_color = border_color
-	sb.set_corner_radius_all(12)
-	_visual_container.add_theme_stylebox_override("panel", sb)
-
-	var hover_sb: StyleBoxFlat = sb.duplicate()
-	hover_sb.bg_color = bg_color.lightened(0.15)
-	_visual_container.add_theme_stylebox_override("panel_hover", hover_sb)
-
-	var pressed_sb: StyleBoxFlat = sb.duplicate()
-	pressed_sb.bg_color = bg_color.darkened(0.15)
-	_visual_container.add_theme_stylebox_override("panel_pressed", pressed_sb)
-
-func _on_mouse_entered() -> void:
-	_is_hovered = true
-	_ui_animations.kill_tweens(_visual_container)
-	var tween := create_tween()
-	tween.tween_property(_visual_container, "scale", Vector2(1.02, 1.02), 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-func _on_mouse_exited() -> void:
-	_is_hovered = false
-	_ui_animations.kill_tweens(_visual_container)
-	var tween := create_tween()
-	tween.tween_property(_visual_container, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_ui_animations.kill_tweens(_visual_container)
-			var tween := create_tween()
-			tween.tween_property(_visual_container, "scale", Vector2(0.96, 0.96), 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		else:
-			_ui_animations.kill_tweens(_visual_container)
-			var target_scale = Vector2(1.02, 1.02) if _is_hovered else Vector2(1.0, 1.0)
-			var tween := create_tween()
-			tween.tween_property(_visual_container, "scale", target_scale, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+func _on_pressed() -> void:
+	_ui_animations.kill_tweens(self)
+	_ui_animations.scale_press(self, 0.95, 0.08)
+	await get_tree().create_timer(0.1).timeout
+	_ui_animations.scale_release(self, 0.12)
