@@ -7,11 +7,11 @@ signal start_requested(player_name: String)
 
 ## Component references
 @onready var header: Control = $Header
-@onready var inspector: Control = $MainContainer/LeftPanel/Inspector
+@onready var inspector: Control = $MainContainer/LeftPanel/LeftContent/Inspector
 @onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
 @onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
 @onready var ready_button: Control = $MainContainer/CenterRightPanel/ReadyButton
-@onready var floating_chat: Control = $MainContainer/LeftPanel/FloatingChat
+@onready var floating_chat: Control = $MainContainer/LeftPanel/LeftContent/FloatingChat
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
 @onready var customize_view: Control = $CustomizeView
@@ -497,6 +497,9 @@ func _refresh_all() -> void:
 	_refresh_inspector()
 	_refresh_showcase()
 	_refresh_ready_button()
+	var in_lobby: bool = lobby_manager != null and not lobby_manager.current_lobby.is_empty()
+	if header != null and header.has_method("set_in_room"):
+		header.set_in_room(in_lobby)
 
 func _refresh_header() -> void:
 	var nm_display := ""
@@ -513,9 +516,14 @@ func _refresh_inspector() -> void:
 	inspector.update_player(p)
 
 func _refresh_showcase() -> void:
-	var max_p := int(room_config.get("max_players", 4))
-	if max_p <= 0:
-		max_p = 4
+	var max_p: int
+	var in_lobby: bool = lobby_manager != null and not lobby_manager.current_lobby.is_empty()
+	if in_lobby and lobby_manager.max_members > 0:
+		max_p = lobby_manager.max_members
+	else:
+		max_p = int(room_config.get("max_players", 4))
+		if max_p <= 0:
+			max_p = 4
 	showcase.set_max_slots(max_p)
 	showcase.update_slots(players, selected_id)
 
@@ -551,6 +559,11 @@ func _refresh_players() -> void:
 			if auth2 != null and "display_name" in auth2 and str(auth2.display_name) != "":
 				player_name = str(auth2.display_name)
 	
+	# Get host's product_user_id to reorder players (host first = slot 1)
+	var host_puid: String = ""
+	if lm.has_method("_lobby") and lm._lobby != null:
+		host_puid = str(lm._lobby.owner_product_user_id)
+	
 	var new_players: Array = []
 	for member in lm.players:
 		var pid: String = member.get("product_user_id", "")
@@ -575,6 +588,23 @@ func _refresh_players() -> void:
 			"stats": stats,
 			"is_self": is_self
 		})
+	
+	# Reorder: host first (slot 1), then self if not host, then others
+	new_players.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_host: bool = a["id"] == host_puid
+		var b_host: bool = b["id"] == host_puid
+		if a_host and not b_host:
+			return true
+		if b_host and not a_host:
+			return false
+		var a_self: bool = a["is_self"]
+		var b_self: bool = b["is_self"]
+		if a_self and not b_self:
+			return true
+		if b_self and not a_self:
+			return false
+		return false
+	)
 	
 	players = new_players
 	if selected_id == "" and players.size() > 0:

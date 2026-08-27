@@ -65,13 +65,14 @@ func update_display(room_config: Dictionary, players: Array, lobby_manager: Obje
 	if in_lobby:
 		_room_name_label.text = str(lobby_manager.lobby_attr("room_name", "", null))
 		_room_name_label.tooltip_text = "點擊齒輪修改房間設定"
-		_player_count_label.text = "%d/%d" % [lobby_manager.players.size(), lobby_manager.max_members]
+		var max_m: int = lobby_manager.max_members if lobby_manager.max_members > 0 else int(room_config.get("max_players", 4))
+		_player_count_label.text = "%d/%d" % [players.size(), max_m]
 	else:
 		_room_name_label.text = str(room_config.get("name", ""))
 		_room_name_label.tooltip_text = "點擊卡片建立房間"
-		var max_p := int(room_config.get("max_players", 0))
+		var max_p: int = int(room_config.get("max_players", 0))
 		if max_p <= 0:
-			max_p = 3  # fallback
+			max_p = 4
 		_player_count_label.text = "%d/%d" % [players.size(), max_p]
 
 	if in_lobby:

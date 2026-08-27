@@ -55,10 +55,16 @@ func set_offline_mode() -> void:
 	_sub_label.text = "單人模式 · 進入賽道"
 	_set_style(Color(0.062, 0.724, 0.508, 0.95), C_SELF)
 
-func set_waiting_mode() -> void:
-	text = "READY"
-	_sub_label.text = "等待所有玩家就緒…"
-	_set_style(Color(0.062, 0.724, 0.508, 0.95), C_SELF)
+func set_waiting_mode(all_ready: bool = false) -> void:
+	if all_ready:
+		text = "READY"
+		_sub_label.text = "所有人已就緒"
+		_set_style(Color(0.062, 0.724, 0.508, 0.95), C_SELF)
+	else:
+		text = "READY"
+		_sub_label.text = "等待玩家就緒…"
+		_set_style(Color(0.3, 0.35, 0.4, 0.6), Color(0.4, 0.45, 0.5, 0.8))
+		disabled = true
 
 func set_ready_mode() -> void:
 	text = "✔  已準備"
@@ -81,17 +87,22 @@ func update_ready_state(is_ready: bool, lobby_manager: Object, auto_start_countd
 	if not online:
 		set_offline_mode()
 		return
+	disabled = false
 	if lobby_manager != null and lobby_manager.is_host:
 		if auto_start_countdown > 0:
 			set_auto_start_mode(auto_start_countdown)
 			return
-		if _all_lobby_ready(lobby_manager):
+		var all_ready := _all_lobby_ready(lobby_manager)
+		if all_ready:
 			set_host_ready_mode()
 			return
+		set_waiting_mode(all_ready)
+		return
+	var all_ready := _all_lobby_ready(lobby_manager)
 	if is_ready:
 		set_ready_mode()
 	else:
-		set_waiting_mode()
+		set_waiting_mode(all_ready)
 
 func _all_lobby_ready(lm) -> bool:
 	var lp: Array = lm.players if "players" in lm else []

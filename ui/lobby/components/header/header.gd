@@ -49,6 +49,16 @@ func update_room_card(room_config: Dictionary, players: Array, lobby_manager: Ob
 	if room_card != null and room_card.has_method("update_display"):
 		room_card.update_display(room_config, players, lobby_manager)
 
+func set_in_room(in_room: bool) -> void:
+	# 在房間時隱藏「離開大廳」，顯示「離開房間」
+	for child in get_children():
+		if child is HBoxContainer:
+			for btn in child.get_children():
+				if btn is Button and btn.text == "✖ 離開大廳":
+					btn.visible = not in_room
+				if btn is Button and btn.text == "🚪 離開房間":
+					btn.visible = in_room
+
 func _make_action_button(parent: Node, label_text: String, target_signal: Signal) -> Button:
 	var b := Button.new()
 	b.text = label_text

@@ -19,9 +19,9 @@ func _rebuild_slots() -> void:
 		s.queue_free()
 	slots.clear()
 	
-	# 2 人以下用 HBoxContainer（並排），3-4 人用 GridContainer（2x2 田字排列）
+	# 動態佈局：2人=1x2(HBox), 3人=1x3(HBox), 4人=2x2(Grid)
 	var container: Container
-	if max_slots <= 2:
+	if max_slots <= 3:
 		container = HBoxContainer.new()
 		container.add_theme_constant_override("separation", 20)
 	else:
