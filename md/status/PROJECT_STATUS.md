@@ -5,7 +5,7 @@
 ## Phase 狀態
 
 **目前 Phase：D**（Lobby 重構進行中）
-**更新日期：2026-08-26**
+**更新日期：2026-08-27**
 
 ## 已知問題快照
 
@@ -17,9 +17,12 @@
 | `md/EXPLORATION_REPORT.md`、`md/multiplayer_plan.md` 等 | 其他 AI 的工作產物，**不要動、不要清** |
 | Lobby 非房主可修改設定 | Phase D 修復中：需唯讀 + 進階規則灰化 |
 | Ready/Start 邏輯耦合 | Phase D 修復中：需解耦 + auto-start 實作 |
+| 賽道寫死／無護欄／Roadbed面數未量化 | 已記錄至 `md/domain/track_analysis.md` §1（Plan A 完成）；**B1 解耦進行中**：`TrackConfig`+`tracks/default.tres` 已建，`race_course_setup.gd`/`start_grid.gd` 改吃 cfg，見 `md/logs/track-decoupling-log.md` |
 
 ## 參考文件
 
 - `md/status/lobby-system-analysis.md` — 大廳系統詳細分析與 Phase D 任務拆解
 - `md/status/eos_status.md` — EOS 整合進度與解決方案註記
+- `md/domain/track_analysis.md` — 賽道 5 觀察 + 載入鏈路審計（寫死／無解耦／無參數化，Plan A 完成）
+- `md/domain/vehicle_model_analysis.md` — 車輛模型結構與整合分析
 - `md/logs/lobby-refactor-log.md` — 大廳重構完整工作日誌（含教訓編號 1-26）

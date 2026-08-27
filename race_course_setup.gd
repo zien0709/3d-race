@@ -1,5 +1,10 @@
 extends Node3D
 
+## B1 賽道解耦: 可變資料移到 TrackConfig (res://tracks/default.tres)。
+## 無 TrackConfig 時回退下方硬編碼常數，舊流程 100% 不變。
+
+const TRACK_CONFIG_PATH := "res://tracks/default.tres"
+
 const TOTAL_CHECKPOINTS: int = 7
 const PLAYER_SPAWN_POSITION := Vector3(-115.077791, 1.35, 10.5)
 const FINISH_POSITION := Vector3(-115.077791, 1.5, 6.507477)
@@ -19,8 +24,11 @@ const CHECKPOINTS := [
 	{"position": Vector3(-97.884251, 1.5, 59.579426), "yaw": 0.011061},
 ]
 
+var _track: TrackConfig = null
+
 
 func _ready() -> void:
+	_apply_track_config()
 	_remove_test_course()
 	_configure_player()
 	_create_finish_gate()
@@ -28,6 +36,43 @@ func _ready() -> void:
 	_configure_race_manager()
 	_setup_ranking()
 	_register_groups()
+
+
+func _apply_track_config() -> void:
+	var cfg := load(TRACK_CONFIG_PATH) as TrackConfig
+	if cfg == null:
+		push_warning("TrackConfig 缺失 (%s)，使用硬編碼預設賽道" % TRACK_CONFIG_PATH)
+		return
+	_track = cfg
+	if cfg.has_method("apply_config"):
+		StartGrid.apply_config(cfg)
+
+
+func _checkpoint_transforms() -> Array[Transform3D]:
+	if _track != null:
+		return _track.checkpoint_transforms()
+	var out: Array[Transform3D] = []
+	for d in CHECKPOINTS:
+		out.append(Transform3D(Basis.from_euler(Vector3(0.0, float(d["yaw"]), 0.0)), d["position"]))
+	return out
+
+
+func _finish_transform() -> Transform3D:
+	if _track != null:
+		return _track.finish_transform()
+	return Transform3D(Basis.from_euler(Vector3(0.0, FINISH_YAW, 0.0)), FINISH_POSITION)
+
+
+func _gate_size() -> Vector3:
+	if _track != null:
+		return _track.gate_size
+	return GATE_SIZE
+
+
+func _total_checkpoints() -> int:
+	if _track != null:
+		return _track.total_checkpoints()
+	return TOTAL_CHECKPOINTS
 
 
 func _register_groups() -> void:
@@ -56,8 +101,9 @@ func _create_finish_gate() -> void:
 	var finish := Area3D.new()
 	finish.name = "Finish"
 	finish.set_script(FINISH_SCRIPT)
-	finish.position = FINISH_POSITION
-	finish.rotation.y = FINISH_YAW
+	var t := _finish_transform()
+	finish.position = t.origin
+	finish.rotation.y = float(t.basis.get_euler().y)
 	finish.collision_layer = 0
 	finish.collision_mask = 1
 	finish.add_child(_create_gate_shape())
@@ -69,15 +115,16 @@ func _create_checkpoint_gates() -> void:
 	checkpoint_root.name = "CheckPoints"
 	add_child(checkpoint_root)
 
-	for checkpoint_offset in range(CHECKPOINTS.size()):
+	var transforms := _checkpoint_transforms()
+	for checkpoint_offset in range(transforms.size()):
 		var checkpoint_index := checkpoint_offset + 1
-		var checkpoint_data: Dictionary = CHECKPOINTS[checkpoint_offset]
+		var t := transforms[checkpoint_offset]
 		var checkpoint := Area3D.new()
 		checkpoint.name = "CheckPoint%d" % checkpoint_index
 		checkpoint.set_script(CHECKPOINT_SCRIPT)
 		checkpoint.set("checkpoint_index", checkpoint_index)
-		checkpoint.position = checkpoint_data["position"]
-		checkpoint.rotation.y = float(checkpoint_data["yaw"])
+		checkpoint.position = t.origin
+		checkpoint.rotation.y = float(t.basis.get_euler().y)
 		checkpoint.collision_layer = 0
 		checkpoint.collision_mask = 1
 		checkpoint.add_child(_create_gate_shape())
@@ -88,25 +135,27 @@ func _create_gate_shape() -> CollisionShape3D:
 	var collision_shape := CollisionShape3D.new()
 	collision_shape.name = "CollisionShape3D"
 	var box_shape := BoxShape3D.new()
-	box_shape.size = GATE_SIZE
+	box_shape.size = _gate_size()
 	collision_shape.shape = box_shape
 	return collision_shape
 
 
 func _configure_race_manager() -> void:
 	var race_manager := get_node("RaceManager")
-	race_manager.set("total_checkpoints", TOTAL_CHECKPOINTS)
+	race_manager.set("total_checkpoints", _total_checkpoints())
 	var time_trial_hud := get_node("UI/HUD")
-	time_trial_hud.reset(TOTAL_CHECKPOINTS)
+	time_trial_hud.reset(_total_checkpoints())
 
 
 func _setup_ranking() -> void:
 	var race_manager := get_node("RaceManager")
 	var checkpoint_positions: Array[Vector3] = []
-	for checkpoint_data: Dictionary in CHECKPOINTS:
-		checkpoint_positions.append(checkpoint_data["position"])
+	for t in _checkpoint_transforms():
+		checkpoint_positions.append(t.origin)
+	var finish_t := _finish_transform()
+	var start_pos: Vector3 = StartGrid.get_single_player_slot()["position"]
 	race_manager.setup_ranking(
 		checkpoint_positions,
-		FINISH_POSITION,
-		StartGrid.get_single_player_slot()["position"]
+		finish_t.origin,
+		start_pos
 	)
