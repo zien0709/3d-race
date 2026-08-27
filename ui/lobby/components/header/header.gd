@@ -257,7 +257,7 @@ func _rebuild_badges(config: Dictionary) -> void:
 		_add_badge(_badges_container, "[%s]" % mode)
 	if map != "":
 		_add_badge(_badges_container, "[%s]" % map)
-	if car != "" and car != "all":
+	if car != "" and car != "all" and car != "全開放":
 		_add_badge(_badges_container, "[僅 %s 級]" % car)
 
 func _add_badge(parent: Node, text: String) -> void:
