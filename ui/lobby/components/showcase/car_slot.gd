@@ -1,241 +1,248 @@
 extends PanelContainer
 
-## CarSlot - 車位卡（顯示玩家車輛、就緒狀態；點擊選擇／再點改裝）
+## CarSlot - 車位卡（Active Glow、皇冠、Speech Bubble、空位剪影）
 
 signal slot_clicked(is_self: bool)
 
-const C_MUTED := Color(0.6, 0.65, 0.7)
-const C_ACCENT := Color(0.22, 0.74, 0.97)
-const C_SELF := Color(0.062, 0.724, 0.508)
-const C_BORDER := Color(0.545, 0.608, 0.706, 0.18)
+const C_TEXT := Color(0.85, 0.88, 0.92)
+const C_MUTED := Color(0.5, 0.55, 0.6)
+const C_CYAN := Color(0.3, 0.85, 0.95)
+const C_GREEN := Color(0.3, 0.9, 0.4)
+const C_GOLD := Color(1.0, 0.84, 0.0)
+const C_BORDER := Color(0.3, 0.35, 0.4, 0.3)
+const C_EMPTY := Color(0.4, 0.45, 0.5, 0.5)
 
 @onready var _ui_animations := UIAnimations
 
 var player_data: Dictionary = {}
 var is_selected: bool = false
+var is_host: bool = false
 
+var _car_emoji: Label
 var _car_label: Label
 var _player_name_label: Label
-var _ready_indicator: Label
-var _select_button: Button
+var _crown_label: Label
+var _status_label: Label
+var _bubble_label: Label
+var _bubble_timer: Timer
 var _style_box: StyleBoxFlat
-var _car_emoji: Label
+var _glow_style: StyleBoxFlat
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(240, 300)
+	custom_minimum_size = Vector2(240, 280)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
+	# Glow style (outer shadow for selected state)
+	_glow_style = StyleBoxFlat.new()
+	_glow_style.bg_color = Color(0, 0, 0, 0)
+	_glow_style.set_border_width_all(2)
+	_glow_style.border_color = C_CYAN
+	_glow_style.set_corner_radius_all(12)
+	_glow_style.set_shadow_size(8)
+	_glow_style.shadow_color = Color(0.3, 0.85, 0.95, 0.4)
+	_glow_style.content_margin_left = 2
+	_glow_style.content_margin_right = 2
+	_glow_style.content_margin_top = 2
+	_glow_style.content_margin_bottom = 2
+
+	# Main panel style
+	_style_box = StyleBoxFlat.new()
+	_style_box.bg_color = Color(0.1, 0.12, 0.16)
+	_style_box.set_corner_radius_all(10)
+	_style_box.set_content_margin_all(12)
+	_style_box.set_border_width_all(1)
+	_style_box.border_color = C_BORDER
+	add_theme_stylebox_override("panel", _style_box)
+
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 10)
+	vbox.add_theme_constant_override("separation", 6)
 	add_child(vbox)
 
-	var car_display := PanelContainer.new()
-	car_display.custom_minimum_size = Vector2(0, 150)
-	_style_panel(car_display, Color(1, 1, 1, 0.03))
-	var center := CenterContainer.new()
-	car_display.add_child(center)
-	var car_box := VBoxContainer.new()
-	center.add_child(car_box)
-	
-	# 空位用灰色虛線車輛剪影，非空位用 emoji
+	# Car display area
+	var car_display := CenterContainer.new()
+	car_display.custom_minimum_size = Vector2(0, 140)
+	vbox.add_child(car_display)
+
 	_car_emoji = Label.new()
-	_car_emoji.text = "🏎"
+	_car_emoji.text = "🏎️"
 	_car_emoji.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_car_emoji.add_theme_font_size_override("font_size", 56)
 	_car_emoji.visible = false
-	car_box.add_child(_car_emoji)
-	
+	car_display.add_child(_car_emoji)
+
 	_car_label = Label.new()
+	_car_label.text = ""
 	_car_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_car_label.add_theme_font_size_override("font_size", 13)
+	_car_label.add_theme_font_size_override("font_size", 12)
 	_car_label.add_theme_color_override("font_color", C_MUTED)
-	car_box.add_child(_car_label)
-	vbox.add_child(car_display)
-	
+	vbox.add_child(_car_label)
+
+	# Player name + crown row
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 4)
+	vbox.add_child(name_row)
+
 	_player_name_label = Label.new()
 	_player_name_label.text = "空位"
+	_player_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_player_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_player_name_label.add_theme_font_size_override("font_size", 16)
-	vbox.add_child(_player_name_label)
+	_player_name_label.add_theme_color_override("font_color", C_TEXT)
+	name_row.add_child(_player_name_label)
 
-	_ready_indicator = Label.new()
-	_ready_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_ready_indicator.add_theme_font_size_override("font_size", 12)
-	vbox.add_child(_ready_indicator)
+	_crown_label = Label.new()
+	_crown_label.text = "👑"
+	_crown_label.add_theme_font_size_override("font_size", 14)
+	_crown_label.visible = false
+	name_row.add_child(_crown_label)
+
+	# Status label (JOINED / READY)
+	_status_label = Label.new()
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_label.add_theme_font_size_override("font_size", 11)
+	vbox.add_child(_status_label)
+
+	# Speech bubble (hidden by default)
+	_bubble_label = Label.new()
+	_bubble_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bubble_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_bubble_label.add_theme_font_size_override("font_size", 11)
+	_bubble_label.add_theme_color_override("font_color", C_TEXT)
+	_bubble_label.visible = false
+	_bubble_label.modulate.a = 0.0
+	vbox.add_child(_bubble_label)
+
+	# Bubble fade timer
+	_bubble_timer = Timer.new()
+	_bubble_timer.one_shot = true
+	_bubble_timer.timeout.connect(_on_bubble_timeout)
+	add_child(_bubble_timer)
 
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(spacer)
 
-	_select_button = Button.new()
-	_select_button.custom_minimum_size = Vector2(0, 32)
-	_select_button.disabled = true
-	_select_button.pressed.connect(func(): slot_clicked.emit(bool(player_data.get("is_self", false))))
-	_select_button.mouse_entered.connect(_on_button_mouse_entered)
-	_select_button.mouse_exited.connect(_on_button_mouse_exited)
-	_select_button.button_down.connect(_on_button_down)
-	_select_button.button_up.connect(_on_button_up)
-	vbox.add_child(_select_button)
-
 	set_empty()
 
-func update_player(p: Dictionary, selected: bool) -> void:
-	if _select_button == null:
+func update_player(p: Dictionary, selected: bool, host: bool = false) -> void:
+	if _player_name_label == null:
 		return
 	player_data = p
 	is_selected = selected
+	is_host = host
+
 	_car_label.text = str(p.get("car_name", ""))
 	_player_name_label.text = str(p.get("name", "玩家"))
+	_crown_label.visible = host
+
 	var ready_state: bool = bool(p.get("ready", false))
-	_ready_indicator.text = "✔ 已準備" if ready_state else "⏳ 未準備"
-	_ready_indicator.add_theme_color_override("font_color", C_SELF if ready_state else C_MUTED)
-	var is_self: bool = bool(p.get("is_self", false))
-	if is_self and selected:
-		_select_button.text = "🔧 改裝車輛"
+	if ready_state:
+		_status_label.text = "JOINED  ●  READY"
+		_status_label.add_theme_color_override("font_color", C_GREEN)
 	else:
-		_select_button.text = "選擇"
-	_select_button.disabled = false
-	if _car_emoji != null:
-		_car_emoji.visible = true
+		_status_label.text = "JOINED"
+		_status_label.add_theme_color_override("font_color", C_MUTED)
+
+	_car_emoji.visible = true
 	_refresh_style()
+
+func set_empty() -> void:
+	if _player_name_label == null:
+		return
+	player_data = {}
+	is_selected = false
+	is_host = false
+	_car_label.text = "+ 邀請玩家 / 開放加入"
+	_player_name_label.text = "空位"
+	_crown_label.visible = false
+	_status_label.text = "等待玩家..."
+	_status_label.add_theme_color_override("font_color", C_EMPTY)
+	_car_emoji.visible = false
+	_refresh_style()
+
+func show_speech_bubble(text: String, duration: float = 4.0) -> void:
+	if _bubble_label == null:
+		return
+	_bubble_label.text = "\"%s\"" % text
+	_bubble_label.visible = true
+	_bubble_label.modulate.a = 0.0
+	_ui_animations.fade_in(_bubble_label, 0.2)
+	_bubble_timer.start(duration)
+
+func _on_bubble_timeout() -> void:
+	if _bubble_label != null:
+		_ui_animations.fade_out(_bubble_label, 0.5)
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		slot_clicked.emit(bool(player_data.get("is_self", false)))
 
-func set_empty() -> void:
-	if _select_button == null:
-		return
-	player_data = {}
-	is_selected = false
-	_car_label.text = ""
-	_player_name_label.text = "空位"
-	_ready_indicator.text = ""
-	_select_button.text = "等待玩家…"
-	_select_button.disabled = true
-	if _car_emoji != null:
-		_car_emoji.visible = false
-	_refresh_style()
-
 func _refresh_style() -> void:
-	var bg := Color(1, 1, 1, 0.04) if is_selected else Color(1, 1, 1, 0.02)
-	var border := C_ACCENT if is_selected else C_BORDER
-	
-	if _style_box == null:
-		_style_panel(self, bg, border)
-	else:
-		_style_box.bg_color = bg
-		_animate_border_color(border)
-	
 	if is_selected:
+		_style_box.border_color = C_CYAN
+		_style_box.set_border_width_all(2)
+		_style_box.set_shadow_size(6)
+		_style_box.shadow_color = Color(0.3, 0.85, 0.95, 0.3)
 		_ui_animations.kill_tweens(self)
 		_ui_animations.scale_pop(self, 1.02, 0.15)
+	elif player_data.is_empty():
+		_style_box.border_color = Color(0.3, 0.35, 0.4, 0.2)
+		_style_box.set_border_width_all(1)
+		_style_box.set_shadow_size(0)
+		_ui_animations.kill_tweens(self)
+		_ui_animations.scale_release(self, 0.15)
 	else:
+		_style_box.border_color = C_BORDER
+		_style_box.set_border_width_all(1)
+		_style_box.set_shadow_size(0)
 		_ui_animations.kill_tweens(self)
 		_ui_animations.scale_release(self, 0.15)
 
-func _on_button_mouse_entered() -> void:
-	if _select_button.disabled:
-		_ui_animations.kill_tweens(_select_button)
-		var tween := create_tween()
-		tween.tween_property(_select_button, "scale", Vector2(1.02, 1.02), 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-func _on_button_mouse_exited() -> void:
-	if _select_button.disabled:
-		_ui_animations.kill_tweens(_select_button)
-		_ui_animations.scale_release(_select_button, 0.12)
-
-func _on_button_down() -> void:
-	if _select_button.disabled:
-		_ui_animations.kill_tweens(_select_button)
-		_ui_animations.scale_press(_select_button, 0.96, 0.08)
-
-func _on_button_up() -> void:
-	if _select_button.disabled:
-		_ui_animations.kill_tweens(_select_button)
-		_ui_animations.scale_pop(_select_button, 1.02, 0.12)
-
-func _animate_border_color(target_color: Color) -> void:
-	if _style_box == null:
-		return
-	var tween := create_tween()
-	tween.tween_property(_style_box, "border_color", target_color, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-func _style_panel(panel: PanelContainer, bg: Color, border: Color = C_BORDER) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.set_border_width_all(1)
-	sb.border_color = border
-	sb.set_corner_radius_all(10)
-	sb.content_margin_left = 12
-	sb.content_margin_right = 12
-	sb.content_margin_top = 10
-	sb.content_margin_bottom = 10
-	panel.add_theme_stylebox_override("panel", sb)
-	_style_box = sb
-
 func _draw() -> void:
-	# Only draw silhouette for empty slots
 	if not player_data.is_empty():
 		return
-	
+
 	var rect = get_rect()
-	var center_x = rect.size.x / 2
-	var center_y = rect.size.y / 2
+	var cx = rect.size.x / 2
+	var cy = rect.size.y / 2
 	var w = 60.0
 	var h = 30.0
-	
-	var color = Color(0.5, 0.55, 0.6, 0.35)  # 灰色半透明
+	var color = Color(0.5, 0.55, 0.6, 0.3)
 	var dash = 8.0
 	var gap = 4.0
-	
-	# 車身輪廓
-	var body_rect = Rect2(center_x - w/2, center_y - h/2, w, h)
-	_draw_dashed_rect(body_rect, color, dash, gap)
-	
-	# 車頂
+
+	_draw_dashed_rect(Rect2(cx - w/2, cy - h/2, w, h), color, dash, gap)
 	var roof_w = w * 0.5
 	var roof_h = h * 0.35
-	var roof_rect = Rect2(center_x - roof_w/2, center_y - h/2 - roof_h, roof_w, roof_h)
-	_draw_dashed_rect(roof_rect, color, dash, gap)
-	
-	# 輪子（兩個圓）
+	_draw_dashed_rect(Rect2(cx - roof_w/2, cy - h/2 - roof_h, roof_w, roof_h), color, dash, gap)
 	var wheel_r = h * 0.15
-	var wheel_y = center_y + h/2 - wheel_r
-	var wheel_x_offset = w * 0.3
-	_draw_dashed_circle(Vector2(center_x - wheel_x_offset, wheel_y), wheel_r, color, dash, gap)
-	_draw_dashed_circle(Vector2(center_x + wheel_x_offset, wheel_y), wheel_r, color, dash, gap)
-	
-	# 加號（邀請圖示）
-	var plus_size = 16
-	_draw_dashed_plus(Vector2(center_x, center_y), plus_size, color, dash, gap)
+	var wheel_y = cy + h/2 - wheel_r
+	var wheel_x_off = w * 0.3
+	_draw_dashed_circle(Vector2(cx - wheel_x_off, wheel_y), wheel_r, color, dash, gap)
+	_draw_dashed_circle(Vector2(cx + wheel_x_off, wheel_y), wheel_r, color, dash, gap)
+	_draw_dashed_plus(Vector2(cx, cy), 16, color, dash, gap)
 
 func _draw_dashed_rect(rect: Rect2, color: Color, dash: float, gap: float) -> void:
 	var x := rect.position.x
 	var y := rect.position.y
 	var w := rect.size.x
 	var h := rect.size.y
-	
-	# 上邊
 	_draw_dashed_line(Vector2(x, y), Vector2(x + w, y), color, dash, gap)
-	# 右邊
 	_draw_dashed_line(Vector2(x + w, y), Vector2(x + w, y + h), color, dash, gap)
-	# 下邊
 	_draw_dashed_line(Vector2(x + w, y + h), Vector2(x, y + h), color, dash, gap)
-	# 左邊
 	_draw_dashed_line(Vector2(x, y + h), Vector2(x, y), color, dash, gap)
 
 func _draw_dashed_line(from: Vector2, to: Vector2, color: Color, dash: float, gap: float) -> void:
 	var dir: Vector2 = (to - from).normalized()
-	var len: float = from.distance_to(to)
+	var length: float = from.distance_to(to)
 	var pos: float = 0.0
 	var on: bool = true
-	while pos < len:
-		var seg_len: float = min(dash if on else gap, len - pos)
-		var start: Vector2 = from + dir * pos
-		var end: Vector2 = from + dir * (pos + seg_len)
+	while pos < length:
+		var seg_len: float = min(dash if on else gap, length - pos)
+		var s: Vector2 = from + dir * pos
+		var e: Vector2 = from + dir * (pos + seg_len)
 		if on:
-			draw_line(start, end, color, 2.0)
+			draw_line(s, e, color, 2.0)
 		pos += seg_len
 		on = not on
 
@@ -247,11 +254,9 @@ func _draw_dashed_circle(center: Vector2, radius: float, color: Color, dash: flo
 	for i in range(steps):
 		var a1: float = i * angle_step
 		var a2: float = a1 + angle_step
-		var seg_angle: float = angle_step
 		if on:
-			var arc_len: float = radius * seg_angle
+			var arc_len: float = radius * angle_step
 			if arc_len > dash:
-				# Split into dash/gap
 				var sub_steps: int = max(1, int(arc_len / (dash + gap)))
 				for j in range(sub_steps):
 					var sub_a1: float = a1 + (a2 - a1) * j / sub_steps
@@ -259,14 +264,12 @@ func _draw_dashed_circle(center: Vector2, radius: float, color: Color, dash: flo
 					draw_line(
 						center + Vector2(cos(sub_a1), sin(sub_a1)) * radius,
 						center + Vector2(cos(sub_a2), sin(sub_a2)) * radius,
-						color, 2.0
-					)
+						color, 2.0)
 			else:
 				draw_line(
 					center + Vector2(cos(a1), sin(a1)) * radius,
 					center + Vector2(cos(a2), sin(a2)) * radius,
-					color, 2.0
-				)
+					color, 2.0)
 		on = not on
 
 func _draw_dashed_plus(center: Vector2, size: float, color: Color, dash: float, gap: float) -> void:
