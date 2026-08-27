@@ -435,3 +435,62 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 30. **`theme_override_colors/font_color` 無法 tween**——theme override 不是真實屬性，用 `add_theme_color_override()` 直接設定
 31. **`Tween.TRANS_SINE` 需完整路徑**——GDScript 不支援裸枚舉 `TRANS_SINE`，必須寫 `Tween.TRANS_SINE`
 
+---
+
+## Phase G：Lobby UI 全面動畫優化與佈局修復（2026-08-27）
+
+### 目標
+解決所有剩餘的 UI 體驗問題：人數顯示錯誤、卡槽數量/排版錯誤、文字溢出、底部按鈕被切斷、空位視覺混淆、按鈕層級衝突、host 未自動填入 Slot 1、準備按鈕狀態不當。
+
+### 實作內容
+1. **UIAnimations.gd 自動載入單例** —— 13 個可複用動畫輔助函數，統一緩動標準
+2. **動態網格排版** (`showcase.gd`)：
+   - 2 人：1×2 (HBoxContainer)
+   - 3 人：1×3 (HBoxContainer)  
+   - 4 人：2×2 (GridContainer, columns=2)
+   - 移除固定 4 槽、固定 2 列的硬編碼
+2. **Host 自動佔用 Slot 1** (`lobby_main.gd`)：
+   - `_refresh_players()` 依 `owner_product_user_id` 排序，host 優先
+   - `players[0]` 固定為房主，Inspector 自動連結其車輛資料
+3. **人數顯示修正** (`room_card.gd`)：
+   - 房間內時用 `players.size()` 而非 `lobby_manager.players.size()`
+   - 正確顯示 `1/X` 而非 `0/X`
+4. **空位視覺語言** (`car_slot.gd`)：
+   - 移除彩色 🏎 emoji，改用灰色虛線車輛剪影 + 灰色 "+" 圖示
+   - 使用 `_draw()` + `CanvasItem.draw_line()` 繪製虛線剪影
+   - 非空位才顯示 emoji + 車名
+5. **PUID 截斷與複製** (`user_card.gd`)：
+   - 超過 16 字元時顯示 `PUID: 0002...50517`
+   - 旁加 📋 複製按鈕，點擊複製完整 ID 並 Toast 提示
+6. **Sticky Footer 佈局** (`lobby.tscn`)：
+   - `ReadyButton`、`ChatTrigger` 改用 `anchor_bottom=1.0` 固定底部
+   - `Showcase`、`Inspector` 填滿剩餘空間，不再推擠底部按鈕
+7. **按鈕層級修正** (`header.gd`)：
+   - `set_in_room(in_room)`：進入房間隱藏「離開大廳」，顯示「離開房間」
+8. **準備按鈕狀態機** (`ready_button.gd`)：
+   - `set_waiting_mode(all_ready)`：未全員就緒時灰色禁用樣式
+   - 全員就緒時房主見高亮綠色「開始比賽」
+9. **Drawing API 修正**：
+   - `_draw()` 內直接用 `draw_line()` 等 CanvasItem 方法
+   - 移除 `get_canvas_item()` RID 誤用
+   - 移除動態建立 CanvasLayer/Control 的錯誤模式
+
+### 驗證結果
+- `project_run` 零 parse error，helper live
+- 房間人數正確顯示 `1/3`、`2/4` 等
+- 3 人房呈 1×3 水平排列，無缺角
+- 空位顯示灰色虛線剪影，不再誤導
+- 底部按鈕固定螢幕底部，不再被切斷
+- 進房時自動隱藏「離開大廳」
+- Host 自動佔用 Slot 1，Inspector 同步顯示
+- 未全員就緒時 ReadyButton 灰色禁用，全員就緒高亮綠色
+
+### 教訓補充
+32. **`get_canvas_item()` 回傳 RID，不可當 Object 傳遞**——`_draw()` 內直接呼叫 `draw_line()` 等 CanvasItem 方法
+33. **`_draw()` 不能動態指派**——不可對動態建立的 Control 指派 `_draw`，需在腳本定義 `_draw()` 函式
+34. **`draw_line()` 等繪圖方法在 `_draw()` 內直接呼叫**——不需 `gc.draw_line()`，直接 `draw_line()`
+35. **型別標註在 GDScript 4.x 需謹慎**——`var x: Type = value` 有時會報錯，改用 `var x = value` 讓類型推斷較保險
+36. **`const` 物件實例化後不可再修改**——`var x = Obj.new()` 而非 `const x := Obj.new()` 若後續需修改屬性
+37. **動態排版優於硬編碼**——HBoxContainer/GridContainer 組合可輕鬆支援 2/3/4 人房自適應
+38. **自動載入單例需顯式型別**——`@onready var x: Type = Autoload`，否則類型推斷失敗
+
