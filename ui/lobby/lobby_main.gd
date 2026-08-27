@@ -10,7 +10,7 @@ signal start_requested(player_name: String)
 @onready var inspector: Control = $MainContainer/LeftPanel/LeftContent/Inspector
 @onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
 @onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
-@onready var ready_button: Control = $MainContainer/CenterRightPanel/ReadyButton
+@onready var ready_button: Control = $MainContainer/CenterRightPanel/BottomBar/ReadyButton
 @onready var floating_chat: Control = $MainContainer/LeftPanel/LeftContent/FloatingChat
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
