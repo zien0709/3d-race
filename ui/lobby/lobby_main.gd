@@ -529,10 +529,8 @@ func _refresh_ready_button() -> void:
 	if not online:
 		ready_button.set_offline_mode()
 		return
-	var countdown := 0
-	if auto_start_countdown_end > 0:
-		countdown = max(0, int(auto_start_countdown_end - Time.get_time_dict_from_system()["unix"]))
-	ready_button.update_ready_state(is_ready, lm, countdown)
+	var all_rdy: bool = _all_lobby_ready(lm)
+	ready_button.set_mode(lm.is_host, all_rdy, is_ready)
 
 @warning_ignore("inferred_declaration", "shadowed_variable")
 func _refresh_players() -> void:
