@@ -87,10 +87,9 @@ func _init_signals() -> void:
 func _connect_components() -> void:
 	## Header signals
 	header.room_settings_requested.connect(_on_room_settings_requested)
-	header.create_room_requested.connect(_on_create_room_requested)
+	header.system_settings_requested.connect(_on_system_settings_requested)
+	header.invite_requested.connect(_on_invite_requested)
 	header.leave_room_requested.connect(_on_leave_room_requested)
-	header.leave_lobby_requested.connect(_on_leave_lobby_requested)
-	header.browser_requested.connect(_on_browser_requested)
 
 	## Inspector signals
 	inspector.customize_requested.connect(_on_customize_requested)
@@ -212,19 +211,20 @@ func _on_room_settings_requested() -> void:
 	room_overlay.open(room_config, host_flag)
 	_refresh_all()
 
-func _on_create_room_requested() -> void:
-	if lobby_manager == null:
-		show_toast("Lobby module not loaded")
-		return
-	if not _net_is_logged_in():
-		show_toast("請先登入（點左上玩家卡）")
-		return
-	if not lobby_manager.current_lobby.is_empty():
-		show_toast("已在房間中")
-		return
-	room_overlay_open = false
-	show_toast("正在建立房間…")
-	await lobby_manager.create_lobby(room_config)
+func _on_system_settings_requested() -> void:
+	show_toast("系統設定（即將推出）")
+
+func _on_invite_requested() -> void:
+	var lm := lobby_manager
+	if lm != null and not lm.current_lobby.is_empty():
+		var invite = room_config.get("invite_code", "")
+		if invite != "":
+			DisplayServer.clipboard_set(invite)
+			show_toast("邀請碼已複製: %s" % invite)
+		else:
+			show_toast("邀請碼產生中…")
+	else:
+		show_toast("請先建立房間")
 
 func _on_leave_room_requested() -> void:
 	room_overlay_open = false
@@ -234,18 +234,6 @@ func _on_leave_room_requested() -> void:
 		show_toast("已離開房間")
 		_refresh_players()
 		_refresh_all()
-
-func _on_leave_lobby_requested() -> void:
-	var lm := lobby_manager
-	if lm != null and not lm.current_lobby.is_empty():
-		await lm.leave_lobby()
-		show_toast("已離開房間")
-		_refresh_players()
-		_refresh_all()
-
-func _on_browser_requested() -> void:
-	lobby_browser.open()
-	_refresh_all()
 
 func _on_customize_requested() -> void:
 	customize_view_open = true
@@ -508,8 +496,15 @@ func _refresh_header() -> void:
 	# Fallback: 從 PlayerStorage 讀暱稱
 	if nm_display.is_empty() and auth_manager != null:
 		nm_display = auth_manager.display_name()
-	header.update_user_card(nm_display, lobby_manager)
-	header.update_room_card(room_config, players, lobby_manager)
+	# Mock data for level/rank/ping (待接入真實 API)
+	var mock_level := 1
+	var mock_rank := "🥉 青銅 I"
+	var mock_puid := ""
+	if lobby_manager != null:
+		mock_puid = str(lobby_manager.get_local_player_id())
+	var mock_ping := 0
+	header.update_profile(nm_display, mock_level, mock_rank, mock_puid, mock_ping)
+	header.update_room_capsule(room_config, players, lobby_manager)
 
 func _refresh_inspector() -> void:
 	var p := _get_selected_player()
