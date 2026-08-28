@@ -65,7 +65,7 @@ func _on_hover(entered: bool) -> void:
 
 func update_preview(sender: String, text: String) -> void:
 	if _preview_label:
-		_preview_label.text = "%s: %s" % [sender, text]
+		_preview_label.text = "💬 [%s]: %s" % [sender, text]
 		_preview_label.add_theme_color_override("font_color", C_TEXT)
 
 func clear_preview() -> void:

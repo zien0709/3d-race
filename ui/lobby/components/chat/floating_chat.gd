@@ -12,6 +12,8 @@ const MessageItemScript := preload("res://ui/lobby/components/chat/message_item.
 
 const C_MUTED := Color(0.6, 0.65, 0.7)
 const C_ACCENT := Color(0.22, 0.74, 0.97)
+const C_BG := Color(0.04, 0.06, 0.1, 0.95)
+const C_BORDER := Color(0.22, 0.74, 0.97, 0.5)
 
 var _tab_styleboxes: Dictionary = {}
 
@@ -25,9 +27,46 @@ var _scroll: ScrollContainer
 var _line_edit: LineEdit
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(280, 200)
+	custom_minimum_size = Vector2(340, 400)
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	_build_panel_style()
 	_build_ui()
 	set_active_tab(active_tab)
+
+func _build_panel_style() -> void:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = C_BG
+	sb.set_corner_radius_all(12)
+	sb.set_border_width_all(1)
+	sb.border_color = C_BORDER
+	sb.set_content_margin_all(10)
+	sb.shadow_color = Color(0.22, 0.74, 0.97, 0.15)
+	sb.shadow_size = 6
+	add_theme_stylebox_override("panel", sb)
+
+func open_chat() -> void:
+	if visible:
+		focus_input()
+		return
+	visible = true
+	move_to_front()
+	z_index = 10
+	modulate.a = 0.0
+	# 起始位置：比目標低 16px（offset_bottom -60 → -76），向上滑入
+	offset_top = -460
+	offset_bottom = -60
+	var tween := create_tween()
+	tween.tween_property(self, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(self, "offset_top", -476, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(self, "offset_bottom", -76, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	focus_input()
+
+func close_chat() -> void:
+	if not visible:
+		return
+	var tween := create_tween()
+	tween.tween_property(self, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tween.tween_callback(func(): visible = false)
 
 func set_active_tab(tab_id: String) -> void:
 	active_tab = tab_id
@@ -41,10 +80,10 @@ func set_active_tab(tab_id: String) -> void:
 			_tab_styleboxes[id] = new_sb
 			b.add_theme_stylebox_override("normal", new_sb)
 		var sb: StyleBoxFlat = _tab_styleboxes[id]
-		var target_color := Color(1, 1, 1, 0.06) if on else Color.TRANSPARENT
+		var target_color := Color(0.22, 0.74, 0.97, 0.18) if on else Color.TRANSPARENT
 		var tween := create_tween()
 		tween.tween_property(sb, "bg_color", target_color, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		b.add_theme_color_override("font_color", C_ACCENT if on else C_MUTED)
+		b.add_theme_color_override("font_color", Color(1, 1, 1) if on else C_MUTED)
 
 func add_message(sender: String, text: String, is_self: bool) -> void:
 	if _message_list == null:
@@ -74,9 +113,10 @@ func clear_messages() -> void:
 func _build_ui() -> void:
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(vbox)
 
-	## 標題列：分頁 + 關閉
+	## 頂部導航列：分頁 + 關閉
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 4)
 	vbox.add_child(header)
@@ -115,10 +155,10 @@ func _build_ui() -> void:
 	_message_list.add_theme_constant_override("separation", 6)
 	_scroll.add_child(_message_list)
 
-	## 輸入列
+	## 底部輸入列
 	_line_edit = LineEdit.new()
-	_line_edit.placeholder_text = "輸入訊息…"
-	_line_edit.custom_minimum_size = Vector2(0, 30)
+	_line_edit.placeholder_text = "輸入訊息… (Enter 發送)"
+	_line_edit.custom_minimum_size = Vector2(0, 36)
 	_line_edit.text_submitted.connect(_on_text_submitted)
 	vbox.add_child(_line_edit)
 

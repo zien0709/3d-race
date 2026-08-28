@@ -13,7 +13,7 @@ signal start_requested(player_name: String)
 @onready var ready_button: Control = $BottomBar/ReadyButton
 @onready var chat_preview: Control = $BottomBar/ChatPreview
 @onready var quick_phrases: Control = $BottomBar/QuickPhrases
-@onready var floating_chat: Control = $MainContainer/LeftPanel/LeftContent/FloatingChat
+@onready var floating_chat: Control = $FloatingChat
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
 @onready var customize_view: Control = $CustomizeView
@@ -246,14 +246,20 @@ func _on_customize_requested() -> void:
 
 func _on_chat_toggled(opened: bool) -> void:
 	chat_open = opened
-	floating_chat.visible = chat_open
-	inspector.visible = not chat_open
-	if chat_open:
-		floating_chat.focus_input()
+	if opened:
+		floating_chat.open_chat()
+		inspector.visible = false
+	else:
+		floating_chat.close_chat()
+		inspector.visible = true
 	_refresh_all()
 
 func _on_chat_closed() -> void:
 	chat_open = false
+	floating_chat.close_chat()
+	inspector.visible = true
+	chat_trigger.set_chat_open(false)
+	_refresh_all()
 
 func _on_quick_phrase_selected(phrase: String) -> void:
 	# Fix: sender name from NetworkManager.display_name (primary) → fallback local player
@@ -268,30 +274,18 @@ func _on_quick_phrase_selected(phrase: String) -> void:
 	if sender_name.is_empty():
 		sender_name = "玩家"
 
-	# Send network RPC
+	# Send network RPC. send_chat_message emits chat_message_received locally,
+	# so _on_chat_message_received handles display and preview.
 	var net_nm = get_node_or_null("/root/NetworkManager")
 	if net_nm != null and net_nm.has_method("send_chat_message"):
 		net_nm.send_chat_message(phrase, "room")
-
-	# Local echo
-	_on_chat_message_received(sender_name, phrase, "room")
-	if chat_preview != null and chat_preview.has_method("update_preview"):
-		chat_preview.update_preview(sender_name, phrase)
-
-	# Show speech bubble on local player's slot (slot 0)
-	if showcase != null and showcase.has_method("get") and showcase.get("slots") != null and showcase.slots.size() > 0:
-		var local_slot = showcase.slots[0]
-		if local_slot != null and local_slot.has_method("show_speech_bubble"):
-			local_slot.show_speech_bubble(phrase, 3.0)
+	_show_local_speech_bubble(phrase)
 
 func _on_chat_preview_clicked(_opened: bool = true) -> void:
 	chat_open = true
-	floating_chat.visible = true
+	floating_chat.open_chat()
 	inspector.visible = false
-	floating_chat.focus_input()
-	floating_chat.visible = false
-	inspector.visible = true
-	chat_trigger.set_chat_open(false)
+	chat_trigger.set_chat_open(true)
 	_refresh_all()
 
 func _on_chat_tab_changed(tab: String) -> void:
@@ -310,9 +304,14 @@ func _load_chat_history_for_tab(tab: String) -> void:
 
 func _on_chat_message_received(sender: String, text: String, tab: String) -> void:
 	chat_messages.append({"sender": sender, "text": text, "tab": tab})
+	var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
 	if tab == chat_tab:
-		var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
 		floating_chat.add_message(sender, text, is_self)
+	# Sync bottom preview bar
+	if chat_preview != null and chat_preview.has_method("update_preview"):
+		chat_preview.update_preview(sender, text)
+	# Float speech bubble above the sender's car slot
+	_show_speech_bubble_for_sender(sender, text)
 
 func _on_chat_message_sent(text: String) -> void:
 	var t := text.strip_edges()
@@ -323,6 +322,38 @@ func _on_chat_message_sent(text: String) -> void:
 	if nm != null and nm.has_method("send_chat_message"):
 		nm.send_chat_message(t, chat_tab)
 	# RPC will echo back; _on_chat_message_received handles display
+	_show_local_speech_bubble(t)
+
+func _show_speech_bubble_for_sender(sender: String, text: String) -> void:
+	if showcase == null or not showcase.has_method("get"):
+		return
+	var slots = showcase.get("slots")
+	if slots == null:
+		return
+	for i in range(slots.size()):
+		if i < players.size():
+			var p: Dictionary = players[i]
+			# 本地玩家（is_self）的氣泡由 _show_local_speech_bubble 處理，避免重複
+			if bool(p.get("is_self", false)):
+				continue
+			if str(p.get("name", "")) == sender:
+				var slot = slots[i]
+				if slot != null and slot.has_method("show_speech_bubble"):
+					slot.show_speech_bubble(text, 3.0)
+				return
+
+func _show_local_speech_bubble(text: String) -> void:
+	if showcase == null or not showcase.has_method("get"):
+		return
+	var slots = showcase.get("slots")
+	if slots == null:
+		return
+	for i in range(slots.size()):
+		if i < players.size() and bool(players[i].get("is_self", false)):
+			var slot = slots[i]
+			if slot != null and slot.has_method("show_speech_bubble"):
+				slot.show_speech_bubble(text, 3.0)
+			return
 
 func _on_showcase_slot_selected(index: int, _is_self: bool) -> void:
 	if index >= players.size():
