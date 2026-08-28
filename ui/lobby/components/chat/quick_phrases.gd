@@ -13,6 +13,9 @@ var _phrases: Array = ["Ready", "GG", "😄"]
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 6)
+	custom_minimum_size = Vector2(0, 44)
+	size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	alignment = BoxContainer.ALIGNMENT_CENTER
 	_build_phrases()
 
 func _build_phrases() -> void:
@@ -24,16 +27,21 @@ func _build_phrases() -> void:
 		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 		var style := StyleBoxFlat.new()
-		style.bg_color = C_PANEL
+		style.bg_color = Color(0.15, 0.17, 0.22)
 		style.set_corner_radius_all(6)
 		style.set_content_margin_all(6)
 		btn.add_theme_stylebox_override("normal", style)
 
 		var hover := style.duplicate()
-		hover.bg_color = C_PANEL.lightened(0.1)
+		hover.bg_color = Color(0.2, 0.22, 0.28)
 		btn.add_theme_stylebox_override("hover", hover)
 
+		var pressed := style.duplicate()
+		pressed.bg_color = Color(0.12, 0.14, 0.18)
+		btn.add_theme_stylebox_override("pressed", pressed)
+
 		btn.add_theme_color_override("font_color", C_TEXT)
+		btn.add_theme_color_override("font_hover_color", C_TEXT.lightened(0.1))
 		btn.pressed.connect(func(): phrase_selected.emit(phrase))
 		add_child(btn)
 

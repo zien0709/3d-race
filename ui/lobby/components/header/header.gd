@@ -27,7 +27,7 @@ var _invite_btn: Button
 var _leave_btn: Button
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(0, 64)
+	custom_minimum_size = Vector2(0, 72)
 	clip_contents = false
 
 	# VBoxContainer CENTER with full-rect anchors for proper fill in Control parent
@@ -144,7 +144,10 @@ func _build_room_capsule(parent: Node) -> void:
 	var capsule_style := StyleBoxFlat.new()
 	capsule_style.bg_color = Color(0.10, 0.13, 0.17)
 	capsule_style.set_corner_radius_all(8)
-	capsule_style.set_content_margin_all(10)
+	capsule_style.content_margin_top = 10
+	capsule_style.content_margin_bottom = 10
+	capsule_style.content_margin_left = 16
+	capsule_style.content_margin_right = 16
 	capsule_style.set_border_width_all(1)
 	capsule_style.border_color = Color(0.3, 0.85, 0.95, 0.6)
 	capsule_style.shadow_color = Color(0.3, 0.85, 0.95, 0.15)
@@ -153,7 +156,7 @@ func _build_room_capsule(parent: Node) -> void:
 
 	var inner := HBoxContainer.new()
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	inner.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	inner.add_theme_constant_override("separation", 8)
 	capsule.add_child(inner)
 
@@ -162,6 +165,7 @@ func _build_room_capsule(parent: Node) -> void:
 	globe.text = "🌐"
 	globe.add_theme_font_size_override("font_size", 16)
 	globe.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	globe.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	inner.add_child(globe)
 
 	# Room name
@@ -172,6 +176,7 @@ func _build_room_capsule(parent: Node) -> void:
 	_room_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_room_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_room_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_room_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	inner.add_child(_room_name_label)
 
 	# Badges container
@@ -193,6 +198,7 @@ func _build_room_capsule(parent: Node) -> void:
 	_player_count_label.add_theme_font_size_override("font_size", 12)
 	_player_count_label.add_theme_color_override("font_color", C_TEXT)
 	_player_count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_player_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	inner.add_child(_player_count_label)
 
 	# Gear button (room settings, inside capsule right side)
@@ -289,6 +295,7 @@ func _add_badge(parent: Node, text: String) -> void:
 	badge.add_theme_font_size_override("font_size", 10)
 	badge.add_theme_color_override("font_color", C_ACCENT)
 	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	parent.add_child(badge)
 
 func _on_copy_puid() -> void:

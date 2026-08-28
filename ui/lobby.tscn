@@ -227,12 +227,13 @@ grow_horizontal = 2
 grow_vertical = 0
 clip_contents = false
 theme_override_constants/separation = 8
+alignment = 1
 
 [node name="ChatPreview" type="PanelContainer" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=1279343095]
 custom_minimum_size = Vector2(280, 44)
 layout_mode = 2
 size_flags_horizontal = 0
-size_flags_vertical = 3
+size_flags_vertical = 1
 script = ExtResource("7_cp")
 
 [node name="Spacer" type="Control" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=1404665283]
@@ -242,14 +243,14 @@ size_flags_horizontal = 3
 [node name="QuickPhrases" type="HBoxContainer" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=1063803860]
 layout_mode = 2
 size_flags_horizontal = 2
-size_flags_vertical = 3
+size_flags_vertical = 1
 script = ExtResource("8_qp")
 
 [node name="ReadyButton" type="Button" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=2085932185]
 custom_minimum_size = Vector2(220, 50)
 layout_mode = 2
 size_flags_horizontal = 2
-size_flags_vertical = 3
+size_flags_vertical = 1
 script = ExtResource("6_xg6h8")
 
 [node name="RoomOverlay" type="Control" parent="." unique_id=759378977]
