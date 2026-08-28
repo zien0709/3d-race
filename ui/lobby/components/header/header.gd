@@ -32,21 +32,19 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(0, 64)
 	clip_contents = false
 
-	# Use MarginContainer for vertical centering within fixed-height Control
-	var margin := MarginContainer.new()
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_top", 4)
-	margin.add_theme_constant_override("margin_bottom", 4)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(margin)
+	# Use VBoxContainer CENTER to vertically center the row inside fixed-height Control
+	var center_wrap := VBoxContainer.new()
+	center_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center_wrap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	center_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
+	center_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(center_wrap)
 
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.clip_contents = false
 	row.add_theme_constant_override("separation", 12)
-	margin.add_child(row)
+	center_wrap.add_child(row)
 
 	_build_profile_box(row)
 	_build_room_capsule(row)
