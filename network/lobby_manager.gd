@@ -26,11 +26,16 @@ const ATTR_DAMAGE := "damage_mode"
 const ATTR_CAR_RESTRICTION := "car_restriction"
 const ATTR_AUTO_START := "auto_start"
 const ATTR_MAX_PLAYERS := "max_players"
+const ATTR_CAR := "car"
 
 var current_lobby: Dictionary = {}
 var is_host: bool = false
-## players: [{ "peer_id": int, "product_user_id": String, "name": String, "ready": bool }]
+## players: [{ "peer_id": int, "product_user_id": String, "name": String, "ready": bool, "car_id": String }]
 var players: Array = []
+
+## 開局設定快照：host 在 start_match()、client 在收到 peer_order 時組裝。
+## 比賽場景（main.tscn）跨場景保留此 autoload，一次讀走即可。
+var match_config: Dictionary = {}
 
 ## 大廳瀏覽器狀態（UI 搜尋用）
 var browser_busy: bool = false
@@ -253,11 +258,16 @@ func _sync_members() -> void:
 			name = member.display_name
 		if name.is_empty():
 			name = "玩家"
+		var car_attr: Dictionary = member.get_attribute(ATTR_CAR)
+		var car_id: String = "concept"
+		if not car_attr.is_empty():
+			car_id = str(car_attr.value)
 		new_players.append({
 			"peer_id": _resolve_peer_id(member.product_user_id),
 			"product_user_id": member.product_user_id,
 			"name": name,
 			"ready": ready,
+			"car_id": car_id,
 		})
 	# diff 舊 players，emit member_joined / member_left
 	var old_ids: Array = []
@@ -301,6 +311,17 @@ func get_ready_map() -> Dictionary:
 	return map
 
 
+## 本機玩家選車：寫入自己的 member attribute，_sync_members 會同步進 players[].car_id
+func set_car_choice(car_id: String) -> void:
+	if not _lobby:
+		return
+	var eos = _eos_class()
+	if eos == null:
+		return
+	_lobby.add_current_member_attribute(ATTR_CAR, car_id, eos.Lobby.LobbyAttributeVisibility.Public)
+	await _lobby.update_async()
+
+
 ## host 更新房間設定（寫進 lobby attribute，client 端透過 lobby_updated 同步）。
 ## max_players 在 EOS 建房後不可改，其餘規則皆可即時更新。
 func update_lobby_settings(room_config: Dictionary) -> void:
@@ -332,6 +353,7 @@ func start_match() -> void:
 	# 把開場順序寫進 lobby attribute，client 端透過 lobby_updated 收到
 	_lobby.add_attribute(ATTR_PEER_ORDER, JSON.stringify(peer_order))
 	await _lobby.update_async()
+	match_config = _build_match_config(peer_order)
 	match_started.emit(peer_order)
 
 
@@ -349,6 +371,36 @@ func _all_ready(order: Array) -> bool:
 			if not player["ready"]:
 				return false
 	return true
+
+
+## 組裝開局設定快照（MatchConfig）。host 在 start_match()、client 在收到 peer_order 時呼叫。
+func _build_match_config(peer_order: Array) -> Dictionary:
+	var host_peer_id: int = 1
+	if _lobby != null:
+		var owner_puid: String = _lobby.owner_product_user_id
+		if not owner_puid.is_empty():
+			host_peer_id = _nm().get_peer_id_for_user(owner_puid)
+	var players_snapshot: Array = []
+	for p in players:
+		players_snapshot.append({
+			"peer_id": p["peer_id"],
+			"product_user_id": p.get("product_user_id", ""),
+			"name": p.get("name", "玩家"),
+			"ready": p.get("ready", false),
+			"car_id": p.get("car_id", "concept"),
+		})
+	return {
+		"track_id": TrackRegistry.selected_track_id if TrackRegistry != null else &"default",
+		"mode": lobby_attr(ATTR_MODE, "time_trial", _lobby),
+		"damage_mode": lobby_attr(ATTR_DAMAGE, "off", _lobby),
+		"car_restriction": lobby_attr(ATTR_CAR_RESTRICTION, "", _lobby),
+		"auto_start": lobby_attr(ATTR_AUTO_START, "", _lobby),
+		"room_name": lobby_attr(ATTR_ROOM_NAME, "", _lobby),
+		"max_players": int(lobby_attr(ATTR_MAX_PLAYERS, MAX_PLAYERS, _lobby)),
+		"host_peer_id": host_peer_id,
+		"peer_order": peer_order,
+		"players": players_snapshot,
+	}
 
 
 # ==========================================================================
@@ -394,6 +446,7 @@ func _on_lobby_updated() -> void:
 	if not order_attr.is_empty() and order_attr.value is String:
 		var order = JSON.parse_string(order_attr.value)
 		if order is Array and not order.is_empty():
+			match_config = _build_match_config(order)
 			match_started.emit(order)
 
 

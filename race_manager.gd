@@ -13,6 +13,10 @@ signal race_active_changed(active: bool)
 @onready var rank_panel: PanelContainer = $"../UI/RankPanel"
 @export var total_checkpoints: int = 2
 
+## 賽制（由 MatchConfig 帶入；本輪先存欄位，賽制分支留待下一輪實作）
+@export var race_mode: String = "time_trial"
+@export var damage_mode: String = "off"
+
 const RANKING_UPDATE_INTERVAL: float = 0.15
 
 var ranking := RaceRanking.new()

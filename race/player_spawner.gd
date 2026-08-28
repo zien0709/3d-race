@@ -16,6 +16,15 @@ func _spawn_remote_player(data: Variant) -> Node:
 	var player := PLAYER_SCENE.instantiate()
 	player.name = "Player_%d" % peer_id
 	player.set("is_local_player", false)
+	# 從 MatchConfig 解析該 peer 的車型
+	var car_id := ""
+	if LobbyManager != null and LobbyManager.match_config.has("players"):
+		for p in LobbyManager.match_config["players"]:
+			if int(p.get("peer_id", -1)) == peer_id:
+				car_id = str(p.get("car_id", ""))
+				break
+	if not car_id.is_empty():
+		player.set("car_id", car_id)
 	var slot: Dictionary = StartGrid.get_slot(maxi(peer_id - 1, 0))
 	player.position = slot["position"]
 	player.rotation = Vector3(0.0, float(slot["yaw"]), 0.0)

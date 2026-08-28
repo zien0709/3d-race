@@ -32,6 +32,7 @@ func _ready() -> void:
 	_create_finish_gate()
 	_create_checkpoint_gates()
 	_configure_race_manager()
+	_apply_match_config()
 	_setup_ranking()
 	_register_groups()
 
@@ -98,6 +99,16 @@ func _configure_player() -> void:
 	player.linear_velocity = Vector3.ZERO
 	player.angular_velocity = Vector3.ZERO
 	player.spawn_transform = player.global_transform
+	# 本機玩家車型：從 MatchConfig 讀取（單機無 lobby 時用預設車）
+	var local_id := multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
+	var car_id := "concept"
+	if LobbyManager != null and LobbyManager.match_config.has("players"):
+		for p in LobbyManager.match_config["players"]:
+			if int(p.get("peer_id", -1)) == local_id:
+				car_id = str(p.get("car_id", "concept"))
+				break
+	if player.has_method("set_car_id"):
+		player.set_car_id(car_id)
 
 
 func _create_finish_gate() -> void:
@@ -148,6 +159,17 @@ func _configure_race_manager() -> void:
 	race_manager.set("total_checkpoints", _total_checkpoints())
 	var time_trial_hud := get_node("UI/HUD")
 	time_trial_hud.reset(_total_checkpoints())
+
+
+## 將 MatchConfig 的賽制欄位帶入 RaceManager（本輪先存欄位，賽制分支留待下一輪）
+func _apply_match_config() -> void:
+	if LobbyManager == null or LobbyManager.match_config.is_empty():
+		return
+	var race_manager := get_node_or_null("RaceManager")
+	if race_manager == null:
+		return
+	race_manager.set("race_mode", LobbyManager.match_config.get("mode", "time_trial"))
+	race_manager.set("damage_mode", LobbyManager.match_config.get("damage_mode", "off"))
 
 
 func _setup_ranking() -> void:

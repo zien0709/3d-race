@@ -22,6 +22,13 @@ extends VehicleBody3D
 @export var grass_coast_brake: float = 5.0
 @export var is_local_player: bool = true
 
+## 車型選擇（由 MatchConfig / lobby 傳入）
+const DEFAULT_CAR_ID := "concept"
+const CAR_NODE_FOR_ID := {
+	"concept": "ConceptCar",
+}
+var car_id: String = DEFAULT_CAR_ID
+
 @onready var race_manager: Node = _find_race_manager()
 
 var spawn_transform: Transform3D
@@ -86,6 +93,7 @@ const WHEEL_RADIUS := 0.38
 
 
 func _ready() -> void:
+	_spawn_car_model()
 	_configure_model_wheels()
 	_build_road_surface_lookup()
 	spawn_transform = global_transform
@@ -366,9 +374,12 @@ func _apply_upright_stability() -> void:
 
 
 func _configure_model_wheels() -> void:
-	var car_model := get_node_or_null("ConceptCar")
+	var node_name: String = CAR_NODE_FOR_ID.get(car_id, "CarModel")
+	var car_model := get_node_or_null(node_name)
 	if car_model == null:
-		car_model = get_node_or_null("AE86_2")
+		car_model = get_node_or_null("CarModel")
+	if car_model == null:
+		car_model = get_node_or_null("ConceptCar")
 	if car_model == null:
 		push_error("Vehicle model node is missing; four-wheel physics could not be configured")
 		return
@@ -458,3 +469,47 @@ func respawn_car() -> void:
 	PhysicsServer3D.body_set_state(get_rid(), PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
 
 	reset_physics_interpolation()
+
+
+## 依 car_id 建立/切換車輛模型
+func _spawn_car_model() -> void:
+	if car_id == DEFAULT_CAR_ID:
+		return
+	var scene: PackedScene = CarRegistry.get_car_scene(car_id)
+	if scene == null:
+		push_error("找不到車型 '%s' 的模型資源" % car_id)
+		return
+	var concept := get_node_or_null("ConceptCar")
+	if concept != null:
+		concept.visible = false
+	var model := scene.instantiate()
+	model.name = "CarModel"
+	model.transform = Transform3D(Basis(Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, -1)), Vector3(0, 0.32, 0))
+	add_child(model)
+
+
+## 清除上次掛到 Wheel 節點上的視覺輪子（換車時避免重複）
+func _clear_visual_wheels() -> void:
+	for wheel_name in WHEEL_SETTINGS:
+		var wheel := get_node_or_null("Wheel%s" % wheel_name) as VehicleWheel3D
+		if wheel == null:
+			continue
+		for child in wheel.get_children().duplicate():
+			if child is MeshInstance3D:
+				child.free()
+
+
+## 執行期切換車型（本機玩家；遠端由 spawner 在 _ready 前設定 car_id）
+func set_car_id(new_car_id: String) -> void:
+	if new_car_id == car_id and (has_node("CarModel") or new_car_id == DEFAULT_CAR_ID):
+		return
+	var old := get_node_or_null("CarModel")
+	if old != null:
+		old.free()
+	var concept := get_node_or_null("ConceptCar")
+	if concept != null:
+		concept.visible = (new_car_id == DEFAULT_CAR_ID)
+	car_id = new_car_id
+	_spawn_car_model()
+	_clear_visual_wheels()
+	_configure_model_wheels()
