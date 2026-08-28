@@ -548,3 +548,24 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 - Step 1-14 全部完成，Git commits: `7aa4893` `fd8a8c2` `725fc69` `635fc49` `fb7b88e` `c1ebe78` `d071927` `b87aab5` `88dac5f` `77b8c7d` `31403bd`
 - 遊戲運行零 errors，所有元件正常渲染
 
+---
+
+## Phase H2：Header 垂直居中與 UI 修復（2026-08-28）
+
+### 目標
+修復 Phase H 遺留的 UI 問題：Header 右側按鈕（⚙️ 🔗）垂直裁切、RoomCapsule 資料綁定、背景漸層、邀請按鈕 stub。
+
+### 修復內容
+1. **Header 垂直居中**（`header.gd`）：
+   - Header 從 `PanelContainer` 改為 `Control`，用 `_draw()` 繪製背景
+   - VBoxContainer 包裝 row，`PRESET_FULL_RECT` + `ALIGNMENT_CENTER` 垂直居中
+   - **關鍵修復**：row HBoxContainer 加 `size_flags_vertical = SIZE_SHRINK_CENTER`
+   - ProfileBox、RoomCapsule、ActionButtons 各加 `size_flags_vertical = SIZE_SHRINK_CENTER`
+   - HBoxContainer 不會自動垂直居中子元件——必須用 SIZE_SHRINK_CENTER 讓 row 收縮至內容高度
+
+2. **移除未使用變數**：`_ui_animations` 警告消除
+
+### 教訓補充
+43. **HBoxContainer 不垂直居中子元件**——`ALIGNMENT_CENTER` 只控制水平對齊；垂直對齊需子元件設 `SIZE_SHRINK_CENTER`，且 row 本身也要設，讓 VBoxContainer 的 `ALIGNMENT_CENTER` 生效
+44. **Control 容器不尊重子元件 size_flags**——只有 Container 父節點才會根據子元件的 size_flags 決定佈局；Control 父節點的子元件必須用 anchors 或手動計算位置
+
