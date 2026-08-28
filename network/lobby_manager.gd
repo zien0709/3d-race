@@ -12,7 +12,7 @@ signal ready_state_changed(ready_map: Dictionary)
 signal match_started(peer_order: Array)
 signal room_config_updated(room_config: Dictionary)
 
-const MAX_PLAYERS := 12
+const MAX_PLAYERS := 4
 const BUCKET_ID := "3d_race"
 const ATTR_READY := "ready"
 const ATTR_PEER_ORDER := "peer_order"

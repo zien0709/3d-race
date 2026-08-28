@@ -92,6 +92,7 @@ func _connect_components() -> void:
 	header.system_settings_requested.connect(_on_system_settings_requested)
 	header.invite_requested.connect(_on_invite_requested)
 	header.leave_room_requested.connect(_on_leave_room_requested)
+	header.browser_requested.connect(_on_browser_requested)
 
 	## Inspector signals
 	inspector.customize_requested.connect(_on_customize_requested)
@@ -234,6 +235,9 @@ func _on_leave_room_requested() -> void:
 		show_toast("已離開房間")
 		_refresh_players()
 		_refresh_all()
+
+func _on_browser_requested() -> void:
+	lobby_browser.open()
 
 func _on_customize_requested() -> void:
 	customize_view_open = true

@@ -7,6 +7,7 @@ signal room_settings_requested()
 signal system_settings_requested()
 signal invite_requested()
 signal leave_room_requested()
+signal browser_requested()
 
 const C_TEXT := Color(0.85, 0.88, 0.92)
 const C_MUTED := Color(0.5, 0.55, 0.6)
@@ -23,8 +24,8 @@ var _ping_label: Label
 var _room_name_label: Label
 var _badges_container: HBoxContainer
 var _player_count_label: Label
-var _gear_btn: Button
 var _invite_btn: Button
+var _browser_btn: Button
 var _leave_btn: Button
 var _capsule_style: StyleBoxFlat
 var _capsule: PanelContainer
@@ -253,15 +254,16 @@ func _build_action_buttons(parent: Node) -> void:
 	box.add_theme_constant_override("separation", 4)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.size_flags_horizontal = Control.SIZE_SHRINK_END
-	box.custom_minimum_size = Vector2(120, 0)
-
-	# System settings button
-	var sys_btn := _make_icon_button(box, "⚙️", func(): system_settings_requested.emit())
-	sys_btn.custom_minimum_size = Vector2(38, 38)
+	box.custom_minimum_size = Vector2(80, 0)
 
 	# Invite button
 	_invite_btn = _make_icon_button(box, "🔗", func(): invite_requested.emit())
 	_invite_btn.custom_minimum_size = Vector2(38, 38)
+
+	# Browser button (🔍)
+	_browser_btn = _make_icon_button(box, "🔍", func(): browser_requested.emit())
+	_browser_btn.custom_minimum_size = Vector2(38, 38)
+	_browser_btn.tooltip_text = "房間瀏覽器"
 
 	# Leave button (danger - dark red border)
 	_leave_btn = _make_danger_button(box, "🚪")
@@ -309,8 +311,6 @@ func update_room_capsule(room_config: Dictionary, players: Array, lobby_manager:
 		_player_count_label.text = "👥 %d/%d" % [players.size(), max_p]
 	if _badges_container:
 		_rebuild_badges(room_config)
-	if _gear_btn:
-		_gear_btn.visible = lobby_manager.is_host if lobby_manager else true
 
 func set_in_room(in_room: bool) -> void:
 	if _leave_btn:
