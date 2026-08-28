@@ -32,10 +32,11 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(0, 64)
 	clip_contents = false
 
-	# Use VBoxContainer CENTER to vertically center the row inside fixed-height Control
+	# VBoxContainer CENTER with full-rect anchors for proper fill in Control parent
 	var center_wrap := VBoxContainer.new()
-	center_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center_wrap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	center_wrap.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center_wrap.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center_wrap.grow_vertical = Control.GROW_DIRECTION_BOTH
 	center_wrap.alignment = BoxContainer.ALIGNMENT_CENTER
 	center_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center_wrap)
