@@ -103,3 +103,41 @@
 - 本文件為 **Plan A 完成物**；**B1/B2 解耦已完成**（TrackConfig + TrackRegistry，單賽道零回歸、ATTR_MAP 已接線）。B3（動態 load glb 替換 RaceMap）/ B4（`room_overlay` chip 改吃 TrackRegistry）仍待「第二賽道」素材確定後再啟動，避免過度抽象。
 - 下次改動前必讀：`md/core/AI_WORKFLOW.md` + `md/status/PROJECT_STATUS.md` + 本文。
 
+---
+
+## 5. 提供的接口（TrackRegistry / TrackConfig API）
+
+> B1/B2 實作產出。供 Lobby UI、比賽場景、網路層消費。
+
+### 5.1 TrackRegistry Autoload（`race/track_registry.gd`，**無 class_name** 以免與 singleton 名撞名）
+
+跨場景（Lobby → main.tscn）暫存當前選中賽道並提供查詢。
+
+| 成員 | 簽章 | 說明 / 消費方 |
+|------|------|--------------|
+| `selected_track_id` | `StringName`（預設 `&"default"`） | 當前選中賽道 id |
+| `get_selected_track() -> TrackConfig` | — | 比賽場景 `race_course_setup.gd` 開局讀取 |
+| `get_track(id: StringName) -> TrackConfig` | — | 按 id 查 |
+| `get_track_by_ui_name(ui_name: String) -> TrackConfig` | — | 顯示名（含中文 map 名）→ TrackConfig |
+| `select_track_by_ui_name(ui_name: String) -> bool` | — | 由 lobby/UI 的 map 名設定選中賽道；`lobby_manager.gd` 已接 |
+| `get_available_map_names() -> Array[String]` | — | 給 Lobby UI chip 列出可選賽道名 |
+| `get_track_info(ui_name_or_id: String) -> Dictionary` | — | UI 用賽道資訊（id / display_name / scene_path / total_checkpoints / gate_size / roadbed_path） |
+| `register_track(cfg: TrackConfig)` | — | 註冊新賽道（B3/B4 多賽道用） |
+
+### 5.2 TrackConfig Resource（`race/track_config.gd`，`class_name TrackConfig extends Resource`）
+
+賽道欄位單一來源（見 §上表 TrackConfig 欄位清單）。衍生方法：
+- `total_checkpoints() -> int`
+- `checkpoint_transforms() -> Array[Transform3D]`
+- `finish_transform() -> Transform3D`
+
+### 5.3 Lobby UI 接線契約（待 B4）
+
+- 填充 chip：`TrackRegistry.get_available_map_names()` + `TrackRegistry.get_track_info(name)`
+- 選擇後寫入：`lobby_manager.update_lobby_settings({"map": name})`（已自動同步進 TrackRegistry）
+- 比賽開局：`race_course_setup.gd` 讀 `TrackRegistry.get_selected_track()`
+
+### 5.4 中文 map 名映射
+
+`預設賽道 / 東京灣夜景 / 阿爾卑斯山道 / 城市街道` 目前全指向 `default`（僅一份素材）。多賽道到位後 `register_track` 即自動解析，無需改其他邏輯。
+

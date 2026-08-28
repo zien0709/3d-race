@@ -40,10 +40,12 @@ func load_profile() -> Dictionary:
 	opts.filename = PROFILE_FILENAME
 	opts.read_chunk_length_bytes = CHUNK_LENGTH_BYTES
 	_read_buffer = PackedByteArray()
-	IEOS.playerdatastorage_interface_read_file_data_callback.connect(_on_read_file_data)
+	if not IEOS.playerdatastorage_interface_read_file_data_callback.is_connected(_on_read_file_data):
+		IEOS.playerdatastorage_interface_read_file_data_callback.connect(_on_read_file_data)
 	eos.PlayerDataStorage.PlayerDataStorageInterface.read_file(opts)
 	var ret: Dictionary = await IEOS.playerdatastorage_interface_read_file_callback
-	IEOS.playerdatastorage_interface_read_file_data_callback.disconnect(_on_read_file_data)
+	if IEOS.playerdatastorage_interface_read_file_data_callback.is_connected(_on_read_file_data):
+		IEOS.playerdatastorage_interface_read_file_data_callback.disconnect(_on_read_file_data)
 	if not bool(eos.is_success(ret)):
 		return {}
 	var json_text := _read_buffer.get_string_from_utf8()

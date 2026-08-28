@@ -779,7 +779,7 @@ func _render_browser_list() -> void:
 		return
 	browser_status.text = "找到 %d 間房間" % browser_results.size()
 	var y := 0.0
-	var lm: Variant = _lobby()
+	var lm = _lobby()
 	var local_puid: String = ""
 	var local_display_name: String = ""
 	if lm != null:

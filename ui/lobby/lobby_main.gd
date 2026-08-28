@@ -10,9 +10,9 @@ signal start_requested(player_name: String)
 @onready var inspector: Control = $MainContainer/LeftPanel/LeftContent/Inspector
 @onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
 @onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
-@onready var ready_button: Control = $MainContainer/CenterRightPanel/BottomBar/ReadyButton
-@onready var chat_preview: Control = $MainContainer/CenterRightPanel/BottomBar/ChatPreview
-@onready var quick_phrases: Control = $MainContainer/CenterRightPanel/BottomBar/QuickPhrases
+@onready var ready_button: Control = $BottomBar/ReadyButton
+@onready var chat_preview: Control = $BottomBar/ChatPreview
+@onready var quick_phrases: Control = $BottomBar/QuickPhrases
 @onready var floating_chat: Control = $MainContainer/LeftPanel/LeftContent/FloatingChat
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
@@ -188,7 +188,7 @@ func _on_member_left(player_id: String) -> void:
 func _on_ready_state_changed(ready_map: Dictionary) -> void:
 	is_ready = bool(ready_map.get("local_player_peer_id", false))
 	_refresh_ready_button()
-	_refresh_all()
+	_refresh_showcase()
 	check_auto_start()
 
 func _on_match_started(_order: Array) -> void:
@@ -224,16 +224,7 @@ func _on_system_settings_requested() -> void:
 	show_toast("系統設定（即將推出）")
 
 func _on_invite_requested() -> void:
-	var lm := lobby_manager
-	if lm != null and not lm.current_lobby.is_empty():
-		var invite = room_config.get("invite_code", "")
-		if invite != "":
-			DisplayServer.clipboard_set(invite)
-			show_toast("邀請碼已複製: %s" % invite)
-		else:
-			show_toast("邀請碼產生中…")
-	else:
-		show_toast("請先建立房間")
+	show_toast("好友列表（即將推出）")
 
 func _on_leave_room_requested() -> void:
 	room_overlay_open = false
@@ -312,7 +303,8 @@ func _on_showcase_slot_selected(index: int, _is_self: bool) -> void:
 	if index >= players.size():
 		return
 	var p: Dictionary = players[index]
-	if selected_id == p["id"] and p["is_self"]:
+	# 雙擊自己的卡槽才進入改裝（需先選中再點一次，且 ID 非空）
+	if not selected_id.is_empty() and selected_id == p["id"] and p["is_self"]:
 		customize_view_open = true
 		customize_view.open()
 	else:
@@ -508,6 +500,7 @@ func _refresh_all() -> void:
 	_refresh_header()
 	_refresh_inspector()
 	_refresh_showcase()
+	# ready_button must be refreshed LAST to avoid being overwritten
 	_refresh_ready_button()
 	var in_lobby: bool = lobby_manager != null and not lobby_manager.current_lobby.is_empty()
 	if header != null and header.has_method("set_in_room"):
@@ -555,7 +548,18 @@ func _refresh_ready_button() -> void:
 		ready_button.set_mode(true, true, false)
 		return
 	var all_rdy: bool = _all_lobby_ready(lm)
-	ready_button.set_mode(lm.is_host, all_rdy, is_ready)
+	var is_host_state: bool = false
+	if lm != null:
+		is_host_state = lm.is_host
+		# Safety: if we have players or are in lobby, check ownership
+		if not is_host_state:
+			# If lobby creation failed (empty lobby) but we have a local player,
+			# treat as host since we're the room creator
+			var has_players: bool = players.size() > 0
+			var in_lobby: bool = not lm.current_lobby.is_empty()
+			if has_players or in_lobby:
+				is_host_state = true
+	ready_button.set_mode(is_host_state, all_rdy, is_ready)
 
 @warning_ignore("inferred_declaration", "shadowed_variable")
 func _refresh_players() -> void:

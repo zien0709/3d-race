@@ -13,7 +13,7 @@ var _phrases: Array = ["Ready", "GG", "😄"]
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 6)
-	custom_minimum_size = Vector2(0, 44)
+	custom_minimum_size = Vector2(0, 38)
 	size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	alignment = BoxContainer.ALIGNMENT_CENTER
 	_build_phrases()
@@ -22,7 +22,7 @@ func _build_phrases() -> void:
 	for phrase in _phrases:
 		var btn := Button.new()
 		btn.text = phrase
-		btn.custom_minimum_size = Vector2(0, 30)
+		btn.custom_minimum_size = Vector2(50, 36)
 		btn.add_theme_font_size_override("font_size", 12)
 		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
@@ -44,6 +44,12 @@ func _build_phrases() -> void:
 		btn.add_theme_color_override("font_hover_color", C_TEXT.lightened(0.1))
 		btn.pressed.connect(func(): phrase_selected.emit(phrase))
 		add_child(btn)
+
+	# Ensure all buttons have uniform size
+	for btn in get_children():
+		if btn is Button:
+			btn.custom_minimum_size = Vector2(50, 36)
+			btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 func setup(phrases: Array) -> void:
 	_phrases = phrases

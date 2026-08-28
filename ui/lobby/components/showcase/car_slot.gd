@@ -60,13 +60,13 @@ func _ready() -> void:
 
 	# Car display area
 	var car_display := CenterContainer.new()
-	car_display.custom_minimum_size = Vector2(0, 140)
+	car_display.custom_minimum_size = Vector2(0, 160)
 	vbox.add_child(car_display)
 
 	_car_emoji = Label.new()
 	_car_emoji.text = "🏎️"
 	_car_emoji.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_car_emoji.add_theme_font_size_override("font_size", 56)
+	_car_emoji.add_theme_font_size_override("font_size", 64)
 	_car_emoji.visible = false
 	car_display.add_child(_car_emoji)
 
@@ -77,24 +77,26 @@ func _ready() -> void:
 	_car_label.add_theme_color_override("font_color", C_MUTED)
 	vbox.add_child(_car_label)
 
-	# Player name + crown row
+	# Player name + crown row (centered)
 	var name_row := HBoxContainer.new()
+	name_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	name_row.add_theme_constant_override("separation", 4)
 	vbox.add_child(name_row)
-
-	_player_name_label = Label.new()
-	_player_name_label.text = "空位"
-	_player_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_player_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_player_name_label.add_theme_font_size_override("font_size", 16)
-	_player_name_label.add_theme_color_override("font_color", C_TEXT)
-	name_row.add_child(_player_name_label)
 
 	_crown_label = Label.new()
 	_crown_label.text = "👑"
 	_crown_label.add_theme_font_size_override("font_size", 14)
+	_crown_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_crown_label.visible = false
 	name_row.add_child(_crown_label)
+
+	_player_name_label = Label.new()
+	_player_name_label.text = "空位"
+	_player_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_player_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_player_name_label.add_theme_font_size_override("font_size", 16)
+	_player_name_label.add_theme_color_override("font_color", C_TEXT)
+	name_row.add_child(_player_name_label)
 
 	# Status label (JOINED / READY)
 	_status_label = Label.new()
