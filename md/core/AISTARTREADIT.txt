@@ -98,7 +98,7 @@ res://
 | 想改的功能 | 核心檔案 |
 |------------|----------|
 | 修改車輛操控/物理 | `player.gd` |
-| 增減檢查點/變更賽道 | `race_course_setup.gd` 的 `CHECKPOINTS` 陣列 |
+| 增減檢查點/變更賽道 | `race/track_config.gd`（`TrackConfig` Resource）+ `tracks/default.tres`；選圖介面看 `race/track_registry.gd`（`TrackRegistry` Autoload） |
 | 調整 UI 流程/畫面 | `race_manager.gd` + `ui/*.gd` + `ui/*.tscn` |
 | 排行榜/統計上傳 | `network/leaderboard_manager.gd` |
 | 大廳/房間邏輯 | `network/lobby_manager.gd` |

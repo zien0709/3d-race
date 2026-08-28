@@ -95,6 +95,7 @@ Godot 的 `MultiplayerAPI` 是**傳輸無關**的。`ENetMultiplayerPeer` 和 `E
 ### 2.2 賽道同步
 
 **靜態賽道不需要同步**。所有人載入同一份 `main.tscn`，RaceMap 一模一樣。
+> 補充（B2 後）：雖然賽道 *資產* 是靜態共享，但「選哪條賽道」現在由 `TrackRegistry` Autoload 跨場景暫存 `selected_track_id`，並由 `lobby_manager.gd` 從 EOS lobby 的 `ATTR_MAP` 同步（host/client 一致）；`race_course_setup.gd` 開局讀 `TrackRegistry.get_selected_track()`。多賽道素材到位後此機制即生效，無需改同步架構。
 只需保證：
 - 場景載入完成後 spawner 才開始 spawn（`MultiplayerSpawner` 天生如此）
 - Host 先進場、Client 後進場時，Host 端既有玩家會透過 spawner 自動補生成給新來的

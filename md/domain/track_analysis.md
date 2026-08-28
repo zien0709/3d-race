@@ -64,19 +64,19 @@
 - 強耦合點：`player.gd:192` 寫死 `RaceMap/Roadbed_Shoulder` 路徑；`scripts/water_animator.gd:30` 寫死 5 個水面節點名 (`Ocean_Base`, `Garden_Pond_*`, `Fountain_Water`)；`scripts/grass_manager.gd:347` `GrassField` 定點放置
 
 ### 2.3 是否解耦／能否傳參
-- **否**。無 `TrackManager` / `TrackRegistry` / `TrackConfig.tres` / `export var track_id`。`network/lobby_manager.gd:311` `ATTR_MAP` 雖已寫入 EOS lobby attribute，但 **從未被 `main.tscn` 消費**，屬 UI 假選項。
-- `change_scene_to_file` 在 Godot 4 無原生參數傳遞，現專案亦無 `Autoload` 暫存 `selected_map` 或 `SceneTransition` 封裝。
+- **已解耦（B1/B2 完成）**。已新增 `TrackRegistry` Autoload（`race/track_registry.gd`，無 class_name）+ `TrackConfig` Resource（`race/track_config.gd` + `tracks/default.tres`）。`network/lobby_manager.gd` 的 `ATTR_MAP` 現經 `_on_lobby_updated()` / `update_lobby_settings()` → `TrackRegistry.select_track_by_ui_name()` 同步；`race_course_setup.gd` 改吃 `TrackRegistry.get_selected_track()`（回退 default.tres → 硬編碼 const）。**ATTR_MAP 不再是 UI 假選項，已接線生效**。見 `md/logs/track-decoupling-log.md`。
+- `change_scene_to_file` 在 Godot 4 無原生參數傳遞，但 `TrackRegistry` Autoload 現暫存 `selected_track_id` 跨場景（Lobby → main.tscn），解決傳參問題。
 
 ### 2.4 賽道有哪些模式（現況真實模式 vs 假選項）
 
 | 類別 | 選項（UI） | 真實生效 | 來源 |
 |------|-----------|---------|------|
-| 地圖 | `東京灣夜景` / `阿爾卑斯山道` / `城市街道` | **單地圖**（`race_map.glb`） | `lobby_ui.gd:359` `lobby_main.gd:406` chip_row，僅寫 `room_config["map"]` |
+| 地圖 | `東京灣夜景` / `阿爾卑斯山道` / `城市街道` | **單地圖**（`race_map.glb`）；`ATTR_MAP` 已接 `TrackRegistry`（目前全解析至 `default`，待 B3 多賽道素材） | `lobby_ui.gd:359` `lobby_main.gd:406` chip_row 寫 `room_config["map"]` → `lobby_manager.gd` → `TrackRegistry` |
 | 玩法 | `經典競速` / `淘汰賽` / `計時挑戰` | **計時賽** 唯一 | 同上，`room_config["mode"]` 未被 `RaceManager` 讀 |
 | 進階 | `car_restriction` / `damage_mode` / `auto_start` | 僅 `auto_start` 在大廳有倒數邏輯，其餘未消費 | `lobby_manager.gd:304` `update_lobby_settings` 寫 attribute 但無 gameplay 分支 |
 | 真實賽制 | `total_checkpoints=7` 的 Time Attack | ✅ `RaceManager:32` `waiting→countdown(3s)→racing→finish`，`RaceRanking` 按 `progress` 排序 | `race_course_setup.gd:3` + `race/race_ranking.gd:1` |
 
-> **Plan B 前置需求**：若要可傳參／多賽道，需先確定「候選賽道清單與每條的 `checkpoints + finish + roadbed_path + grass_area` 配置來源」，再設計 `TrackRegistry + TrackConfig`，避免寫了又改。
+> **B3/B4 前置需求**：`TrackRegistry + TrackConfig` 設計已完成（B1/B2），可傳參機制就緒。若要「多賽道切換」，需先確定「第二、第三賽道清單與每條的 `checkpoints + finish + roadbed_path + grass_area` 配置來源」（即真實 glb 素材），再擴充 `TrackRegistry.register_track()`，避免寫了又改。
 
 ---
 
@@ -100,6 +100,6 @@
 
 ## 4. 後續建議（Plan B 待議）
 
-- 本文件為 **Plan A 完成物**，B 的解耦設計需待「第二、第三賽道」規格確定後再啟動，避免過度抽象。
+- 本文件為 **Plan A 完成物**；**B1/B2 解耦已完成**（TrackConfig + TrackRegistry，單賽道零回歸、ATTR_MAP 已接線）。B3（動態 load glb 替換 RaceMap）/ B4（`room_overlay` chip 改吃 TrackRegistry）仍待「第二賽道」素材確定後再啟動，避免過度抽象。
 - 下次改動前必讀：`md/core/AI_WORKFLOW.md` + `md/status/PROJECT_STATUS.md` + 本文。
 
