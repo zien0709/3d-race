@@ -1,9 +1,9 @@
 # 開局 MatchConfig 載體設計（Multiplayer Match-Start Payload）
 
 > 建立日期：2026-08-28
-> 狀態：**設計草稿**（方案 C 已決定；剩餘待決項目見 §6）
-> 關聯：`md/domain/track_analysis.md`（賽道解耦 B1/B2）、`md/multiplayer_plan.md`（多人同步架構）、`network/lobby_manager.gd`、`race_course_setup.gd`、`player.gd`
-> 約束：本文件僅記錄設計與現況盤點，**不實作任何程式碼**。
+> 狀態：**已實作**（commit `ea24551`；方案 C + Q2=A 完整車輛管線 + Q3=A 賽制欄位 scaffold）
+> 關聯：`md/domain/track_analysis.md`（賽道解耦 B1/B2）、`md/multiplayer_plan.md`（多人同步架構）、`network/lobby_manager.gd`、`race_course_setup.gd`、`player.gd`、`race/car_registry.gd`
+> 約束：原僅設計；現已實作（見 §8 實作紀錄）。
 
 ---
 
@@ -112,9 +112,9 @@
 
 ---
 
-## 5. 比賽場景消費點（規劃，不實作）
+## 5. 比賽場景消費點（已實作）
 
-`race_course_setup.gd._ready()` 現有 `_apply_track_config()` 已讀 TrackRegistry；擴充為讀 `LobbyManager.match_config`：
+`race_course_setup.gd._ready()` 現有 `_apply_track_config()` 已讀 TrackRegistry；已擴充為讀 `LobbyManager.match_config`：
 
 - `track_id` / 地圖 → 已由 TrackRegistry 處理（保持）
 - `peer_order` + `players` → 驅動多人車輛生成（取代目前單人 `_configure_player`）
@@ -125,19 +125,16 @@
 
 ---
 
-## 6. 待決定 / 開放問題
+## 6. 待決定 / 開放問題（已決）
 
-方案 C 已定。以下仍未決，實作前需與使用者確認：
+方案 C 已定，以下原待決項目已於實作時確認：
 
 1. **（已決）載體 = `LobbyManager.match_config`** ✅
-2. **每人選車是否本輪就做？** 要做需：
-   - 新增 `ATTR_CAR` member attribute（寫入/讀取）
-   - Lobby UI 選車並寫入 member attribute
-   - `_sync_members()` 把 `car_id` 帶進 `players[]`
-   - race spawner 按 `car_id` 換車場景
-   - 若暫不做：先保留 `car_id` 欄位、預設同一台車
-3. **`mode` / `damage` 是否本輪就實作「消費邏輯」？** 還是只先組好 MatchConfig 並傳遞，賽制分支（淘汰賽/計時挑戰）與傷害應用之後再做？
-4. **多人車輛生成現狀確認**：`race_course_setup.gd` 目前只有單人 `_configure_player`，舊文件提到的 `_init_multiplayer_race` 已不存在。實作前先確認 spawner 現在接在哪（避免重複造輪子）。
+2. **（已決 Q2=A）每人選車本輪做「完整資料管線」**：新增 `ATTR_CAR` member attribute + `_sync_members()` 帶 `car_id` + `set_car_choice()` API + `CarRegistry` 映射（`concept`→ConceptCar、`huracan`→Huracan Black-Panther）。spawner 按 `car_id` 換車場景、本機 `race_course_setup` 呼叫 `player.set_car_id()`。UI 選車鈕由另一個 AI 的 Lobby 工作接線（本輪未動 `ui/`）。
+3. **（已決 Q3=A）`mode` / `damage` 本輪只「帶欄位 + 最小 scaffold」**：`match_config` 把 `mode`/`damage_mode` 傳進 `RaceManager.race_mode`/`damage_mode`（`@export` 欄位）；淘汰賽/計時挑戰/傷害應用邏輯留待下一輪。
+4. **（已解）多人車輛生成現狀**：實作期確認生成器為 `race/player_spawner.gd`（`MultiplayerSpawner`，非舊文件的 `_init_multiplayer_race`）。`_spawn_remote_player(data)` 已擴充從 `LobbyManager.match_config.players` 回查 `car_id`。本機車由 `race_course_setup._configure_player()` 處理。
+
+> 已知限制（留待後續）：Huracan 模型的視覺輪子節點名稱未對齊 `CONCEPT_WHEEL_MAP`，換 Huracan 時物理正常但可能缺視覺輪；車庫 UI 與輪子對齊交給該 AI 的車庫工作。互動式選車 playtest 仍被 `ui/lobby_main.gd::_on_auth_succeeded` 信號簽名錯誤擋住。
 
 ---
 
@@ -149,3 +146,16 @@
 - `network/lobby_manager.gd` — `start_match` / `_on_lobby_updated` / `update_lobby_settings` / `players`
 - `race_course_setup.gd` — 比賽場景 `_ready` 入口
 - `player.gd` — 車輛群組 / 車型節點
+
+---
+
+## 8. 實作紀錄
+
+- commit `ea24551`：**feat(multiplayer): assemble MatchConfig at room start; carry car/mode/damage**
+- 新增 `race/car_registry.gd`（`class_name CarRegistry`，`concept`/`huracan` 映射）
+- `network/lobby_manager.gd`：`ATTR_CAR`、`match_config` 欄位、`_build_match_config()`、`_sync_members()` 讀 `car_id`、`set_car_choice()`；`start_match()` / `_on_lobby_updated()` 組裝 `match_config`
+- `race/player_spawner.gd`：`_spawn_remote_player()` 由 `match_config.players` 回查 `car_id` 並 set
+- `player.gd`：動態車型 spawn/swap（`_spawn_car_model` / `_clear_visual_wheels` / `set_car_id`），不動 `player.tscn`
+- `race_course_setup.gd`：`_configure_player()` 套用本機 `car_id`；`_apply_match_config()` 把 `mode`/`damage_mode` 寫進 `RaceManager`
+- `race_manager.gd`：新增 `@export race_mode` / `damage_mode` 欄位
+- 驗證：專案 live 執行無 GDScript identifier/parse 錯誤，autoload 正常解析
