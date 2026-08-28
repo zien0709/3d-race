@@ -142,7 +142,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.06, 0.08, 0.12, 1)
 
-[node name="Header" type="PanelContainer" parent="." unique_id=1379912908]
+[node name="Header" type="Control" parent="." unique_id=1379912908]
 layout_mode = 0
 anchor_right = 1.0
 offset_left = 12.0
@@ -151,7 +151,6 @@ offset_right = -12.0
 offset_bottom = 80.0
 grow_horizontal = 2
 clip_contents = false
-theme_override_styles/panel = ExtResource("3_vc1it")
 script = ExtResource("2_oyvhv")
 
 [node name="MainContainer" type="HBoxContainer" parent="." unique_id=1385647718]

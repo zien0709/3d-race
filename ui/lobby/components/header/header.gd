@@ -1,7 +1,7 @@
-extends PanelContainer
+extends Control
 
 ## Header - 頂部導航列：ProfileBox + RoomCapsule + ActionButtons
-## 自建子節點，場景只需掛一個空的 PanelContainer 加此腳本。
+## 自建子節點，場景只需掛一個空的 Control 加此腳本。
 
 signal room_settings_requested()
 signal system_settings_requested()
@@ -32,24 +32,22 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(0, 64)
 	clip_contents = false
 
-	# MarginContainer wraps row for vertical centering inside PanelContainer
-	var margin := MarginContainer.new()
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_top", 4)
-	margin.add_theme_constant_override("margin_bottom", 4)
-	add_child(margin)
-
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.clip_contents = false
 	row.add_theme_constant_override("separation", 12)
-	margin.add_child(row)
+	add_child(row)
 
 	_build_profile_box(row)
 	_build_room_capsule(row)
 	_build_action_buttons(row)
+
+func _draw() -> void:
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.08, 0.1, 0.13)
+	bg.set_corner_radius_all(10)
+	draw_style_box(bg, Rect2(Vector2.ZERO, size))
 
 ## ── ProfileBox ──────────────────────────────────────────────
 
