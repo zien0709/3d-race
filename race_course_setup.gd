@@ -1,9 +1,7 @@
 extends Node3D
 
-## B1 賽道解耦: 可變資料移到 TrackConfig (res://tracks/default.tres)。
+## B1+B2 賽道解耦: 可變資料移到 TrackConfig，並透過 TrackRegistry Autoload 跨場景傳遞選中的賽道。
 ## 無 TrackConfig 時回退下方硬編碼常數，舊流程 100% 不變。
-
-const TRACK_CONFIG_PATH := "res://tracks/default.tres"
 
 const TOTAL_CHECKPOINTS: int = 7
 const PLAYER_SPAWN_POSITION := Vector3(-115.077791, 1.35, 10.5)
@@ -39,9 +37,14 @@ func _ready() -> void:
 
 
 func _apply_track_config() -> void:
-	var cfg := load(TRACK_CONFIG_PATH) as TrackConfig
+	## 優先從 TrackRegistry 取得選中的賽道 (跨場景傳遞)，回退到 default.tres，再回退到硬編碼常數
+	var cfg: TrackConfig = null
+	if TrackRegistry != null:
+		cfg = TrackRegistry.get_selected_track()
 	if cfg == null:
-		push_warning("TrackConfig 缺失 (%s)，使用硬編碼預設賽道" % TRACK_CONFIG_PATH)
+		cfg = load("res://tracks/default.tres") as TrackConfig
+	if cfg == null:
+		push_warning("TrackConfig 皆缺失，使用硬編碼預設賽道")
 		return
 	_track = cfg
 	if cfg.has_method("apply_config"):

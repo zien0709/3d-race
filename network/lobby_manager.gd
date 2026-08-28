@@ -310,6 +310,7 @@ func update_lobby_settings(room_config: Dictionary) -> void:
 		_lobby.add_attribute(ATTR_ROOM_NAME, str(room_config["name"]))
 	if room_config.has("map"):
 		_lobby.add_attribute(ATTR_MAP, str(room_config["map"]))
+		TrackRegistry.select_track_by_ui_name(str(room_config["map"]))
 	if room_config.has("mode"):
 		_lobby.add_attribute(ATTR_MODE, str(room_config["mode"]))
 	if room_config.has("damage_mode"):
@@ -374,6 +375,10 @@ func _bind_lobby(lobby) -> void:
 
 func _on_lobby_updated() -> void:
 	_sync_members()
+	# 同步賽道選擇到 TrackRegistry（host/client 共用，來自 lobby 的 map attribute）
+	var map_val: String = lobby_attr(ATTR_MAP, '', _lobby)
+	if not map_val.is_empty():
+		TrackRegistry.select_track_by_ui_name(map_val)
 	if not is_host and _lobby:
 		# Sync room_config from lobby attributes
 		var rc: Dictionary = {
