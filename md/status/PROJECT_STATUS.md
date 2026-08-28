@@ -27,3 +27,4 @@
 - `md/domain/track_analysis.md` — 賽道 5 觀察 + 載入鏈路審計（寫死／無解耦／無參數化，Plan A 完成）
 - `md/domain/vehicle_model_analysis.md` — 車輛模型結構與整合分析
 - `md/logs/lobby-refactor-log.md` — 大廳重構完整工作日誌（含教訓編號 1-26）
+- `md/domain/multiplayer_match_start_design.md` — 開局 MatchConfig 載體設計（方案 C：LobbyManager.match_config 組裝，race 場景一次讀走）
