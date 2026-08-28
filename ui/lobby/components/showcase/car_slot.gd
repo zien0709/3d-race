@@ -1,6 +1,6 @@
 extends PanelContainer
 
-## CarSlot - 車位卡（Active Glow、皇冠、Speech Bubble、空位剪影）
+## CarSlot - 車位卡（2D 車輛展示、Active Glow、皇冠、Speech Bubble、空位剪影）
 
 signal slot_clicked(is_self: bool)
 
@@ -18,32 +18,21 @@ var player_data: Dictionary = {}
 var is_selected: bool = false
 var is_host: bool = false
 
-var _car_emoji: Label
+var _car_texture_rect: TextureRect
+var _glow_rect: ColorRect
 var _car_label: Label
 var _player_name_label: Label
 var _crown_label: Label
 var _status_label: Label
+var _speech_bubble: PanelContainer
 var _bubble_label: Label
-var _bubble_timer: Timer
+var _bubble_tween: Tween
 var _style_box: StyleBoxFlat
-var _glow_style: StyleBoxFlat
+var _placeholder_label: Label
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(240, 280)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-
-	# Glow style (outer shadow for selected state)
-	_glow_style = StyleBoxFlat.new()
-	_glow_style.bg_color = Color(0, 0, 0, 0)
-	_glow_style.set_border_width_all(2)
-	_glow_style.border_color = C_CYAN
-	_glow_style.set_corner_radius_all(12)
-	_glow_style.set_shadow_size(8)
-	_glow_style.shadow_color = Color(0.3, 0.85, 0.95, 0.4)
-	_glow_style.content_margin_left = 2
-	_glow_style.content_margin_right = 2
-	_glow_style.content_margin_top = 2
-	_glow_style.content_margin_bottom = 2
 
 	# Main panel style
 	_style_box = StyleBoxFlat.new()
@@ -54,22 +43,43 @@ func _ready() -> void:
 	_style_box.border_color = C_BORDER
 	add_theme_stylebox_override("panel", _style_box)
 
+	# Build main content vbox first
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
+	vbox.name = "MainVBox"
+	vbox.add_theme_constant_override("separation", 4)
 	add_child(vbox)
 
-	# Car display area
-	var car_display := CenterContainer.new()
-	car_display.custom_minimum_size = Vector2(0, 160)
-	vbox.add_child(car_display)
+	# === Speech Bubble (added to self, positioned at top via anchors) ===
+	_build_speech_bubble()
 
-	_car_emoji = Label.new()
-	_car_emoji.text = "🏎️"
-	_car_emoji.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_car_emoji.add_theme_font_size_override("font_size", 64)
-	_car_emoji.visible = false
-	car_display.add_child(_car_emoji)
+	# === 2D Car display area ===
+	var car_area := CenterContainer.new()
+	car_area.custom_minimum_size = Vector2(0, 140)
+	vbox.add_child(car_area)
 
+	# Glow底盘 (radial glow beneath car)
+	_glow_rect = ColorRect.new()
+	_glow_rect.custom_minimum_size = Vector2(200, 40)
+	_glow_rect.color = Color(0.3, 0.85, 0.95, 0.08)
+	_glow_rect.visible = false
+	car_area.add_child(_glow_rect)
+
+	# TextureRect for car illustration (replaces emoji)
+	_car_texture_rect = TextureRect.new()
+	_car_texture_rect.custom_minimum_size = Vector2(240, 120)
+	_car_texture_rect.expand_mode = TextureRect.EXPAND_KEEP_SIZE
+	_car_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_car_texture_rect.visible = false
+	car_area.add_child(_car_texture_rect)
+
+	# Placeholder emoji (shown when no texture set)
+	_placeholder_label = Label.new()
+	_placeholder_label.text = "🏎️"
+	_placeholder_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_placeholder_label.add_theme_font_size_override("font_size", 56)
+	car_area.add_child(_placeholder_label)
+
+	# Car name label
 	_car_label = Label.new()
 	_car_label.text = ""
 	_car_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -104,27 +114,70 @@ func _ready() -> void:
 	_status_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(_status_label)
 
-	# Speech bubble (hidden by default)
-	_bubble_label = Label.new()
-	_bubble_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_bubble_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_bubble_label.add_theme_font_size_override("font_size", 11)
-	_bubble_label.add_theme_color_override("font_color", C_TEXT)
-	_bubble_label.visible = false
-	_bubble_label.modulate.a = 0.0
-	vbox.add_child(_bubble_label)
-
-	# Bubble fade timer
-	_bubble_timer = Timer.new()
-	_bubble_timer.one_shot = true
-	_bubble_timer.timeout.connect(_on_bubble_timeout)
-	add_child(_bubble_timer)
-
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(spacer)
 
 	set_empty()
+
+## ── Speech Bubble ─────────────────────────────────────────────
+
+func _build_speech_bubble() -> void:
+	_speech_bubble = PanelContainer.new()
+	_speech_bubble.name = "SpeechBubble"
+	_speech_bubble.visible = false
+	_speech_bubble.modulate.a = 0.0
+	# Position at top-center of card using anchors
+	_speech_bubble.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_speech_bubble.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_speech_bubble.offset_top = -8
+	_speech_bubble.offset_bottom = 30
+	_speech_bubble.offset_left = -60
+	_speech_bubble.offset_right = 60
+
+	var bubble_style := StyleBoxFlat.new()
+	bubble_style.bg_color = Color(0.1, 0.13, 0.18)
+	bubble_style.set_corner_radius_all(10)
+	bubble_style.set_border_width_all(1)
+	bubble_style.border_color = Color(0.3, 0.85, 0.95, 0.7)
+	bubble_style.content_margin_left = 10
+	bubble_style.content_margin_right = 10
+	bubble_style.content_margin_top = 5
+	bubble_style.content_margin_bottom = 5
+	bubble_style.shadow_color = Color(0.3, 0.85, 0.95, 0.15)
+	bubble_style.shadow_size = 4
+	_speech_bubble.add_theme_stylebox_override("panel", bubble_style)
+
+	_bubble_label = Label.new()
+	_bubble_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bubble_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_bubble_label.add_theme_font_size_override("font_size", 11)
+	_bubble_label.add_theme_color_override("font_color", C_TEXT)
+	_bubble_label.custom_minimum_size = Vector2(120, 0)
+	_speech_bubble.add_child(_bubble_label)
+
+	add_child(_speech_bubble)
+
+func show_speech_bubble(text: String, duration: float = 3.0) -> void:
+	if _speech_bubble == null:
+		return
+	if _bubble_tween and _bubble_tween.is_valid():
+		_bubble_tween.kill()
+
+	_bubble_label.text = text
+	_speech_bubble.visible = true
+	_speech_bubble.modulate.a = 0.0
+
+	# Tween: fade in
+	_bubble_tween = create_tween()
+	_bubble_tween.tween_property(_speech_bubble, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+	# After duration, fade out
+	_bubble_tween.tween_interval(duration)
+	_bubble_tween.tween_property(_speech_bubble, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	_bubble_tween.tween_callback(func(): _speech_bubble.visible = false)
+
+## ── Public API ────────────────────────────────────────────────
 
 func update_player(p: Dictionary, selected: bool, host: bool = false) -> void:
 	if _player_name_label == null:
@@ -145,8 +198,20 @@ func update_player(p: Dictionary, selected: bool, host: bool = false) -> void:
 		_status_label.text = "JOINED"
 		_status_label.add_theme_color_override("font_color", C_MUTED)
 
-	_car_emoji.visible = true
+	_placeholder_label.visible = true
+	_car_texture_rect.visible = false
+	_glow_rect.visible = true
 	_refresh_style()
+
+func set_car_texture(tex: Texture2D) -> void:
+	if tex != null:
+		_car_texture_rect.texture = tex
+		_car_texture_rect.visible = true
+		_placeholder_label.visible = false
+		_glow_rect.visible = true
+	else:
+		_car_texture_rect.visible = false
+		_placeholder_label.visible = true
 
 func set_empty() -> void:
 	if _player_name_label == null:
@@ -159,21 +224,10 @@ func set_empty() -> void:
 	_crown_label.visible = false
 	_status_label.text = "等待玩家..."
 	_status_label.add_theme_color_override("font_color", C_EMPTY)
-	_car_emoji.visible = false
+	_placeholder_label.visible = false
+	_car_texture_rect.visible = false
+	_glow_rect.visible = false
 	_refresh_style()
-
-func show_speech_bubble(text: String, duration: float = 4.0) -> void:
-	if _bubble_label == null:
-		return
-	_bubble_label.text = "\"%s\"" % text
-	_bubble_label.visible = true
-	_bubble_label.modulate.a = 0.0
-	_ui_animations.fade_in(_bubble_label, 0.2)
-	_bubble_timer.start(duration)
-
-func _on_bubble_timeout() -> void:
-	if _bubble_label != null:
-		_ui_animations.fade_out(_bubble_label, 0.5)
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -187,6 +241,8 @@ func _refresh_style() -> void:
 		_style_box.shadow_color = Color(0.3, 0.85, 0.95, 0.3)
 		_ui_animations.kill_tweens(self)
 		_ui_animations.scale_pop(self, 1.02, 0.15)
+		if _glow_rect.visible:
+			_glow_rect.color = Color(0.3, 0.85, 0.95, 0.15)
 	elif player_data.is_empty():
 		_style_box.border_color = Color(0.3, 0.35, 0.4, 0.2)
 		_style_box.set_border_width_all(1)
@@ -199,6 +255,10 @@ func _refresh_style() -> void:
 		_style_box.set_shadow_size(0)
 		_ui_animations.kill_tweens(self)
 		_ui_animations.scale_release(self, 0.15)
+		if _glow_rect.visible:
+			_glow_rect.color = Color(0.3, 0.85, 0.95, 0.08)
+
+## ── Empty slot dashed silhouette ──────────────────────────────
 
 func _draw() -> void:
 	if not player_data.is_empty():
@@ -206,7 +266,7 @@ func _draw() -> void:
 
 	var rect = get_rect()
 	var cx = rect.size.x / 2
-	var cy = rect.size.y / 2
+	var cy = rect.size.y / 2 - 10
 	var w = 60.0
 	var h = 30.0
 	var color = Color(0.5, 0.55, 0.6, 0.3)

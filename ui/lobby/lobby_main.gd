@@ -108,8 +108,8 @@ func _connect_components() -> void:
 	## Bottom bar signals
 	if quick_phrases != null and quick_phrases.has_signal("phrase_selected"):
 		quick_phrases.phrase_selected.connect(_on_quick_phrase_selected)
-	if chat_preview != null and chat_preview.has_signal("preview_clicked"):
-		chat_preview.preview_clicked.connect(_on_chat_preview_clicked)
+	if chat_preview != null and chat_preview.has_signal("chat_toggled"):
+		chat_preview.chat_toggled.connect(_on_chat_preview_clicked)
 
 	## Ready button signals
 	ready_button.pressed.connect(_on_ready_pressed)
@@ -252,14 +252,35 @@ func _on_chat_closed() -> void:
 	chat_open = false
 
 func _on_quick_phrase_selected(phrase: String) -> void:
-	var sender_name := "玩家"
-	if lobby_manager != null:
+	# Fix: sender name from NetworkManager.display_name (primary) → fallback local player
+	var sender_name := ""
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null and nm.has_method("get") and nm.get("display_name") != null:
+		sender_name = str(nm.get("display_name"))
+	if sender_name.is_empty() and lobby_manager != null:
 		sender_name = str(lobby_manager.get_display_name())
+	if sender_name.is_empty() and auth_manager != null:
+		sender_name = auth_manager.display_name()
+	if sender_name.is_empty():
+		sender_name = "玩家"
+
+	# Send network RPC
+	var net_nm = get_node_or_null("/root/NetworkManager")
+	if net_nm != null and net_nm.has_method("send_chat_message"):
+		net_nm.send_chat_message(phrase, "room")
+
+	# Local echo
 	_on_chat_message_received(sender_name, phrase, "room")
 	if chat_preview != null and chat_preview.has_method("update_preview"):
 		chat_preview.update_preview(sender_name, phrase)
 
-func _on_chat_preview_clicked() -> void:
+	# Show speech bubble on local player's slot (slot 0)
+	if showcase != null and showcase.has_method("get") and showcase.get("slots") != null and showcase.slots.size() > 0:
+		var local_slot = showcase.slots[0]
+		if local_slot != null and local_slot.has_method("show_speech_bubble"):
+			local_slot.show_speech_bubble(phrase, 3.0)
+
+func _on_chat_preview_clicked(_opened: bool = true) -> void:
 	chat_open = true
 	floating_chat.visible = true
 	inspector.visible = false
@@ -503,8 +524,10 @@ func _refresh_all() -> void:
 	# ready_button must be refreshed LAST to avoid being overwritten
 	_refresh_ready_button()
 	var in_lobby: bool = lobby_manager != null and not lobby_manager.current_lobby.is_empty()
+	# Also show leave button when we have players (offline mode or lobby not tracked)
+	var has_players: bool = players.size() > 0
 	if header != null and header.has_method("set_in_room"):
-		header.set_in_room(in_lobby)
+		header.set_in_room(in_lobby or has_players)
 
 func _refresh_header() -> void:
 	var nm_display := ""
