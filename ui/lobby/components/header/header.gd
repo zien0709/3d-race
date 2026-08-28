@@ -8,8 +8,6 @@ signal system_settings_requested()
 signal invite_requested()
 signal leave_room_requested()
 
-@onready var _ui_animations := UIAnimations
-
 const C_TEXT := Color(0.85, 0.88, 0.92)
 const C_MUTED := Color(0.5, 0.55, 0.6)
 const C_ACCENT := Color(0.3, 0.85, 0.95)
@@ -43,6 +41,7 @@ func _ready() -> void:
 
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.clip_contents = false
 	row.add_theme_constant_override("separation", 12)
 	center_wrap.add_child(row)
@@ -63,6 +62,7 @@ func _build_profile_box(parent: Node) -> void:
 	var box := PanelContainer.new()
 	box.custom_minimum_size = Vector2(240, 0)
 	box.size_flags_horizontal = 0 # SHRINK_BEGIN
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.12, 0.14, 0.18)
@@ -136,6 +136,7 @@ func _build_profile_box(parent: Node) -> void:
 func _build_room_capsule(parent: Node) -> void:
 	var capsule := PanelContainer.new()
 	capsule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	capsule.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	capsule.custom_minimum_size = Vector2(200, 48)
 	capsule.size_flags_stretch_ratio = 3.0
 	capsule.clip_contents = false
