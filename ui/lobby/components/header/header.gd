@@ -22,7 +22,6 @@ var _level_label: Label
 var _puid_label: Label
 var _ping_label: Label
 var _room_name_label: Label
-var _badges_container: HBoxContainer
 var _player_count_label: Label
 var _invite_btn: Button
 var _browser_btn: Button
@@ -143,6 +142,7 @@ func _build_profile_box(parent: Node) -> void:
 	parent.add_child(box)
 
 ## ── RoomCapsule ─────────────────────────────────────────────
+# Structure: LeftSpacer → RoomNameLabel (centered) → RightSpacer → PlayerCountLabel
 
 func _build_room_capsule(parent: Node) -> void:
 	_capsule = PanelContainer.new()
@@ -180,37 +180,29 @@ func _build_room_capsule(parent: Node) -> void:
 	capsule_hbox.add_theme_constant_override("separation", 8)
 	_capsule.add_child(capsule_hbox)
 
-	# Globe icon
-	var globe := Label.new()
-	globe.text = "🌐"
-	globe.add_theme_font_size_override("font_size", 16)
-	globe.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	globe.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	capsule_hbox.add_child(globe)
+	# Left spacer (pushes room name to absolute center)
+	var left_spacer := Control.new()
+	left_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	capsule_hbox.add_child(left_spacer)
 
-	# Room name (18px Bold)
+	# Room name with globe icon (18px Bold, absolutely centered)
 	_room_name_label = Label.new()
-	_room_name_label.text = "我的房間"
+	_room_name_label.text = "🌐 我的房間"
 	_room_name_label.add_theme_font_size_override("font_size", 18)
 	_room_name_label.add_theme_color_override("font_color", C_TEXT)
 	_room_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_room_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_room_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_room_name_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_room_name_label.custom_minimum_size = Vector2(150, 0)
+	_room_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_room_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	capsule_hbox.add_child(_room_name_label)
 
-	# Badges container
-	_badges_container = HBoxContainer.new()
-	_badges_container.add_theme_constant_override("separation", 4)
-	_badges_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_badges_container.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	capsule_hbox.add_child(_badges_container)
-
-	# Spacer (pushes right-side items to capsule edge)
-	var capsule_spacer := Control.new()
-	capsule_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	capsule_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	capsule_hbox.add_child(capsule_spacer)
+	# Right spacer (pushes room name to absolute center)
+	var right_spacer := Control.new()
+	right_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	capsule_hbox.add_child(right_spacer)
 
 	# Player count (dynamic from room_config.max_players)
 	_player_count_label = Label.new()
@@ -218,6 +210,7 @@ func _build_room_capsule(parent: Node) -> void:
 	_player_count_label.add_theme_font_size_override("font_size", 12)
 	_player_count_label.add_theme_color_override("font_color", C_TEXT)
 	_player_count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_player_count_label.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_player_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	capsule_hbox.add_child(_player_count_label)
 
@@ -301,7 +294,8 @@ func update_profile(display_name: String, level: int, rank_label: String, puid: 
 
 func update_room_capsule(room_config: Dictionary, players: Array, lobby_manager: Object) -> void:
 	if _room_name_label:
-		_room_name_label.text = room_config.get("name", "我的房間")
+		var room_name = room_config.get("name", "我的房間")
+		_room_name_label.text = "🌐 %s" % room_name
 	if _player_count_label:
 		var max_p = lobby_manager.max_members if lobby_manager else _max_players
 		if max_p <= 0:
@@ -309,38 +303,12 @@ func update_room_capsule(room_config: Dictionary, players: Array, lobby_manager:
 			if max_p <= 0:
 				max_p = 4
 		_player_count_label.text = "👥 %d/%d" % [players.size(), max_p]
-	if _badges_container:
-		_rebuild_badges(room_config)
 
 func set_in_room(in_room: bool) -> void:
 	if _leave_btn:
 		_leave_btn.visible = in_room
 
 ## ── Internal helpers ────────────────────────────────────────
-
-func _rebuild_badges(config: Dictionary) -> void:
-	for child in _badges_container.get_children():
-		child.queue_free()
-
-	var mode = config.get("mode", "")
-	var map = config.get("map", "")
-	var car = config.get("car_restriction", "")
-
-	if mode != "":
-		_add_badge(_badges_container, "[%s]" % mode)
-	if map != "":
-		_add_badge(_badges_container, "[%s]" % map)
-	if car != "" and car != "all" and car != "全開放":
-		_add_badge(_badges_container, "[僅 %s 級]" % car)
-
-func _add_badge(parent: Node, text: String) -> void:
-	var badge := Label.new()
-	badge.text = text
-	badge.add_theme_font_size_override("font_size", 10)
-	badge.add_theme_color_override("font_color", C_ACCENT)
-	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	parent.add_child(badge)
 
 func _on_copy_puid() -> void:
 	var puid_text = _puid_label.tooltip_text if _puid_label else ""
