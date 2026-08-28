@@ -569,3 +569,40 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 43. **HBoxContainer 不垂直居中子元件**——`ALIGNMENT_CENTER` 只控制水平對齊；垂直對齊需子元件設 `SIZE_SHRINK_CENTER`，且 row 本身也要設，讓 VBoxContainer 的 `ALIGNMENT_CENTER` 生效
 44. **Control 容器不尊重子元件 size_flags**——只有 Container 父節點才會根據子元件的 size_flags 決定佈局；Control 父節點的子元件必須用 anchors 或手動計算位置
 
+---
+
+## Phase H3：大廳 UI 垂直排版三大問題修復（2026-08-28）
+
+### 目標
+修復實機截圖發現的三個垂直排版問題：ActionButtons 裁切、RoomCapsule 擠壓、QuickPhrases 突出。
+
+### 修復內容
+1. **ActionButtons 被頂部裁切**（`header.gd`）：
+   - Header 最小高度從 64px 增加到 72px
+   - 確保按鈕組有足夠空間垂直置中
+
+2. **RoomCapsule 內部標籤與人數往上擠壓破圖**（`header.gd`）：
+   - 調整膠囊 StyleBoxFlat 內邊距：top/bottom=10px, left/right=16px
+   - 內部 HBoxContainer 改用 SIZE_SHRINK_CENTER 垂直置中
+   - 所有 Label 加入 vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+3. **BottomBar 的 QuickPhrases 向下突出產生黑底凹陷**（`quick_phrases.gd` + `lobby.tscn`）：
+   - QuickPhrases: size_flags_vertical 改為 SIZE_SHRINK_CENTER
+   - QuickPhrases: 加入 custom_minimum_size.y = 44
+   - QuickPhrases: 加入 alignment = ALIGNMENT_CENTER
+   - BottomBar: alignment = 1 (CENTER)
+   - ChatPreview/ReadyButton: size_flags_vertical 改為 SIZE_SHRINK_CENTER
+
+### 變更檔案
+- `ui/lobby/components/header/header.gd`
+- `ui/lobby/components/chat/quick_phrases.gd`
+- `ui/lobby.tscn`
+
+### 驗證
+- 截圖確認：ActionButtons 完整可見、RoomCapsule 內容對齊、QuickPhrases 不再突出
+- 遊戲日誌無 UI 相關錯誤
+
+### 教訓補充
+45. **PanelContainer content_margin 需分開設定**——`set_content_margin_all()` 會同時設定四邊，但左右邊距通常需要比上下邊距大，以避免文字貼邊
+46. **BoxContainer alignment 控制主軸對齊**——HBoxContainer 的 alignment=1 (CENTER) 會水平置中子元件；VBoxContainer 的 alignment=1 會垂直置中子元件
+

@@ -5,7 +5,7 @@
 ## Phase 狀態
 
 **目前 Phase：D**（Lobby 重構進行中）
-**更新日期：2026-08-27**
+**更新日期：2026-08-28**
 
 ## 已知問題快照
 
@@ -17,6 +17,7 @@
 | `md/EXPLORATION_REPORT.md`、`md/multiplayer_plan.md` 等 | 其他 AI 的工作產物，**不要動、不要清** |
 | Lobby 非房主可修改設定 | Phase D 修復中：需唯讀 + 進階規則灰化 |
 | Ready/Start 邏輯耦合 | Phase D 修復中：需解耦 + auto-start 實作 |
+| Lobby UI 垂直排版問題 | **已修復**（commit `f3656fe`）：ActionButtons 裁切、RoomCapsule 擠壓、QuickPhrases 突出 |
 | 賽道寫死／無護欄／Roadbed面數未量化 | Plan A 完成（見 `md/domain/track_analysis.md` §1）；**B1 解耦完成**（commit `20961fe`）：`TrackConfig`+`tracks/default.tres`+`race_course_setup.gd`/`start_grid.gd` 改吃 cfg；**B2 解耦完成**：`TrackRegistry` Autoload（`race/track_registry.gd`，無 class_name）+ `race_course_setup.gd` 改吃 `TrackRegistry.get_selected_track()`、`lobby_manager.gd` 同步 `map`→`TrackRegistry`，見 `md/logs/track-decoupling-log.md` |
 
 ## 參考文件
