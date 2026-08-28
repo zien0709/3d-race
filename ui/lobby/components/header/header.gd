@@ -25,14 +25,18 @@ var _room_name_label: Label
 var _badges_container: HBoxContainer
 var _player_count_label: Label
 var _gear_btn: Button
-var _settings_link: Label
 var _invite_btn: Button
 var _leave_btn: Button
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(0, 56)
+	custom_minimum_size = Vector2(0, 64)
+	clip_contents = false
 
 	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.clip_contents = false
 	row.add_theme_constant_override("separation", 12)
 	add_child(row)
 
@@ -44,7 +48,8 @@ func _ready() -> void:
 
 func _build_profile_box(parent: Node) -> void:
 	var box := PanelContainer.new()
-	box.custom_minimum_size = Vector2(180, 0)
+	box.custom_minimum_size = Vector2(240, 0)
+	box.size_flags_horizontal = 0 # SHRINK_BEGIN
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.12, 0.14, 0.18)
@@ -117,18 +122,33 @@ func _build_profile_box(parent: Node) -> void:
 
 func _build_room_capsule(parent: Node) -> void:
 	var capsule := PanelContainer.new()
-	capsule.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	capsule.custom_minimum_size = Vector2(0, 48)
+	capsule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	capsule.custom_minimum_size = Vector2(200, 48)
+	capsule.size_flags_stretch_ratio = 3.0
+	capsule.clip_contents = false
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.12, 0.16)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(8)
-	capsule.add_theme_stylebox_override("panel", style)
+	var capsule_style := StyleBoxFlat.new()
+	capsule_style.bg_color = Color(0.10, 0.13, 0.17)
+	capsule_style.set_corner_radius_all(8)
+	capsule_style.set_content_margin_all(10)
+	capsule_style.set_border_width_all(1)
+	capsule_style.border_color = Color(0.3, 0.85, 0.95, 0.6)
+	capsule_style.shadow_color = Color(0.3, 0.85, 0.95, 0.15)
+	capsule_style.shadow_size = 4
+	capsule.add_theme_stylebox_override("panel", capsule_style)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	capsule.add_child(row)
+	var inner := HBoxContainer.new()
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	inner.add_theme_constant_override("separation", 8)
+	capsule.add_child(inner)
+
+	# Globe icon
+	var globe := Label.new()
+	globe.text = "🌐"
+	globe.add_theme_font_size_override("font_size", 16)
+	globe.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	inner.add_child(globe)
 
 	# Room name
 	_room_name_label = Label.new()
@@ -136,36 +156,55 @@ func _build_room_capsule(parent: Node) -> void:
 	_room_name_label.add_theme_font_size_override("font_size", 14)
 	_room_name_label.add_theme_color_override("font_color", C_TEXT)
 	_room_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_room_name_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_room_name_label.clip_text = true
-	row.add_child(_room_name_label)
+	_room_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_room_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	inner.add_child(_room_name_label)
 
 	# Badges container
 	_badges_container = HBoxContainer.new()
 	_badges_container.add_theme_constant_override("separation", 4)
 	_badges_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_badges_container.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	row.add_child(_badges_container)
+	inner.add_child(_badges_container)
+
+	# Spacer (pushes right-side items to capsule edge)
+	var capsule_spacer := Control.new()
+	capsule_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	capsule_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.add_child(capsule_spacer)
+
+	# Player count (inside capsule, right side)
+	_player_count_label = Label.new()
+	_player_count_label.text = "👥 0/0"
+	_player_count_label.add_theme_font_size_override("font_size", 12)
+	_player_count_label.add_theme_color_override("font_color", C_TEXT)
+	_player_count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	inner.add_child(_player_count_label)
+
+	# Gear button (room settings, inside capsule right side)
+	_gear_btn = _make_icon_button(inner, "⚙️", func(): room_settings_requested.emit())
 
 	parent.add_child(capsule)
+
+## ── Spacer ───────────────────────────────────────────────────
+
+func _build_spacer(parent: Node) -> void:
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = 3 # EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(spacer)
 
 ## ── ActionButtons ───────────────────────────────────────────
 
 func _build_action_buttons(parent: Node) -> void:
 	var box := HBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
-	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.size_flags_vertical = 1 # SHRINK_CENTER
+	box.size_flags_horizontal = 2 # SHRINK_END
+	box.custom_minimum_size = Vector2(120, 0)
 
-	# Player count
-	_player_count_label = Label.new()
-	_player_count_label.text = "👥 0/0"
-	_player_count_label.add_theme_font_size_override("font_size", 12)
-	_player_count_label.add_theme_color_override("font_color", C_TEXT)
-	_player_count_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	box.add_child(_player_count_label)
-
-	# Gear button (room settings)
-	_gear_btn = _make_icon_button(box, "⚙️", func(): room_settings_requested.emit())
+	# System settings button
+	_make_icon_button(box, "⚙️", func(): system_settings_requested.emit())
 
 	# Invite button
 	_invite_btn = _make_icon_button(box, "🔗", func(): invite_requested.emit())
@@ -248,7 +287,7 @@ func _make_button(parent: Node, text: String, small: bool = false) -> Button:
 	b.text = text
 	b.custom_minimum_size = Vector2(0, 34) if small else Vector2(0, 36)
 	b.add_theme_font_size_override("font_size", 12 if small else 12)
-	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	b.size_flags_vertical = 1 # SHRINK_CENTER
 	_apply_button_style(b, Color(0.15, 0.18, 0.22), C_TEXT)
 	parent.add_child(b)
 	return b
@@ -256,10 +295,10 @@ func _make_button(parent: Node, text: String, small: bool = false) -> Button:
 func _make_icon_button(parent: Node, text: String, callback: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(36, 36)
-	b.add_theme_font_size_override("font_size", 14)
-	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_apply_button_style(b, Color(0.12, 0.14, 0.18), C_TEXT)
+	b.custom_minimum_size = Vector2(38, 38)
+	b.add_theme_font_size_override("font_size", 16)
+	b.size_flags_vertical = 1 # SHRINK_CENTER
+	_apply_button_style(b, Color(0.14, 0.17, 0.22), C_TEXT)
 	b.pressed.connect(callback)
 	parent.add_child(b)
 	return b
@@ -269,7 +308,7 @@ func _make_danger_button(parent: Node, text: String) -> Button:
 	b.text = text
 	b.custom_minimum_size = Vector2(0, 36)
 	b.add_theme_font_size_override("font_size", 12)
-	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	b.size_flags_vertical = 1 # SHRINK_CENTER
 	_apply_button_style(b, C_DANGER_BG, C_DANGER)
 	var style = b.get_theme_stylebox("normal")
 	if style is StyleBoxFlat:

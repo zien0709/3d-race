@@ -3,17 +3,18 @@
 [ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="1_bsayf"]
 [ext_resource type="Script" uid="uid://cs0c1s2cmfhy0" path="res://ui/lobby/components/header/header.gd" id="2_oyvhv"]
 [ext_resource type="Script" uid="uid://b7qjspeswqqbd" path="res://ui/lobby/lobby_main.gd" id="2_x74pg"]
+[ext_resource type="StyleBox" uid="uid://bay1hxsfb5dv3" path="res://ui/lobby/components/header/header_bg.tres" id="3_vc1it"]
 [ext_resource type="Script" uid="uid://dvxixwrnu3exd" path="res://ui/lobby/components/inspector/inspector.gd" id="3_x74pg"]
 [ext_resource type="Script" uid="uid://dmf44p1byon1g" path="res://ui/lobby/components/chat/chat_trigger.gd" id="4_vgfbg"]
 [ext_resource type="Script" uid="uid://bcjj2tv1bk7k4" path="res://ui/lobby/components/showcase/showcase.gd" id="5_vc1it"]
 [ext_resource type="Script" uid="uid://b4hypcxaird4" path="res://ui/lobby/components/ready_button/ready_button.gd" id="6_xg6h8"]
+[ext_resource type="Script" uid="uid://dtl7nbfm1vc5e" path="res://ui/lobby/components/chat/chat_preview.gd" id="7_cp"]
 [ext_resource type="Script" uid="uid://2stdyw2ubpjd" path="res://ui/lobby/components/chat/floating_chat.gd" id="7_kylly"]
 [ext_resource type="Script" uid="uid://dewipyx436h3v" path="res://ui/lobby/components/room_overlay/room_overlay.gd" id="8_n1208"]
+[ext_resource type="Script" uid="uid://dy0hhdnlknhj6" path="res://ui/lobby/components/chat/quick_phrases.gd" id="8_qp"]
 [ext_resource type="Script" uid="uid://w4483afieja" path="res://ui/lobby/components/lobby_browser/lobby_browser.gd" id="9_n8uyy"]
 [ext_resource type="Script" uid="uid://tmmo6v47gxfi" path="res://ui/lobby/components/customize/customize_view.gd" id="10_8mrmc"]
 [ext_resource type="Script" uid="uid://818c53evv3jo" path="res://ui/lobby/components/toast/toast.gd" id="11_lkqrx"]
-[ext_resource type="Script" path="res://ui/lobby/components/chat/chat_preview.gd" id="7_cp"]
-[ext_resource type="Script" path="res://ui/lobby/components/chat/quick_phrases.gd" id="8_qp"]
 
 [sub_resource type="Animation" id="Animation_oyvhv"]
 length = 0.25
@@ -133,24 +134,32 @@ grow_vertical = 2
 theme = ExtResource("1_bsayf")
 script = ExtResource("2_x74pg")
 
+[node name="BackgroundGradient" type="ColorRect" parent="." unique_id=677198187]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.08, 0.12, 1)
+
 [node name="Header" type="PanelContainer" parent="." unique_id=1379912908]
 layout_mode = 0
-anchors_preset = 10
 anchor_right = 1.0
 offset_left = 12.0
 offset_top = 8.0
 offset_right = -12.0
-offset_bottom = 72.0
+offset_bottom = 80.0
 grow_horizontal = 2
+clip_contents = false
+theme_override_styles/panel = ExtResource("3_vc1it")
 script = ExtResource("2_oyvhv")
 
 [node name="MainContainer" type="HBoxContainer" parent="." unique_id=1385647718]
 layout_mode = 0
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 12.0
-offset_top = 80.0
+offset_top = 88.0
 offset_right = -12.0
 offset_bottom = -64.0
 grow_horizontal = 2
@@ -162,26 +171,30 @@ custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="LeftContent" type="VBoxContainer" parent="MainContainer/LeftPanel" unique_id=3981234567]
+[node name="LeftContent" type="VBoxContainer" parent="MainContainer/LeftPanel" unique_id=-313732729]
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
 [node name="FloatingChat" type="PanelContainer" parent="MainContainer/LeftPanel/LeftContent" unique_id=1533170177]
 visible = false
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("7_kylly")
 
 [node name="Inspector" type="PanelContainer" parent="MainContainer/LeftPanel/LeftContent" unique_id=1554692965]
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("3_x74pg")
 
 [node name="ChatTrigger" type="Button" parent="MainContainer/LeftPanel" unique_id=407141638]
-custom_minimum_size = Vector2(0, 48)
-size_flags_horizontal = 3
 visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
 script = ExtResource("4_vgfbg")
 
 [node name="ChatAnimationPlayer" type="AnimationPlayer" parent="MainContainer/LeftPanel" unique_id=1504720937]
@@ -202,38 +215,45 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_vc1it")
 
-[node name="BottomBar" type="HBoxContainer" parent="MainContainer/CenterRightPanel"]
+[node name="BottomBar" type="HBoxContainer" parent="MainContainer/CenterRightPanel" unique_id=1414671891]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -60.0
 offset_left = 8.0
+offset_top = -60.0
 offset_right = -8.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_constants/separation = 8
 
-[node name="ChatPreview" type="PanelContainer" parent="MainContainer/CenterRightPanel/BottomBar"]
+[node name="ChatPreview" type="PanelContainer" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=1279343095]
+custom_minimum_size = Vector2(280, 44)
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 0
 size_flags_vertical = 3
 script = ExtResource("7_cp")
 
-[node name="QuickPhrases" type="HBoxContainer" parent="MainContainer/CenterRightPanel/BottomBar"]
+[node name="Spacer" type="Control" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=1404665283]
 layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="QuickPhrases" type="HBoxContainer" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=1063803860]
+layout_mode = 2
+size_flags_horizontal = 2
 size_flags_vertical = 3
 script = ExtResource("8_qp")
 
 [node name="ReadyButton" type="Button" parent="MainContainer/CenterRightPanel/BottomBar" unique_id=2085932185]
+custom_minimum_size = Vector2(220, 50)
 layout_mode = 2
-size_flags_horizontal = 10
+size_flags_horizontal = 2
 size_flags_vertical = 3
 script = ExtResource("6_xg6h8")
 
 [node name="RoomOverlay" type="Control" parent="." unique_id=759378977]
-anchors_preset = 15
+anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -241,7 +261,7 @@ grow_vertical = 2
 script = ExtResource("8_n1208")
 
 [node name="LobbyBrowser" type="Control" parent="." unique_id=134340447]
-anchors_preset = 15
+anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -249,7 +269,7 @@ grow_vertical = 2
 script = ExtResource("9_n8uyy")
 
 [node name="CustomizeView" type="Control" parent="." unique_id=1465822682]
-anchors_preset = 15
+anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -257,12 +277,12 @@ grow_vertical = 2
 script = ExtResource("10_8mrmc")
 
 [node name="Toast" type="Control" parent="." unique_id=1727121142]
-anchors_preset = 10
+anchors_preset = 0
 anchor_right = 1.0
 offset_left = 12.0
-offset_top = 80.0
+offset_top = 88.0
 offset_right = -12.0
-offset_bottom = 110.0
+offset_bottom = 120.0
 grow_horizontal = 2
 mouse_filter = 2
 script = ExtResource("11_lkqrx")
