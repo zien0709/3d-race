@@ -4,13 +4,11 @@
 [ext_resource type="Script" uid="uid://cs0c1s2cmfhy0" path="res://ui/lobby/components/header/header.gd" id="2_oyvhv"]
 [ext_resource type="Script" uid="uid://b7qjspeswqqbd" path="res://ui/lobby/lobby_main.gd" id="2_x74pg"]
 [ext_resource type="Script" uid="uid://dvxixwrnu3exd" path="res://ui/lobby/components/inspector/inspector.gd" id="3_x74pg"]
-[ext_resource type="Script" uid="uid://dmf44p1byon1g" path="res://ui/lobby/components/chat/chat_trigger.gd" id="4_vgfbg"]
 [ext_resource type="Script" uid="uid://bcjj2tv1bk7k4" path="res://ui/lobby/components/showcase/showcase.gd" id="5_vc1it"]
 [ext_resource type="Script" uid="uid://b4hypcxaird4" path="res://ui/lobby/components/ready_button/ready_button.gd" id="6_xg6h8"]
-[ext_resource type="Script" uid="uid://dtl7nbfm1vc5e" path="res://ui/lobby/components/chat/chat_preview.gd" id="7_cp"]
-[ext_resource type="Script" uid="uid://2stdyw2ubpjd" path="res://ui/lobby/components/chat/floating_chat.gd" id="7_kylly"]
+[ext_resource type="Script" uid="uid://bg6gcvo1ojkyy" path="res://ui/lobby/components/chat/chat_panel.gd" id="7_vgfbg"]
 [ext_resource type="Script" uid="uid://dewipyx436h3v" path="res://ui/lobby/components/room_overlay/room_overlay.gd" id="8_n1208"]
-[ext_resource type="Script" uid="uid://dy0hhdnlknhj6" path="res://ui/lobby/components/chat/quick_phrases.gd" id="8_qp"]
+[ext_resource type="Script" uid="uid://deufb4p12o0ri" path="res://ui/lobby/components/chat/chat_dock.gd" id="8_oyvhv"]
 [ext_resource type="Script" uid="uid://w4483afieja" path="res://ui/lobby/components/lobby_browser/lobby_browser.gd" id="9_n8uyy"]
 [ext_resource type="Script" uid="uid://tmmo6v47gxfi" path="res://ui/lobby/components/customize/customize_view.gd" id="10_8mrmc"]
 [ext_resource type="Script" uid="uid://818c53evv3jo" path="res://ui/lobby/components/toast/toast.gd" id="11_lkqrx"]
@@ -50,7 +48,7 @@ anchor_bottom = 1.0
 offset_left = 12.0
 offset_top = 96.0
 offset_right = -12.0
-offset_bottom = -76.0
+offset_bottom = -80.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 12
@@ -73,30 +71,6 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("3_x74pg")
 
-[node name="ChatTrigger" type="Button" parent="MainContainer/LeftPanel" unique_id=407141638]
-visible = false
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-size_flags_horizontal = 3
-script = ExtResource("4_vgfbg")
-
-[node name="FloatingChat" type="PanelContainer" parent="." unique_id=1533170177]
-visible = false
-layout_mode = 0
-anchors_preset = 0
-anchor_left = 0.0
-anchor_top = 1.0
-anchor_right = 0.0
-anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = -476.0
-offset_right = 352.0
-offset_bottom = -76.0
-grow_horizontal = 0
-grow_vertical = 0
-z_index = 10
-script = ExtResource("7_kylly")
-
 [node name="CenterRightPanel" type="Control" parent="MainContainer" unique_id=274641255]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -112,7 +86,22 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_vc1it")
 
+[node name="FloatingChat" type="PanelContainer" parent="." unique_id=1533170177]
+visible = false
+z_index = 10
+layout_mode = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -476.0
+offset_right = 450.0
+offset_bottom = -76.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("7_vgfbg")
+
 [node name="BottomBar" type="HBoxContainer" parent="." unique_id=286043615]
+z_index = 5
 layout_mode = 0
 anchor_top = 1.0
 anchor_right = 1.0
@@ -126,21 +115,11 @@ grow_vertical = 0
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="ChatPreview" type="PanelContainer" parent="BottomBar" unique_id=1279343095]
-custom_minimum_size = Vector2(240, 40)
-layout_mode = 2
-size_flags_horizontal = 0
-script = ExtResource("7_cp")
-
-[node name="Spacer" type="Control" parent="BottomBar" unique_id=1404665283]
+[node name="ChatDock" type="PanelContainer" parent="BottomBar" unique_id=887010624]
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="QuickPhrases" type="HBoxContainer" parent="BottomBar" unique_id=1063803860]
-custom_minimum_size = Vector2(0, 38)
-layout_mode = 2
-size_flags_horizontal = 2
-script = ExtResource("8_qp")
+script = ExtResource("8_oyvhv")
 
 [node name="ReadyButton" type="Button" parent="BottomBar" unique_id=2085932185]
 custom_minimum_size = Vector2(220, 44)
@@ -165,6 +144,7 @@ grow_vertical = 2
 script = ExtResource("9_n8uyy")
 
 [node name="CustomizeView" type="Control" parent="." unique_id=1465822682]
+visible = false
 anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0

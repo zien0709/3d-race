@@ -28,7 +28,9 @@ signal login_failed(message: String)
 signal logged_out
 signal discord_oauth_started
 signal discord_oauth_completed(code: String, error: String)
-signal chat_message_received(sender: String, text: String, tab: String)
+signal chat_message_received(sender: String, sender_id: String, text: String, tab: String)
+signal chat_private_message_received(sender: String, target_id: String, text: String)
+signal chat_reaction_received(message_id: String, emoji: String, add: bool, sender: String)
 
 const LOCAL_PEER_ID := 1
 const MAX_PLAYERS := 12  ## 連線數上限（配合 12 格出發位置）
@@ -89,13 +91,41 @@ func send_chat_message(message: String, tab: String = "room") -> void:
 	var sender_name := display_name
 	if sender_name.is_empty():
 		sender_name = "Player"
-	rpc("remote_chat_message", sender_name, message, tab)
-	chat_message_received.emit(sender_name, message, tab)
+	rpc("remote_chat_message", sender_name, product_user_id, message, tab)
+	chat_message_received.emit(sender_name, product_user_id, message, tab)
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func remote_chat_message(sender: String, text: String, tab: String) -> void:
-	chat_message_received.emit(sender, text, tab)
+func remote_chat_message(sender: String, sender_id: String, text: String, tab: String) -> void:
+	chat_message_received.emit(sender, sender_id, text, tab)
+
+
+## 私訊：直接送給目標 peer（target_id 為目標的 EOS product user id）。
+func send_private_message(text: String, target_id: String) -> void:
+	var sender_name := display_name
+	if sender_name.is_empty():
+		sender_name = "Player"
+	var target_peer := get_peer_id_for_user(target_id)
+	if target_peer > 0:
+		rpc_id(target_peer, "remote_private_message", sender_name, target_id, text)
+	# 本地也顯示自己的私訊
+	chat_private_message_received.emit(sender_name, target_id, text)
+
+
+## 表情反應：廣播給所有人（message_id 為訊息的唯一 ID）。
+func send_reaction(message_id: String, emoji: String, add: bool) -> void:
+	rpc("remote_reaction", message_id, emoji, add, display_name)
+	chat_reaction_received.emit(message_id, emoji, add, display_name)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func remote_private_message(sender: String, target_id: String, text: String) -> void:
+	chat_private_message_received.emit(sender, target_id, text)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func remote_reaction(message_id: String, emoji: String, add: bool, sender: String) -> void:
+	chat_reaction_received.emit(message_id, emoji, add, sender)
 
 
 func _hauth() -> Node:

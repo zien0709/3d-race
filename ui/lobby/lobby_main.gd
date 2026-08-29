@@ -8,11 +8,9 @@ signal start_requested(player_name: String)
 ## Component references
 @onready var header: Control = $Header
 @onready var inspector: Control = $MainContainer/LeftPanel/LeftContent/Inspector
-@onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
+@onready var chat_dock: Control = $BottomBar/ChatDock
 @onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
 @onready var ready_button: Control = $BottomBar/ReadyButton
-@onready var chat_preview: Control = $BottomBar/ChatPreview
-@onready var quick_phrases: Control = $BottomBar/QuickPhrases
 @onready var floating_chat: Control = $FloatingChat
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
@@ -75,6 +73,8 @@ func _init_signals() -> void:
 	var nm = get_node_or_null("/root/NetworkManager")
 	if nm != null:
 		nm.chat_message_received.connect(_on_chat_message_received)
+		nm.chat_private_message_received.connect(_on_private_message_received)
+		nm.chat_reaction_received.connect(_on_reaction_received)
 
 	lobby_manager = get_node_or_null("/root/LobbyManager")
 	if lobby_manager != null:
@@ -98,19 +98,17 @@ func _connect_components() -> void:
 	inspector.customize_requested.connect(_on_customize_requested)
 
 	## Chat signals
-	chat_trigger.chat_toggled.connect(_on_chat_toggled)
+	chat_dock.chat_toggled.connect(_on_chat_toggled)
+	chat_dock.phrase_selected.connect(_on_quick_phrase_selected)
 	floating_chat.tab_changed.connect(_on_chat_tab_changed)
 	floating_chat.message_sent.connect(_on_chat_message_sent)
+	floating_chat.private_message_sent.connect(_on_private_message_sent)
+	floating_chat.reaction_added.connect(_on_reaction_added)
+	floating_chat.reaction_removed.connect(_on_reaction_removed)
 	floating_chat.closed.connect(_on_chat_closed)
 
 	## Showcase signals
 	showcase.slot_selected.connect(_on_showcase_slot_selected)
-
-	## Bottom bar signals
-	if quick_phrases != null and quick_phrases.has_signal("phrase_selected"):
-		quick_phrases.phrase_selected.connect(_on_quick_phrase_selected)
-	if chat_preview != null and chat_preview.has_signal("chat_toggled"):
-		chat_preview.chat_toggled.connect(_on_chat_preview_clicked)
 
 	## Ready button signals
 	ready_button.pressed.connect(_on_ready_pressed)
@@ -179,12 +177,14 @@ func _do_auto_create_room() -> void:
 func _on_member_joined(_player_id: String) -> void:
 	_refresh_players()
 	_refresh_all()
+	floating_chat.add_system_message("玩家加入房間")
 
 func _on_member_left(player_id: String) -> void:
 	if selected_id == player_id:
 		selected_id = ""
 	_refresh_players()
 	_refresh_all()
+	floating_chat.add_system_message("玩家離開房間")
 
 func _on_ready_state_changed(ready_map: Dictionary) -> void:
 	is_ready = bool(ready_map.get("local_player_peer_id", false))
@@ -246,6 +246,7 @@ func _on_customize_requested() -> void:
 
 func _on_chat_toggled(opened: bool) -> void:
 	chat_open = opened
+	chat_dock.set_open(opened)
 	if opened:
 		floating_chat.open_chat()
 		inspector.visible = false
@@ -256,13 +257,12 @@ func _on_chat_toggled(opened: bool) -> void:
 
 func _on_chat_closed() -> void:
 	chat_open = false
+	chat_dock.set_open(false)
 	floating_chat.close_chat()
 	inspector.visible = true
-	chat_trigger.set_chat_open(false)
 	_refresh_all()
 
 func _on_quick_phrase_selected(phrase: String) -> void:
-	# Fix: sender name from NetworkManager.display_name (primary) → fallback local player
 	var sender_name := ""
 	var nm = get_node_or_null("/root/NetworkManager")
 	if nm != null and nm.has_method("get") and nm.get("display_name") != null:
@@ -273,56 +273,59 @@ func _on_quick_phrase_selected(phrase: String) -> void:
 		sender_name = auth_manager.display_name()
 	if sender_name.is_empty():
 		sender_name = "玩家"
-
-	# Send network RPC. send_chat_message emits chat_message_received locally,
-	# so _on_chat_message_received handles display and preview.
 	var net_nm = get_node_or_null("/root/NetworkManager")
 	if net_nm != null and net_nm.has_method("send_chat_message"):
-		net_nm.send_chat_message(phrase, "room")
+		net_nm.send_chat_message(phrase, chat_tab)
 	_show_local_speech_bubble(phrase)
-
-func _on_chat_preview_clicked(_opened: bool = true) -> void:
-	chat_open = true
-	floating_chat.open_chat()
-	inspector.visible = false
-	chat_trigger.set_chat_open(true)
-	_refresh_all()
 
 func _on_chat_tab_changed(tab: String) -> void:
 	chat_tab = tab
 	floating_chat.set_active_tab(chat_tab)
-	_load_chat_history_for_tab(chat_tab)
 
-func _load_chat_history_for_tab(tab: String) -> void:
-	floating_chat.clear_messages()
-	for msg in chat_messages:
-		if msg.get("tab", "") == tab:
-			var sender = msg.get("sender", "")
-			var text = msg.get("text", "")
-			var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
-			floating_chat.add_message(sender, text, is_self)
-
-func _on_chat_message_received(sender: String, text: String, tab: String) -> void:
-	chat_messages.append({"sender": sender, "text": text, "tab": tab})
+func _on_chat_message_received(sender: String, sender_id: String, text: String, tab: String) -> void:
 	var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
-	if tab == chat_tab:
-		floating_chat.add_message(sender, text, is_self)
-	# Sync bottom preview bar
-	if chat_preview != null and chat_preview.has_method("update_preview"):
-		chat_preview.update_preview(sender, text)
-	# Float speech bubble above the sender's car slot
+	floating_chat.add_message(sender, text, is_self, tab, sender_id)
+	# Sync dock preview bar with tab info
+	if chat_dock != null and chat_dock.has_method("update_preview"):
+		chat_dock.update_preview(sender, text, tab)
 	_show_speech_bubble_for_sender(sender, text)
 
-func _on_chat_message_sent(text: String) -> void:
+func _on_chat_message_sent(text: String, is_private: bool, target_id: String) -> void:
 	var t := text.strip_edges()
 	if t == "":
 		return
-	# Send via NetworkManager (EOS P2P chat)
 	var nm = get_node_or_null("/root/NetworkManager")
 	if nm != null and nm.has_method("send_chat_message"):
-		nm.send_chat_message(t, chat_tab)
-	# RPC will echo back; _on_chat_message_received handles display
+		if is_private and target_id != "":
+			nm.send_private_message(t, target_id)
+		else:
+			nm.send_chat_message(t, chat_tab)
 	_show_local_speech_bubble(t)
+
+func _on_private_message_sent(target_id: String, text: String) -> void:
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null and nm.has_method("send_private_message"):
+		nm.send_private_message(text, target_id)
+
+func _on_reaction_added(message_id: String, emoji: String) -> void:
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null and nm.has_method("send_reaction"):
+		nm.send_reaction(message_id, emoji, true)
+
+func _on_reaction_removed(message_id: String, emoji: String) -> void:
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null and nm.has_method("send_reaction"):
+		nm.send_reaction(message_id, emoji, false)
+
+func _on_private_message_received(sender: String, target_id: String, text: String) -> void:
+	var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
+	floating_chat.add_private_message(sender, target_id, text, is_self)
+
+func _on_reaction_received(message_id: String, emoji: String, add: bool, _sender: String) -> void:
+	if add:
+		floating_chat.add_reaction(message_id, emoji)
+	else:
+		floating_chat.remove_reaction(message_id, emoji)
 
 func _show_speech_bubble_for_sender(sender: String, text: String) -> void:
 	if showcase == null or not showcase.has_method("get"):
