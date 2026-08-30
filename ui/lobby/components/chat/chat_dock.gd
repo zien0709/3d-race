@@ -135,10 +135,26 @@ func _create_chip(display_text: String, send_text: String) -> Button:
 			_ui_animations.scale_press(btn, 0.92, 0.08)
 			await get_tree().create_timer(0.08).timeout
 			_ui_animations.scale_release(btn, 0.1)
+		# Flash dock border on send
+		_flash_send()
 		phrase_selected.emit(send_text)
 	)
 
 	return btn
+
+func _flash_send() -> void:
+	# Brief green flash then return to current state
+	_style.border_color = Color(0.30, 0.85, 0.45, 0.9)
+	_style.shadow_size = 6
+	_style.shadow_color = Color(0.30, 0.85, 0.45, 0.3)
+	await get_tree().create_timer(0.3).timeout
+	if _is_open:
+		_style.border_color = Color(0.22, 0.74, 0.97, 0.8)
+		_style.shadow_size = 4
+		_style.shadow_color = Color(0.22, 0.74, 0.97, 0.2)
+	else:
+		_style.border_color = C_BORDER
+		_style.shadow_size = 0
 
 func _on_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -183,10 +199,19 @@ func set_open(open_state: bool) -> void:
 	_is_open = open_state
 	if open_state:
 		_expand_btn.text = "▼"
+		# Active state: brighter border + subtle glow
+		_style.border_color = Color(0.22, 0.74, 0.97, 0.8)
+		_style.shadow_size = 4
+		_style.shadow_color = Color(0.22, 0.74, 0.97, 0.2)
+		_style.bg_color = Color(0.12, 0.16, 0.22)
 		if _preview_label:
 			_preview_label.add_theme_color_override("font_color", C_MUTED)
 	else:
 		_expand_btn.text = "▲"
+		# Inactive state: default border
+		_style.border_color = C_BORDER
+		_style.shadow_size = 0
+		_style.bg_color = C_BG
 
 func _get_tab_name(tab: String) -> String:
 	match tab:

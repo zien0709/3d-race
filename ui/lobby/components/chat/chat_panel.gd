@@ -40,6 +40,8 @@ var _message_items: Dictionary = {}
 var _search_active: bool = false
 var _search_query: String = ""
 var _panel_height: float = 400.0
+var _close_tween: Tween = null
+var _open_tween: Tween = null
 
 func _ready() -> void:
 	_ui_animations = UIAnimations
@@ -232,6 +234,10 @@ func clear_private_target() -> void:
 ## ── Dock 模式開關動畫 ──────────────────────────────────────
 
 func open_chat() -> void:
+	# Kill any running close animation to prevent race condition
+	if _close_tween != null and _close_tween.is_valid():
+		_close_tween.kill()
+		_close_tween = null
 	if visible:
 		focus_input()
 		return
@@ -239,16 +245,20 @@ func open_chat() -> void:
 	move_to_front()
 	z_index = 10
 	modulate.a = 0.0
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_open_tween = create_tween()
+	_open_tween.tween_property(self, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	focus_input()
 
 func close_chat() -> void:
 	if not visible:
 		return
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	tween.tween_callback(func(): visible = false)
+	# Kill any running open animation
+	if _open_tween != null and _open_tween.is_valid():
+		_open_tween.kill()
+		_open_tween = null
+	_close_tween = create_tween()
+	_close_tween.tween_property(self, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	_close_tween.tween_callback(func(): visible = false)
 
 ## ── 信號處理 ──────────────────────────────────────────────
 

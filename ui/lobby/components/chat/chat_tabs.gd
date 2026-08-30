@@ -67,8 +67,8 @@ func _build_ui() -> void:
 		btn.text = "%s %s" % [icon, label]
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.pressed.connect(func(): _on_tab_pressed(tab_id))
-		btn.mouse_entered.connect(_on_tab_hover.bind(btn, true))
-		btn.mouse_exited.connect(_on_tab_hover.bind(btn, false))
+		btn.mouse_entered.connect(_on_tab_hover.bind(true, btn))
+		btn.mouse_exited.connect(_on_tab_hover.bind(false, btn))
 
 		# 按鈕背景透明
 		var btn_style := StyleBoxFlat.new()

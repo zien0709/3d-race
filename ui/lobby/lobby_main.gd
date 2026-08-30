@@ -63,6 +63,24 @@ func _ready() -> void:
 		_on_auth_succeeded(auth_manager.display_name())
 	_refresh_all()
 
+func _input(event: InputEvent) -> void:
+	# Don't intercept input when overlays are open
+	if room_overlay_open or customize_view_open:
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_T, KEY_ENTER:
+				# Only toggle when no UI element has focus (e.g. LineEdit)
+				var focused := get_viewport().gui_get_focus_owner()
+				if focused != null and focused is LineEdit:
+					return
+				_on_chat_toggled(not chat_open)
+				get_viewport().set_input_as_handled()
+			KEY_ESCAPE:
+				if chat_open:
+					_on_chat_toggled(false)
+					get_viewport().set_input_as_handled()
+
 func _init_signals() -> void:
 	auth_manager = get_node_or_null("/root/AuthManager")
 	if auth_manager != null:
@@ -276,6 +294,9 @@ func _on_quick_phrase_selected(phrase: String) -> void:
 	var net_nm = get_node_or_null("/root/NetworkManager")
 	if net_nm != null and net_nm.has_method("send_chat_message"):
 		net_nm.send_chat_message(phrase, chat_tab)
+	# Update dock preview immediately
+	if chat_dock != null and chat_dock.has_method("update_preview"):
+		chat_dock.update_preview(sender_name, phrase, chat_tab)
 	_show_local_speech_bubble(phrase)
 
 func _on_chat_tab_changed(tab: String) -> void:
