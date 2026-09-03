@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://b26uxawafl0k4"]
+
+[ext_resource type="Script" path="res://ui/lobby/components/player_zone/car_preview_subviewport.gd" id="1_d12bj"]
+[ext_resource type="Environment" uid="uid://clvf86tk2lhse" path="res://ui/lobby/components/player_zone/preview_environment.tres" id="2_3fea8"]
+
+[node name="CarPreviewSubViewport" type="SubViewportContainer" unique_id=638670126]
+script = ExtResource("1_d12bj")
+
+[node name="SubViewport" type="SubViewport" parent="." unique_id=203335342]
+size = Vector2i(2, 2)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="SubViewport" unique_id=822253981]
+environment = ExtResource("2_3fea8")
+
+[node name="Camera3D" type="Camera3D" parent="SubViewport" unique_id=1618828467]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 3)
+current = true
+fov = 45.0
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="SubViewport" unique_id=570254209]
+transform = Transform3D(0.8658247, -0.35365817, 0.3539399, 0, 0.7073882, 0.7068252, -0.50034744, -0.6119867, 0.6124742, 0, 0, 0)
+light_color = Color(1, 0.95, 0.8, 1)
+light_energy = 2.0
+
+[node name="CarModelRoot" type="Node3D" parent="SubViewport" unique_id=508304328]

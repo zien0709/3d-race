@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://dwr6ih520ch8j"]
+
+[ext_resource type="Script" path="res://ui/lobby/components/player_zone/speech_bubble.gd" id="1_yio06"]
+
+[node name="SpeechBubble" type="PanelContainer" unique_id=26408213]
+script = ExtResource("1_yio06")
+
+[node name="Label" type="Label" parent="." unique_id=1416013491]
+layout_mode = 2
+
+[node name="Tail" type="Polygon2D" parent="." unique_id=573984424]

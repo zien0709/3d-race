@@ -1,0 +1,185 @@
+[gd_scene format=3 uid="uid://o480p8qjbhi7"]
+
+[ext_resource type="Script" path="res://ui/lobby/components/inspector/other_detail_panel.gd" id="1_pke1s"]
+
+[node name="OtherDetailPanel" type="VBoxContainer" unique_id=941769006]
+theme_override_constants/separation = 12
+script = ExtResource("1_pke1s")
+
+[node name="TitleLabel" type="Label" parent="." unique_id=1801645686]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 18
+text = "玩家詳情"
+
+[node name="InfoContainer" type="VBoxContainer" parent="." unique_id=597339527]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CarNameRow" type="HBoxContainer" parent="InfoContainer" unique_id=1387056837]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CarNameLabel" type="Label" parent="InfoContainer/CarNameRow" unique_id=468361984]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "車輛"
+
+[node name="CarNameValue" type="Label" parent="InfoContainer/CarNameRow" unique_id=141970805]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+
+[node name="ScoreRow" type="HBoxContainer" parent="InfoContainer" unique_id=724718070]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ScoreLabel" type="Label" parent="InfoContainer/ScoreRow" unique_id=1223982776]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "分數"
+
+[node name="ScoreValue" type="Label" parent="InfoContainer/ScoreRow" unique_id=205058355]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.74, 0.97, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="ClassRow" type="HBoxContainer" parent="InfoContainer" unique_id=87539865]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ClassLabel" type="Label" parent="InfoContainer/ClassRow" unique_id=562092253]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "等級"
+
+[node name="ClassValue" type="Label" parent="InfoContainer/ClassRow" unique_id=2111410834]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.74, 0.97, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="RankRow" type="HBoxContainer" parent="InfoContainer" unique_id=174560451]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RankLabel" type="Label" parent="InfoContainer/RankRow" unique_id=2112472146]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "排名"
+
+[node name="RankValue" type="Label" parent="InfoContainer/RankRow" unique_id=300388227]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.74, 0.97, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="BestLapRow" type="HBoxContainer" parent="InfoContainer" unique_id=2137008935]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BestLapLabel" type="Label" parent="InfoContainer/BestLapRow" unique_id=1138832322]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "最佳單圈"
+
+[node name="BestLapValue" type="Label" parent="InfoContainer/BestLapRow" unique_id=616196075]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.74, 0.97, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="Separator1" type="HSeparator" parent="InfoContainer" unique_id=50338605]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MatchesTitle" type="Label" parent="InfoContainer" unique_id=1922026746]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "近期比賽"
+
+[node name="MatchesContainer" type="HBoxContainer" parent="InfoContainer" unique_id=816483384]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Separator2" type="HSeparator" parent="InfoContainer" unique_id=872609626]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="StatsTitle" type="Label" parent="InfoContainer" unique_id=1314006096]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "車輛屬性"
+
+[node name="StatsContainer" type="VBoxContainer" parent="InfoContainer" unique_id=830160221]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SpeedRow" type="HBoxContainer" parent="InfoContainer/StatsContainer" unique_id=397294434]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SpeedLabel" type="Label" parent="InfoContainer/StatsContainer/SpeedRow" unique_id=82462917]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "極速"
+
+[node name="SpeedBar" type="ProgressBar" parent="InfoContainer/StatsContainer/SpeedRow" unique_id=168378079]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="SpeedValue" type="Label" parent="InfoContainer/StatsContainer/SpeedRow" unique_id=1841536816]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="HandlingRow" type="HBoxContainer" parent="InfoContainer/StatsContainer" unique_id=1451357916]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HandlingLabel" type="Label" parent="InfoContainer/StatsContainer/HandlingRow" unique_id=97900842]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "操控"
+
+[node name="HandlingBar" type="ProgressBar" parent="InfoContainer/StatsContainer/HandlingRow" unique_id=1031539834]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="HandlingValue" type="Label" parent="InfoContainer/StatsContainer/HandlingRow" unique_id=667351302]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="AccelRow" type="HBoxContainer" parent="InfoContainer/StatsContainer" unique_id=594441093]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AccelLabel" type="Label" parent="InfoContainer/StatsContainer/AccelRow" unique_id=555155221]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "加速"
+
+[node name="AccelBar" type="ProgressBar" parent="InfoContainer/StatsContainer/AccelRow" unique_id=878295640]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="AccelValue" type="Label" parent="InfoContainer/StatsContainer/AccelRow" unique_id=2038373072]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2

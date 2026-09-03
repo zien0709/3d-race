@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://dbl74cpayc0ii"]
+
+[ext_resource type="Script" uid="uid://dsj71ddjqa717" path="res://ui/lobby/components/inspector/expanded_inspector_modal.gd" id="1_52mwj"]
+
+[node name="ExpandedInspectorModal" type="Control" unique_id=993146704]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_52mwj")
+
+[node name="Scrim" type="ColorRect" parent="." unique_id=2025936273]
+layout_mode = 0
+color = Color(0, 0, 0, 0.6)
+
+[node name="ModalPanel" type="PanelContainer" parent="." unique_id=1905874626]
+layout_mode = 0
+offset_left = 100.0
+offset_top = 80.0
+offset_right = -100.0
+offset_bottom = -80.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 1
+
+[node name="ContentVBox" type="VBoxContainer" parent="ModalPanel" unique_id=1172823891]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HeaderBar" type="HBoxContainer" parent="ModalPanel/ContentVBox" unique_id=898334982]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="ModalPanel/ContentVBox/HeaderBar" unique_id=535897739]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 20
+text = "詳細資料"
+
+[node name="CloseBtn" type="Button" parent="ModalPanel/ContentVBox/HeaderBar" unique_id=409320153]
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "✕"
+flat = true
+
+[node name="ContentStack" type="VBoxContainer" parent="ModalPanel/ContentVBox" unique_id=151085530]
+layout_mode = 2
+size_flags_vertical = 3

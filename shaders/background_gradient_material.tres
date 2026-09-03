@@ -1,0 +1,6 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://duobft4uwc32e"]
+
+[ext_resource type="Shader" path="res://shaders/background_gradient.gdshader" id="1_yvnr6"]
+
+[resource]
+shader = ExtResource("1_yvnr6")

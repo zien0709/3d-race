@@ -1,0 +1,140 @@
+[gd_scene format=3 uid="uid://1qlh0nwqxnnx"]
+
+[ext_resource type="Script" path="res://ui/lobby/components/inspector/room_config_panel.gd" id="1_8y0le"]
+
+[node name="RoomConfigPanel" type="VBoxContainer" unique_id=236454666]
+theme_override_constants/separation = 12
+script = ExtResource("1_8y0le")
+
+[node name="TitleLabel" type="Label" parent="." unique_id=1510070429]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 18
+text = "房間設定"
+
+[node name="ConfigContainer" type="VBoxContainer" parent="." unique_id=284823628]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MapRow" type="HBoxContainer" parent="ConfigContainer" unique_id=1227036375]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MapLabel" type="Label" parent="ConfigContainer/MapRow" unique_id=1791868458]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "地圖"
+
+[node name="MapOption" type="OptionButton" parent="ConfigContainer/MapRow" unique_id=1384457378]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ModeRow" type="HBoxContainer" parent="ConfigContainer" unique_id=2013657138]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ModeLabel" type="Label" parent="ConfigContainer/ModeRow" unique_id=644830406]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "模式"
+
+[node name="ModeOption" type="OptionButton" parent="ConfigContainer/ModeRow" unique_id=748640220]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MaxPlayersRow" type="HBoxContainer" parent="ConfigContainer" unique_id=1759836182]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MaxPlayersLabel" type="Label" parent="ConfigContainer/MaxPlayersRow" unique_id=1188232581]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "人數"
+
+[node name="MaxPlayersSpin" type="SpinBox" parent="ConfigContainer/MaxPlayersRow" unique_id=1929707608]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 2.0
+max_value = 16.0
+value = 2.0
+
+[node name="PrivacyRow" type="HBoxContainer" parent="ConfigContainer" unique_id=67852686]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PrivacyLabel" type="Label" parent="ConfigContainer/PrivacyRow" unique_id=1420314224]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "隱私"
+
+[node name="PrivacyOption" type="OptionButton" parent="ConfigContainer/PrivacyRow" unique_id=1754386913]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CarRestrictionRow" type="HBoxContainer" parent="ConfigContainer" unique_id=1500783517]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CarRestrictionLabel" type="Label" parent="ConfigContainer/CarRestrictionRow" unique_id=845214904]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "車輛"
+
+[node name="CarRestrictionOption" type="OptionButton" parent="ConfigContainer/CarRestrictionRow" unique_id=1928807577]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DamageModeRow" type="HBoxContainer" parent="ConfigContainer" unique_id=1884240384]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DamageModeLabel" type="Label" parent="ConfigContainer/DamageModeRow" unique_id=111623859]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "傷害"
+
+[node name="DamageModeOption" type="OptionButton" parent="ConfigContainer/DamageModeRow" unique_id=1898637543]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AutoStartRow" type="HBoxContainer" parent="ConfigContainer" unique_id=955279388]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AutoStartLabel" type="Label" parent="ConfigContainer/AutoStartRow" unique_id=193298296]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "自動"
+
+[node name="AutoStartOption" type="OptionButton" parent="ConfigContainer/AutoStartRow" unique_id=865019379]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SpectatorCheck" type="CheckBox" parent="ConfigContainer" unique_id=1716154294]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "允許觀戰"
+
+[node name="ActionRow" type="HBoxContainer" parent="ConfigContainer" unique_id=740411884]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 2
+
+[node name="SaveBtn" type="Button" parent="ConfigContainer/ActionRow" unique_id=117169116]
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "儲存"
+
+[node name="CancelBtn" type="Button" parent="ConfigContainer/ActionRow" unique_id=1688396503]
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "取消"

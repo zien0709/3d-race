@@ -1,0 +1,19 @@
+[gd_resource type="ParticleProcessMaterial" format=3]
+
+[resource]
+direction = Vector3(0, 1, 0)
+spread = 180
+gravity = Vector3(0, -10, 0)
+initial_velocity = 20
+lifetime = 10.0
+scale = 0.5
+emission_shape = 7
+emission_sphere_radius = 640
+color = Color(0.22, 0.74, 0.97, 0.3)
+color_ramp = Gradient {
+  points = [
+    { "offset": 0.0, "color": Color(0.22, 0.74, 0.97, 0.0) },
+    { "offset": 0.5, "color": Color(0.22, 0.74, 0.97, 0.3) },
+    { "offset": 1.0, "color": Color(0.22, 0.74, 0.97, 0.0) }
+  ]
+}

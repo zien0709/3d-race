@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://pujbs6ctvwli"]
+
+[ext_resource type="Shader" uid="uid://rsdekwpvjey5" path="res://shaders/glassmorphism.gdshader" id="1_058ce"]
+[ext_resource type="Texture2D" uid="uid://cu4juofrvejyl" path="res://shaders/noise_texture.tres" id="2_44sxu"]
+
+[resource]
+shader = ExtResource("1_058ce")
+shader_parameter/blur_intensity = 0.08
+shader_parameter/tint_color = Color(0.06, 0.08, 0.12, 0.6)
+shader_parameter/tint_amount = 0.4
+shader_parameter/rim_intensity = 0.3
+shader_parameter/rim_color = Color(0.22, 0.74, 0.97, 1)
+shader_parameter/noise_texture = ExtResource("2_44sxu")
+shader_parameter/noise_amount = 0.02
+shader_parameter/chromatic_aberration = 0.002
+shader_parameter/edge_fade = 0.15

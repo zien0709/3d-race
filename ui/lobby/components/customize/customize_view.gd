@@ -30,6 +30,7 @@ func _ready() -> void:
 
 func open() -> void:
 	_ui_animations.kill_tweens(self)
+	z_index = 10
 	_ui_animations.panel_open(self, 0.25)
 
 func close() -> void:
@@ -37,6 +38,7 @@ func close() -> void:
 	var tween := _ui_animations.panel_close(self, 0.2)
 	await tween.finished
 	visible = false
+	z_index = 0
 
 ## --- UI building ---
 

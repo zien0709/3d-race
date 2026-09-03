@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://tg83521mxsn6"]
+
+[ext_resource type="Script" uid="uid://dyxuf3qlyc3dh" path="res://ui/lobby/components/player_zone/player_zone.gd" id="1_impta"]
+[ext_resource type="PackedScene" uid="uid://b26uxawafl0k4" path="res://ui/lobby/components/player_zone/car_preview_subviewport.tscn" id="2_jtxd4"]
+
+[node name="PlayerZone" type="Control" unique_id=383898978]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 3
+anchors_preset = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_impta")
+
+[node name="GlassPanel" type="PanelContainer" parent="." unique_id=1110037074]
+layout_mode = 0
+
+[node name="NameRankAnchor" type="Control" parent="." unique_id=1736111810]
+anchors_preset = 0
+anchor_bottom = 1.0
+offset_right = -16.0
+
+[node name="NameRankPanel" type="PanelContainer" parent="NameRankAnchor" unique_id=447589021]
+layout_mode = 0
+
+[node name="NameRankVBox" type="VBoxContainer" parent="NameRankAnchor/NameRankPanel" unique_id=36746167]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="NameRankAnchor/NameRankPanel/NameRankVBox" unique_id=455631288]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="RankContainer" type="HBoxContainer" parent="NameRankAnchor/NameRankPanel/NameRankVBox" unique_id=90215835]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="RankIcon" type="Label" parent="NameRankAnchor/NameRankPanel/NameRankVBox/RankContainer" unique_id=1096371726]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+
+[node name="RankLabel" type="Label" parent="NameRankAnchor/NameRankPanel/NameRankVBox/RankContainer" unique_id=385313579]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.74, 0.97, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="CarNameLabel" type="Label" parent="NameRankAnchor/NameRankPanel/NameRankVBox" unique_id=649016067]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+
+[node name="SpeechBubbleAnchor" type="Control" parent="." unique_id=1663529640]
+anchors_preset = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_top = -50.0
+
+[node name="SelectionGlow" type="TextureRect" parent="." unique_id=1638707277]
+visible = false
+layout_mode = 0
+
+[node name="CarPreview" parent="." unique_id=638670126 instance=ExtResource("2_jtxd4")]
+layout_mode = 0

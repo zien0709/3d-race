@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://xfqiwl8g4fg"]
+
+[ext_resource type="Script" path="res://ui/lobby/components/inspector/dynamic_inspector.gd" id="1_pudsq"]
+
+[node name="DynamicInspector" type="PanelContainer" unique_id=599128619]
+script = ExtResource("1_pudsq")
+
+[node name="ContentVBox" type="VBoxContainer" parent="." unique_id=1340643965]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderBar" type="HBoxContainer" parent="ContentVBox" unique_id=590627267]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="ContentVBox/HeaderBar" unique_id=1621312455]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1)
+theme_override_font_sizes/font_size = 15
+text = "車輛資料"
+
+[node name="ExpandBtn" type="Button" parent="ContentVBox/HeaderBar" unique_id=124896356]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "⛶"
+flat = true
+
+[node name="ContentStack" type="VBoxContainer" parent="ContentVBox" unique_id=631226280]
+layout_mode = 2
+size_flags_vertical = 3

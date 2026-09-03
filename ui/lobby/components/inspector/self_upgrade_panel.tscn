@@ -1,0 +1,202 @@
+[gd_scene format=3 uid="uid://nti51rkdiriv"]
+
+[ext_resource type="Script" uid="uid://fkrxp26pe50s" path="res://ui/lobby/components/inspector/self_upgrade_panel.gd" id="1_vbkt0"]
+
+[node name="SelfUpgradePanel" type="VBoxContainer" unique_id=199554320]
+theme_override_constants/separation = 12
+script = ExtResource("1_vbkt0")
+
+[node name="TitleLabel" type="Label" parent="." unique_id=826098703]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 18
+text = "車輛升級"
+
+[node name="StatsContainer" type="VBoxContainer" parent="." unique_id=1287493766]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EngineRow" type="HBoxContainer" parent="StatsContainer" unique_id=225850671]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EngineLabel" type="Label" parent="StatsContainer/EngineRow" unique_id=1022228314]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "引擎"
+
+[node name="EngineBar" type="ProgressBar" parent="StatsContainer/EngineRow" unique_id=397575951]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="EngineValue" type="Label" parent="StatsContainer/EngineRow" unique_id=870209622]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="EngineUpgradeBtn" type="Button" parent="StatsContainer/EngineRow" unique_id=377303098]
+custom_minimum_size = Vector2(60, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "升級"
+
+[node name="TransmissionRow" type="HBoxContainer" parent="StatsContainer" unique_id=222747978]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TransmissionLabel" type="Label" parent="StatsContainer/TransmissionRow" unique_id=2049409338]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "變速箱"
+
+[node name="TransmissionBar" type="ProgressBar" parent="StatsContainer/TransmissionRow" unique_id=360091537]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="TransmissionValue" type="Label" parent="StatsContainer/TransmissionRow" unique_id=1817336734]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="TransmissionUpgradeBtn" type="Button" parent="StatsContainer/TransmissionRow" unique_id=1395856590]
+custom_minimum_size = Vector2(60, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "升級"
+
+[node name="SuspensionRow" type="HBoxContainer" parent="StatsContainer" unique_id=906891010]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SuspensionLabel" type="Label" parent="StatsContainer/SuspensionRow" unique_id=398823509]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "懸吊"
+
+[node name="SuspensionBar" type="ProgressBar" parent="StatsContainer/SuspensionRow" unique_id=413634006]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="SuspensionValue" type="Label" parent="StatsContainer/SuspensionRow" unique_id=1593843086]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="SuspensionUpgradeBtn" type="Button" parent="StatsContainer/SuspensionRow" unique_id=1280471164]
+custom_minimum_size = Vector2(60, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "升級"
+
+[node name="TiresRow" type="HBoxContainer" parent="StatsContainer" unique_id=1641438031]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TiresLabel" type="Label" parent="StatsContainer/TiresRow" unique_id=151465290]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "輪胎"
+
+[node name="TiresBar" type="ProgressBar" parent="StatsContainer/TiresRow" unique_id=1103521547]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="TiresValue" type="Label" parent="StatsContainer/TiresRow" unique_id=2024359533]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="TiresUpgradeBtn" type="Button" parent="StatsContainer/TiresRow" unique_id=159019114]
+custom_minimum_size = Vector2(60, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "升級"
+
+[node name="NitroRow" type="HBoxContainer" parent="StatsContainer" unique_id=315147494]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NitroLabel" type="Label" parent="StatsContainer/NitroRow" unique_id=345297015]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "氮氣"
+
+[node name="NitroBar" type="ProgressBar" parent="StatsContainer/NitroRow" unique_id=1433692166]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="NitroValue" type="Label" parent="StatsContainer/NitroRow" unique_id=1520010314]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="NitroUpgradeBtn" type="Button" parent="StatsContainer/NitroRow" unique_id=462425742]
+custom_minimum_size = Vector2(60, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "升級"
+
+[node name="AeroRow" type="HBoxContainer" parent="StatsContainer" unique_id=993545878]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AeroLabel" type="Label" parent="StatsContainer/AeroRow" unique_id=875255455]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "空力套件"
+
+[node name="AeroBar" type="ProgressBar" parent="StatsContainer/AeroRow" unique_id=186706072]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="AeroValue" type="Label" parent="StatsContainer/AeroRow" unique_id=288473174]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="AeroUpgradeBtn" type="Button" parent="StatsContainer/AeroRow" unique_id=734698312]
+custom_minimum_size = Vector2(60, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "升級"
+
+[node name="ActionRow" type="HBoxContainer" parent="." unique_id=1472911406]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 2
+
+[node name="UpgradeSelectedBtn" type="Button" parent="ActionRow" unique_id=2040185764]
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "升級選中"
+
+[node name="CloseBtn" type="Button" parent="ActionRow" unique_id=1749422682]
+custom_minimum_size = Vector2(100, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "關閉"

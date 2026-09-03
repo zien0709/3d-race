@@ -42,10 +42,21 @@ var _search_query: String = ""
 var _panel_height: float = 400.0
 var _close_tween: Tween = null
 var _open_tween: Tween = null
+var _is_open: bool = false
 
 func _ready() -> void:
 	_ui_animations = UIAnimations
-	custom_minimum_size = Vector2(360, 400)
+	# Force bottom-sheet anchoring (can't rely on .tscn persisted values)
+	set_anchors_preset(Control.PRESET_TOP_WIDE)
+	anchor_left = 0.0
+	anchor_top = 1.0
+	anchor_right = 1.0
+	anchor_bottom = 1.0
+	offset_left = 12.0
+	offset_top = -476.0
+	offset_right = -12.0
+	offset_bottom = -76.0
+	custom_minimum_size = Vector2(0, 360)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_style()
 	_build_ui()
@@ -238,19 +249,22 @@ func open_chat() -> void:
 	if _close_tween != null and _close_tween.is_valid():
 		_close_tween.kill()
 		_close_tween = null
-	if visible:
+	if _is_open:
 		focus_input()
 		return
+	_is_open = true
 	visible = true
 	move_to_front()
 	z_index = 10
+	# Expand to cover BottomBar area (full-width bottom sheet)
+	offset_bottom = 0.0
 	modulate.a = 0.0
 	_open_tween = create_tween()
 	_open_tween.tween_property(self, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	focus_input()
 
 func close_chat() -> void:
-	if not visible:
+	if not _is_open:
 		return
 	# Kill any running open animation
 	if _open_tween != null and _open_tween.is_valid():
@@ -258,7 +272,12 @@ func close_chat() -> void:
 		_open_tween = null
 	_close_tween = create_tween()
 	_close_tween.tween_property(self, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	_close_tween.tween_callback(func(): visible = false)
+	_close_tween.tween_callback(func():
+		visible = false
+		_is_open = false
+		# Restore collapsed size (above BottomBar)
+		offset_bottom = -76.0
+	)
 
 ## ── 信號處理 ──────────────────────────────────────────────
 

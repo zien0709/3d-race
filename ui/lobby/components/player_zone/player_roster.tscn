@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://c0sixv1ndg8j0"]
+
+[ext_resource type="Script" path="res://ui/lobby/components/player_zone/player_roster.gd" id="1_6nfbt"]
+
+[node name="PlayerRoster" type="Control" unique_id=1518372538]
+layout_mode = 3
+anchors_preset = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_6nfbt")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1852164437]
+layout_mode = 0
+horizontal_scroll_mode = 0
+
+[node name="PlayerList" type="VBoxContainer" parent="ScrollContainer" unique_id=2111403117]
+layout_mode = 2
+theme_override_constants/separation = 12
