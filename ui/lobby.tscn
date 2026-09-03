@@ -4,14 +4,124 @@
 [ext_resource type="Script" uid="uid://cs0c1s2cmfhy0" path="res://ui/lobby/components/header/header.gd" id="2_oyvhv"]
 [ext_resource type="Script" uid="uid://b7qjspeswqqbd" path="res://ui/lobby/lobby_main.gd" id="2_x74pg"]
 [ext_resource type="Script" uid="uid://dvxixwrnu3exd" path="res://ui/lobby/components/inspector/inspector.gd" id="3_x74pg"]
+[ext_resource type="Script" uid="uid://cxxniwge0jw4h" path="res://ui/lobby/components/chat/chat_trigger.gd" id="4_vgfbg"]
 [ext_resource type="Script" uid="uid://bcjj2tv1bk7k4" path="res://ui/lobby/components/showcase/showcase.gd" id="5_vc1it"]
 [ext_resource type="Script" uid="uid://b4hypcxaird4" path="res://ui/lobby/components/ready_button/ready_button.gd" id="6_xg6h8"]
-[ext_resource type="Script" uid="uid://bg6gcvo1ojkyy" path="res://ui/lobby/components/chat/chat_panel.gd" id="7_vgfbg"]
+[ext_resource type="Script" uid="uid://cvywf5rcaq8pi" path="res://ui/lobby/components/chat/chat_preview.gd" id="7_cp"]
+[ext_resource type="Script" uid="uid://2stdyw2ubpjd" path="res://ui/lobby/components/chat/floating_chat.gd" id="7_kylly"]
 [ext_resource type="Script" uid="uid://dewipyx436h3v" path="res://ui/lobby/components/room_overlay/room_overlay.gd" id="8_n1208"]
-[ext_resource type="Script" uid="uid://deufb4p12o0ri" path="res://ui/lobby/components/chat/chat_dock.gd" id="8_oyvhv"]
+[ext_resource type="Script" uid="uid://85m1kpry0xlb" path="res://ui/lobby/components/chat/quick_phrases.gd" id="8_qp"]
 [ext_resource type="Script" uid="uid://w4483afieja" path="res://ui/lobby/components/lobby_browser/lobby_browser.gd" id="9_n8uyy"]
 [ext_resource type="Script" uid="uid://tmmo6v47gxfi" path="res://ui/lobby/components/customize/customize_view.gd" id="10_8mrmc"]
 [ext_resource type="Script" uid="uid://818c53evv3jo" path="res://ui/lobby/components/toast/toast.gd" id="11_lkqrx"]
+
+[sub_resource type="Animation" id="Animation_oyvhv"]
+length = 0.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("FloatingChat:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("FloatingChat:position:x")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, -30.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Inspector:modulate:a")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.05, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Inspector:position:x")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.05, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [30.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_x74pg"]
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("FloatingChat:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("FloatingChat:position:x")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [-30.0, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Inspector:modulate:a")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.15),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Inspector:position:x")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 30.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_vgfbg"]
+_data = {
+&"chat_close": SubResource("Animation_oyvhv"),
+&"chat_open": SubResource("Animation_x74pg")
+}
 
 [node name="Lobby" type="Control" unique_id=2106021884]
 layout_mode = 3
@@ -48,7 +158,7 @@ anchor_bottom = 1.0
 offset_left = 12.0
 offset_top = 96.0
 offset_right = -12.0
-offset_bottom = -80.0
+offset_bottom = -76.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 12
@@ -71,6 +181,22 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("3_x74pg")
 
+[node name="FloatingChat" type="PanelContainer" parent="MainContainer/LeftPanel/LeftContent" unique_id=1533170177]
+visible = false
+z_index = 10
+layout_mode = 2
+script = ExtResource("7_kylly")
+
+[node name="ChatTrigger" type="Button" parent="MainContainer/LeftPanel" unique_id=407141638]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("4_vgfbg")
+
+[node name="ChatAnimationPlayer" type="AnimationPlayer" parent="MainContainer/LeftPanel" unique_id=1504720937]
+libraries/ = SubResource("AnimationLibrary_vgfbg")
+
 [node name="CenterRightPanel" type="Control" parent="MainContainer" unique_id=274641255]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -86,22 +212,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_vc1it")
 
-[node name="FloatingChat" type="PanelContainer" parent="." unique_id=1533170177]
-visible = false
-z_index = 10
-layout_mode = 0
-anchor_top = 1.0
-anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = -476.0
-offset_right = 450.0
-offset_bottom = -76.0
-grow_horizontal = 2
-grow_vertical = 0
-script = ExtResource("7_vgfbg")
-
 [node name="BottomBar" type="HBoxContainer" parent="." unique_id=286043615]
-z_index = 5
 layout_mode = 0
 anchor_top = 1.0
 anchor_right = 1.0
@@ -115,11 +226,21 @@ grow_vertical = 0
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="ChatDock" type="PanelContainer" parent="BottomBar" unique_id=887010624]
-custom_minimum_size = Vector2(0, 50)
+[node name="ChatPreview" type="PanelContainer" parent="BottomBar" unique_id=1279343095]
+custom_minimum_size = Vector2(280, 40)
+layout_mode = 2
+size_flags_horizontal = 0
+script = ExtResource("7_cp")
+
+[node name="Spacer" type="Control" parent="BottomBar" unique_id=1404665283]
 layout_mode = 2
 size_flags_horizontal = 3
-script = ExtResource("8_oyvhv")
+
+[node name="QuickPhrases" type="HBoxContainer" parent="BottomBar" unique_id=1063803860]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 2
+script = ExtResource("8_qp")
 
 [node name="ReadyButton" type="Button" parent="BottomBar" unique_id=2085932185]
 custom_minimum_size = Vector2(220, 44)
@@ -144,7 +265,6 @@ grow_vertical = 2
 script = ExtResource("9_n8uyy")
 
 [node name="CustomizeView" type="Control" parent="." unique_id=1465822682]
-visible = false
 anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0

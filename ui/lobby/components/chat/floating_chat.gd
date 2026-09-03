@@ -52,13 +52,13 @@ func open_chat() -> void:
 	move_to_front()
 	z_index = 10
 	modulate.a = 0.0
-	# 起始位置：比目標低 16px（offset_bottom -60 → -76），向上滑入
-	offset_top = -460
-	offset_bottom = -60
+	# 起始位置：從左側滑入，垂直居中
+	offset_left = 0
+	offset_right = 340
+	offset_top = 0
+	offset_bottom = 400
 	var tween := create_tween()
 	tween.tween_property(self, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(self, "offset_top", -476, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(self, "offset_bottom", -76, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	focus_input()
 
 func close_chat() -> void:

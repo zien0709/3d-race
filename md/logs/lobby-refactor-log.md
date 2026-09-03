@@ -606,3 +606,38 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 45. **PanelContainer content_margin 需分開設定**——`set_content_margin_all()` 會同時設定四邊，但左右邊距通常需要比上下邊距大，以避免文字貼邊
 46. **BoxContainer alignment 控制主軸對齊**——HBoxContainer 的 alignment=1 (CENTER) 會水平置中子元件；VBoxContainer 的 alignment=1 會垂直置中子元件
 
+---
+
+## FloatingChat 修復（2026-09-02）
+
+### 症狀
+1. ChatPreview 點擊無反應，FloatingChat 不開啟
+2. FloatingChat 位置偏移（y=-380，僅底部 20px 可見）
+3. 動畫路徑失效（AnimationPlayer 找不到節點）
+
+### 根因
+1. **ChatPreview 子節點 mouse_filter=0（STOP）**：HBoxContainer 和 Label 子節點預設 mouse_filter=0，在父 PanelContainer 之前消費了點擊事件，導致 `gui_input` 信號不觸發
+2. **FloatingChat position 殘留**：場景中 position=(16,260) 是舊佈局遺留值，與 open_chat() 的 offset 設定衝突
+3. **AnimationPlayer 路徑失效**：FloatingChat 從 LeftPanel 移到 LeftContent 子目錄後，動畫 NodePath 未同步更新
+4. **open_chat() 不改 visible**：`chat_open` 動畫只改 modulate.a 和 position，不改 visible 屬性；FloatingChat 從 visible=false 開始，動畫無效
+
+### 修復策略
+1. **chat_preview.gd**：HBoxContainer、icon Label、preview Label 加 `mouse_filter = MOUSE_FILTER_IGNORE`，讓點擊事件穿透到 PanelContainer
+2. **lobby.tscn**：FloatingChat 動畫路徑加 `LeftContent/` 前綴（`FloatingChat:modulate:a` → `LeftContent/FloatingChat:modulate:a`）
+3. **lobby_main.gd**：`_on_chat_toggled` 改用 `floating_chat.open_chat()` / `close_chat()`（不依賴 AnimationPlayer，因為動畫不改 visible）
+4. **floating_chat.gd**：`open_chat()` 改為設定 offset_top/bottom/left/right 正確定位，移除舊的 offset 動畫
+5. **MCP 修正**：用 `godot-ai_node_set_property` 將 FloatingChat position 重設為 (0,0)
+
+### 驗證結果（game_eval + get_ui_elements）
+- ChatPreview 點擊 → FloatingChat visible=true, modulate.a=1.0 ✓
+- FloatingChat ✕ → visible=false, Inspector visible=true ✓
+- ESC 鍵 → visible=false ✓
+- Inspector 車輛資料完整顯示（Score 850, Class S, 大師 I）✓
+- 4 車位 GridContainer + SpeechBubble 存在 ✓
+- 遊戲零 script errors ✓
+
+### 教訓補充
+47. **子節點 mouse_filter=0 會消費父容器的 gui_input**——PanelContainer 的 `gui_input` 信號在子節點有 STOP 時不觸發；需將子節點設為 MOUSE_FILTERIGNORE
+48. **AnimationPlayer 動畫不改 visible 屬性**——需在腳本中先設 visible=true 再播放動畫，或改用 open_chat()/close_chat() 內建的 visible 控制
+49. **節點移動後所有引用路徑必須同步**——tscn 動畫 NodePath、@onready 引用、game_eval 路徑全部需更新
+
