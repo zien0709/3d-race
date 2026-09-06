@@ -5,7 +5,7 @@
 ## Phase 狀態
 
 **目前 Phase：D**（Lobby 重構進行中）
-**更新日期：2026-09-02**
+**更新日期：2026-09-04**
 
 ## 已知問題快照
 
@@ -21,6 +21,9 @@
 | 賽道寫死／無護欄／Roadbed面數未量化 | Plan A 完成（見 `md/domain/track_analysis.md` §1）；**B1 解耦完成**（commit `20961fe`）：`TrackConfig`+`tracks/default.tres`+`race_course_setup.gd`/`start_grid.gd` 改吃 cfg；**B2 解耦完成**：`TrackRegistry` Autoload（`race/track_registry.gd`，無 class_name）+ `race_course_setup.gd` 改吃 `TrackRegistry.get_selected_track()`、`lobby_manager.gd` 同步 `map`→`TrackRegistry`，見 `md/logs/track-decoupling-log.md` |
 | FloatingChat 聊天窗 | **已修復**（2026-09-02）：ChatPreview 點擊 → FloatingChat 開啟 + Inspector 隱藏，✕/ESC 關閉 + Inspector 恢復。修正項目：(1) 動畫路徑 LeftContent 前綴、(2) floating_chat.gd open_chat() offset 定位、(3) chat_preview.gd 子節點 mouse_filter=IGNORE |
 | ChatPreview 點擊無反應 | **已修復**（2026-09-02）：子節點 HBoxContainer/Label mouse_filter=0 消費事件，改為 MOUSE_FILTER_IGNORE |
+| `room_config_panel.gd:131` Parse Error | **已修復**（2026-09-04）：`spectator_check.pressed` → `button_pressed`（Godot 4 pressed 為 const） |
+| `ambient_process_material.tres` Parse Error | **已修復**（2026-09-04）：Godot 3 內聯 Gradient → Godot 4 sub_resource (Gradient + GradientTexture1D) |
+| `lobby_main.gd` signal 簽名不匹配 | **已修復**（2026-09-04）：`_on_auth_succeeded` 改為雙參 `(_display_name, _product_user_id)`，對齊 `AuthManager.login_succeeded` |
 
 ## 佈局結構（2026-09-02 確認）
 

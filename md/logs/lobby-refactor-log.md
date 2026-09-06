@@ -641,3 +641,33 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 48. **AnimationPlayer 動畫不改 visible 屬性**——需在腳本中先設 visible=true 再播放動畫，或改用 open_chat()/close_chat() 內建的 visible 控制
 49. **節點移動後所有引用路徑必須同步**——tscn 動畫 NodePath、@onready 引用、game_eval 路徑全部需更新
 
+---
+
+## 三個 Parse Error 修復（2026-09-04）
+
+### 症狀
+1. `room_config_panel.gd:131` - `Parse Error: Cannot assign a new value to a constant` — `spectator_check.pressed = config["spectator"]` 撞到 `CheckButton.pressed` 是 const alias
+2. `ambient_process_material.tres:13` - `Parse Error: Unexpected identifier 'Gradient'` — Godot 3 內聯 `Gradient { ... }` 語法在 Godot 4 不支援
+3. `auth_manager.gd:186 @ _on_nm_login_succeeded()` - `Error calling from signal 'login_succeeded' to callable: 'Control(lobby_main.gd)::_on_auth_succeeded': Method expected 1 argument(s), but called with 2` — signal 簽名不匹配
+
+### 根因
+1. **Godot 4 `CheckButton.pressed` 是 const alias** — 唯讀，只能用 `button_pressed = ...` 或 `set_pressed(...)`
+2. **Godot 4 `ParticleProcessMaterial.color_ramp` 期待 `GradientTexture1D`** — 必須用 `[sub_resource type="Gradient"]` + `[sub_resource type="GradientTexture1D"]` 兩層 sub_resource
+3. **Signal/Handler 簽名不一致** — `AuthManager.login_succeeded(display_name, product_user_id)` 兩參，但 `lobby_main.gd::_on_auth_succeeded` 只接一參；`time_trial_start_screen.gd` 已是正確雙參
+
+### 修復策略
+1. `room_config_panel.gd:131` — `spectator_check.pressed = ...` → `spectator_check.button_pressed = ...`
+2. `ambient_process_material.tres` — 整檔重寫為 Godot 4 sub_resource 格式（Gradient → GradientTexture1D → color_ramp）
+3. `lobby_main.gd:66` + `:154` — call site 與 handler 同步改為雙參 `(_display_name, _product_user_id)`，參數加底線前綴表示 unused
+
+### 驗證結果
+- 三個 parse error 均消失
+- `godot-ai_project_run` → `status: live`、`helper_live: true`
+- `godot-ai_logs_read source=game` → 只有 game_helper 註冊訊息，零 runtime error
+- `godot-ai_logs_read source=editor` → error log cursor 停在 10（pre-fix stale entries），無新增 error
+
+### 教訓補充
+50. **Godot 4 `Button.pressed` / `CheckButton.pressed` 是 const** — 寫入需用 `button_pressed` 或 `set_pressed()`，直接賦值會 parse error
+51. **Resource 內聯 Gradient → sub_resource 兩層** — Godot 4 `GradientTexture1D` 持有 `Gradient`，`.tres` 需展開為三段：Gradient sub_resource → GradientTexture1D sub_resource → resource 引用
+52. **Signal handler 簽名必須精確匹配 emit 參數數** — 參數數不符會在 runtime 觸發 "Method expected N argument(s), but called with M"，阻擋登入鏈路；新增 handler 時直接參考同專案既有同類 handler（如 `time_trial_start_screen.gd`）
+
