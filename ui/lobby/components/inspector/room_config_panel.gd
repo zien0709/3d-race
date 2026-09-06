@@ -128,7 +128,7 @@ func update_config(config: Dictionary) -> void:
 	if config.has("auto_start"):
 		auto_start_option.select(auto_start_option.get_item_index(config["auto_start"]))
 	if config.has("spectator"):
-		spectator_check.pressed = config["spectator"]
+		spectator_check.button_pressed = config["spectator"]
 
 func _on_map_changed(index: int) -> void:
 	config_changed.emit("map", map_option.get_item_text(index))
