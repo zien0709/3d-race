@@ -1,5 +1,12 @@
 [gd_resource type="ParticleProcessMaterial" format=3]
 
+[sub_resource type="Gradient" id="Gradient_ramp"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.22, 0.74, 0.97, 0, 0.22, 0.74, 0.97, 0.3, 0.22, 0.74, 0.97, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_ramp"]
+gradient = SubResource("Gradient_ramp")
+
 [resource]
 direction = Vector3(0, 1, 0)
 spread = 180
@@ -10,10 +17,4 @@ scale = 0.5
 emission_shape = 7
 emission_sphere_radius = 640
 color = Color(0.22, 0.74, 0.97, 0.3)
-color_ramp = Gradient {
-  points = [
-    { "offset": 0.0, "color": Color(0.22, 0.74, 0.97, 0.0) },
-    { "offset": 0.5, "color": Color(0.22, 0.74, 0.97, 0.3) },
-    { "offset": 1.0, "color": Color(0.22, 0.74, 0.97, 0.0) }
-  ]
-}
+color_ramp = SubResource("GradientTexture1D_ramp")
