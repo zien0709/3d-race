@@ -63,7 +63,7 @@ func _ready() -> void:
 				var profile = await ps.load_profile()
 				if profile.has("display_name") and str(profile["display_name"]) != "":
 					auth_manager._display_name = str(profile["display_name"])
-		_on_auth_succeeded(auth_manager.display_name())
+		_on_auth_succeeded(auth_manager.display_name(), auth_manager.product_user_id())
 	_refresh_all()
 
 func _input(event: InputEvent) -> void:
@@ -151,7 +151,7 @@ func _connect_components() -> void:
 
 ## --- AuthManager signal handlers ---
 
-func _on_auth_succeeded(_display_name: String) -> void:
+func _on_auth_succeeded(_display_name: String, _product_user_id: String) -> void:
 	_update_default_room_name()
 	_auto_create_room_if_needed()
 	_refresh_all()
