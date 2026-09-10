@@ -671,3 +671,23 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 51. **Resource 內聯 Gradient → sub_resource 兩層** — Godot 4 `GradientTexture1D` 持有 `Gradient`，`.tres` 需展開為三段：Gradient sub_resource → GradientTexture1D sub_resource → resource 引用
 52. **Signal handler 簽名必須精確匹配 emit 參數數** — 參數數不符會在 runtime 觸發 "Method expected N argument(s), but called with M"，阻擋登入鏈路；新增 handler 時直接參考同專案既有同類 handler（如 `time_trial_start_screen.gd`）
 
+---
+
+## Phase I：聊天雙輸入框消除——Dock＋Panel 遷移（2026-09-10）
+
+### 症狀（使用者截圖）
+左欄聊天面板內一個「輸入訊息… (Enter 發送)」裸輸入框，底部另有一條「等待訊息…」膠囊看起來也是輸入框，再加上擠在一起的 Ready/GG/😄 快捷短語——又多又醜。
+
+### 根因
+半遷移狀態：新版 Dock（`chat_dock.gd`）＋Panel（`chat_panel.gd`）全套已寫好卻沒接上場景；舊版 FloatingChat（裸 LineEdit）＋ChatPreview（Label 假膠囊）＋QuickPhrases（僅 3 短語）同時活著。另有訊號落差：NetworkManager 4 參 vs lobby_main 3 參；快捷短語因 `send_*` 內建本機 echo＋手動回顯雙寫會重複顯示。
+
+### 修復策略
+- 場景（全經 Godot-ai MCP）：BottomBar 刪 Preview/Spacer/QuickPhrases 建 ChatDock（idx0）；Lobby 根建 ChatPanel（idx4，RoomOverlay 之前）；刪 FloatingChat；ChatTrigger 保持隱藏去接線（節點保留）
+- 控制器（`script_patch`）：@onready 換 dock/panel；重接 8 組訊號（dock 2＋panel 6）＋NM 私訊/reaction 2 組；接收改 4 參＋主存交 Panel/ChatData（刪 `chat_messages`＋`_load_chat_history_for_tab`）；發送/私訊/reaction 路由；system 訊息（加入/離開/改設定/開賽）；刪快捷短語手動回顯（去重）；開關/Tab 改走 panel＋`dock.set_open`
+- 驗證：`project_run(custom: res://ui/lobby.tscn)` live；game_eval 6/6（開 `[true,true,false]`／發送單條／四 tab／短語 1→2 去重／關 `[false,false,true]`／開關×3 回歸）；`get_scene_tree` 樹形相符；game log 零 error；editor 僅剩三處前人殘留（player_roster 缺檔、ambient tres 舊語法、room_config_panel stale log），與本次無關未動
+
+### 教訓補充
+53. **send_* 內建本機 echo 時呼叫端不可再手動回顯**——`send_chat_message`／`send_private_message` 內已 emit 本機訊號，UI 層若再調一次接收 handler 會重複顯示；統一走接收路徑。
+54. **新舊雙軌並存是最醜的狀態**——Dock＋Panel 程式寫好卻不接場景，比沒寫更糟（兩個輸入框）；遷移必須場景＋接線同一步做完，A＋B 視為一個受驗單元。
+55. **平行 patch 同一 .gd 會產生過渡期 diagnostics 噪音**——每 patch 回傳的 parse error 是套用順序快照，以最終 `find_symbols`＋run 為準，不必中途停下修。
+
