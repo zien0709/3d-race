@@ -7,12 +7,11 @@
 [ext_resource type="Script" uid="uid://cxxniwge0jw4h" path="res://ui/lobby/components/chat/chat_trigger.gd" id="4_vgfbg"]
 [ext_resource type="Script" uid="uid://bcjj2tv1bk7k4" path="res://ui/lobby/components/showcase/showcase.gd" id="5_vc1it"]
 [ext_resource type="Script" uid="uid://b4hypcxaird4" path="res://ui/lobby/components/ready_button/ready_button.gd" id="6_xg6h8"]
-[ext_resource type="Script" uid="uid://cvywf5rcaq8pi" path="res://ui/lobby/components/chat/chat_preview.gd" id="7_cp"]
-[ext_resource type="Script" uid="uid://2stdyw2ubpjd" path="res://ui/lobby/components/chat/floating_chat.gd" id="7_kylly"]
 [ext_resource type="Script" uid="uid://dewipyx436h3v" path="res://ui/lobby/components/room_overlay/room_overlay.gd" id="8_n1208"]
-[ext_resource type="Script" uid="uid://85m1kpry0xlb" path="res://ui/lobby/components/chat/quick_phrases.gd" id="8_qp"]
+[ext_resource type="Script" uid="uid://deufb4p12o0ri" path="res://ui/lobby/components/chat/chat_dock.gd" id="8_x74pg"]
 [ext_resource type="Script" uid="uid://w4483afieja" path="res://ui/lobby/components/lobby_browser/lobby_browser.gd" id="9_n8uyy"]
 [ext_resource type="Script" uid="uid://tmmo6v47gxfi" path="res://ui/lobby/components/customize/customize_view.gd" id="10_8mrmc"]
+[ext_resource type="Script" uid="uid://bg6gcvo1ojkyy" path="res://ui/lobby/components/chat/chat_panel.gd" id="10_vgfbg"]
 [ext_resource type="Script" uid="uid://818c53evv3jo" path="res://ui/lobby/components/toast/toast.gd" id="11_lkqrx"]
 
 [sub_resource type="Animation" id="Animation_oyvhv"]
@@ -181,12 +180,6 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("3_x74pg")
 
-[node name="FloatingChat" type="PanelContainer" parent="MainContainer/LeftPanel/LeftContent" unique_id=1533170177]
-visible = false
-z_index = 10
-layout_mode = 2
-script = ExtResource("7_kylly")
-
 [node name="ChatTrigger" type="Button" parent="MainContainer/LeftPanel" unique_id=407141638]
 visible = false
 custom_minimum_size = Vector2(0, 48)
@@ -226,27 +219,19 @@ grow_vertical = 0
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="ChatPreview" type="PanelContainer" parent="BottomBar" unique_id=1279343095]
-custom_minimum_size = Vector2(280, 40)
+[node name="ChatDock" type="PanelContainer" parent="BottomBar" unique_id=317801009]
 layout_mode = 2
-size_flags_horizontal = 0
-script = ExtResource("7_cp")
-
-[node name="Spacer" type="Control" parent="BottomBar" unique_id=1404665283]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="QuickPhrases" type="HBoxContainer" parent="BottomBar" unique_id=1063803860]
-custom_minimum_size = Vector2(0, 38)
-layout_mode = 2
-size_flags_horizontal = 2
-script = ExtResource("8_qp")
+script = ExtResource("8_x74pg")
 
 [node name="ReadyButton" type="Button" parent="BottomBar" unique_id=2085932185]
 custom_minimum_size = Vector2(220, 44)
 layout_mode = 2
 size_flags_horizontal = 2
 script = ExtResource("6_xg6h8")
+
+[node name="ChatPanel" type="PanelContainer" parent="." unique_id=746724532]
+layout_mode = 0
+script = ExtResource("10_vgfbg")
 
 [node name="RoomOverlay" type="Control" parent="." unique_id=759378977]
 anchors_preset = 0
