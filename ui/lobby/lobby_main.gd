@@ -8,13 +8,10 @@ signal start_requested(player_name: String)
 ## Component references
 @onready var header: Control = $Header
 @onready var inspector: Control = $MainContainer/LeftPanel/LeftContent/Inspector
-@onready var chat_trigger: Control = $MainContainer/LeftPanel/ChatTrigger
 @onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
 @onready var ready_button: Control = $BottomBar/ReadyButton
-@onready var chat_preview: Control = $BottomBar/ChatPreview
-@onready var quick_phrases: Control = $BottomBar/QuickPhrases
-@onready var floating_chat: Control = $MainContainer/LeftPanel/LeftContent/FloatingChat
-@onready var chat_animation_player: AnimationPlayer = $MainContainer/LeftPanel/ChatAnimationPlayer
+@onready var chat_dock: Control = $BottomBar/ChatDock
+@onready var chat_panel: Control = $ChatPanel
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
 @onready var customize_view: Control = $CustomizeView
@@ -45,7 +42,6 @@ var room_config: Dictionary = {
 
 ## Lobby data
 var players: Array = []
-var chat_messages: Array = []
 
 ## Singleton references
 var lobby_manager: Object = null
@@ -93,6 +89,8 @@ func _init_signals() -> void:
 	var nm = get_node_or_null("/root/NetworkManager")
 	if nm != null:
 		nm.chat_message_received.connect(_on_chat_message_received)
+		nm.chat_private_message_received.connect(_on_chat_private_message_received)
+		nm.chat_reaction_received.connect(_on_chat_reaction_received)
 
 	lobby_manager = get_node_or_null("/root/LobbyManager")
 	if lobby_manager != null:
@@ -115,20 +113,19 @@ func _connect_components() -> void:
 	## Inspector signals
 	inspector.customize_requested.connect(_on_customize_requested)
 
-	## Chat signals
-	chat_trigger.chat_toggled.connect(_on_chat_toggled)
-	floating_chat.tab_changed.connect(_on_chat_tab_changed)
-	floating_chat.message_sent.connect(_on_chat_message_sent)
-	floating_chat.closed.connect(_on_chat_closed)
+	## Chat signals (Dock + Panel)
+	chat_dock.chat_toggled.connect(_on_chat_toggled)
+	chat_dock.phrase_selected.connect(_on_quick_phrase_selected)
+	chat_panel.tab_changed.connect(_on_chat_tab_changed)
+	chat_panel.message_sent.connect(_on_chat_message_sent)
+	chat_panel.private_message_sent.connect(_on_private_message_sent)
+	chat_panel.reaction_added.connect(_on_reaction_added)
+	chat_panel.reaction_removed.connect(_on_reaction_removed)
+	chat_panel.closed.connect(_on_chat_closed)
 
 	## Showcase signals
 	showcase.slot_selected.connect(_on_showcase_slot_selected)
 
-	## Bottom bar signals
-	if quick_phrases != null and quick_phrases.has_signal("phrase_selected"):
-		quick_phrases.phrase_selected.connect(_on_quick_phrase_selected)
-	if chat_preview != null and chat_preview.has_signal("chat_toggled"):
-		chat_preview.chat_toggled.connect(_on_chat_preview_clicked)
 
 	## Ready button signals
 	ready_button.pressed.connect(_on_ready_pressed)
@@ -194,15 +191,25 @@ func _do_auto_create_room() -> void:
 
 ## --- LobbyManager signal handlers ---
 
-func _on_member_joined(_player_id: String) -> void:
+func _on_member_joined(player_id: String) -> void:
 	_refresh_players()
+	chat_panel.add_system_message("玩家 %s 加入房間" % _player_display_name(player_id))
 	_refresh_all()
 
 func _on_member_left(player_id: String) -> void:
 	if selected_id == player_id:
 		selected_id = ""
 	_refresh_players()
+	chat_panel.add_system_message("玩家 %s 離開房間" % _player_display_name(player_id))
 	_refresh_all()
+
+func _player_display_name(player_id: String) -> String:
+	for p in players:
+		if str(p.get("id", "")) == player_id:
+			return str(p.get("name", "玩家"))
+	if player_id.length() > 6:
+		return player_id.substr(0, 6)
+	return player_id
 
 func _on_ready_state_changed(ready_map: Dictionary) -> void:
 	is_ready = bool(ready_map.get("local_player_peer_id", false))
@@ -211,6 +218,7 @@ func _on_ready_state_changed(ready_map: Dictionary) -> void:
 	check_auto_start()
 
 func _on_match_started(_order: Array) -> void:
+	chat_panel.add_system_message("比賽即將開始")
 	start_requested.emit("")
 
 func _on_lobby_created(_info: Dictionary) -> void:
@@ -227,6 +235,7 @@ func _on_room_config_updated(rc: Dictionary) -> void:
 		room_config = rc.duplicate(true)
 		if room_overlay_open:
 			room_overlay.open(room_config, false)
+		chat_panel.add_system_message("房主更新了房間設定")
 		_refresh_all()
 
 ## --- Component signal handlers ---
@@ -265,84 +274,94 @@ func _on_customize_requested() -> void:
 func _on_chat_toggled(opened: bool) -> void:
 	chat_open = opened
 	if opened:
-		floating_chat.open_chat()
+		chat_panel.open_chat()
 		inspector.visible = false
 	else:
-		floating_chat.close_chat()
+		chat_panel.close_chat()
 		inspector.visible = true
-	if chat_trigger != null:
-		chat_trigger.set_chat_open(opened)
+	chat_dock.set_open(opened)
 	_refresh_all()
 
 func _on_chat_closed() -> void:
 	chat_open = false
-	floating_chat.close_chat()
+	chat_panel.close_chat()
 	inspector.visible = true
-	if chat_trigger != null:
-		chat_trigger.set_chat_open(false)
+	chat_dock.set_open(false)
 	_refresh_all()
 
 func _on_quick_phrase_selected(phrase: String) -> void:
-	# Fix: sender name from NetworkManager.display_name (primary) → fallback local player
-	var sender_name := ""
-	var nm = get_node_or_null("/root/NetworkManager")
-	if nm != null and nm.has_method("get") and nm.get("display_name") != null:
-		sender_name = str(nm.get("display_name"))
-	if sender_name.is_empty() and lobby_manager != null:
-		sender_name = str(lobby_manager.get_display_name())
-	if sender_name.is_empty() and auth_manager != null:
-		sender_name = auth_manager.display_name()
-	if sender_name.is_empty():
-		sender_name = "玩家"
-
-	# Send network RPC
 	var net_nm = get_node_or_null("/root/NetworkManager")
 	if net_nm != null and net_nm.has_method("send_chat_message"):
 		net_nm.send_chat_message(phrase, "room")
+	# NetworkManager echoes locally; unified receive path updates panel + dock.
+	# NOTE: no direct _on_chat_message_received call here (send already echoes).
+	_show_local_speech_bubble(phrase)
 
-	# Local echo
-	_on_chat_message_received(sender_name, phrase, "room")
-	if chat_preview != null and chat_preview.has_method("update_preview"):
-		chat_preview.update_preview(sender_name, phrase)
-
-	# Show speech bubble on local player's slot (slot 0)
-	if showcase != null and showcase.has_method("get") and showcase.get("slots") != null and showcase.slots.size() > 0:
-		var local_slot = showcase.slots[0]
-		if local_slot != null and local_slot.has_method("show_speech_bubble"):
-			local_slot.show_speech_bubble(phrase, 3.0)
-
-func _on_chat_preview_clicked(_opened: bool = true) -> void:
-	_on_chat_toggled(true)
 
 func _on_chat_tab_changed(tab: String) -> void:
 	chat_tab = tab
-	floating_chat.set_active_tab(chat_tab)
-	_load_chat_history_for_tab(chat_tab)
+	chat_panel.set_active_tab(chat_tab)
 
-func _load_chat_history_for_tab(tab: String) -> void:
-	floating_chat.clear_messages()
-	for msg in chat_messages:
-		if msg.get("tab", "") == tab:
-			var sender = msg.get("sender", "")
-			var text = msg.get("text", "")
-			var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
-			floating_chat.add_message(sender, text, is_self)
+func _on_chat_message_received(sender: String, sender_id: String, text: String, tab: String) -> void:
+	var is_self := _is_local_sender(sender_id, sender)
+	chat_panel.add_message(sender, text, is_self, tab, sender_id)
+	chat_dock.update_preview(sender, text, tab)
+	if tab == "room":
+		_show_local_speech_bubble(text)
 
-func _on_chat_message_received(sender: String, text: String, tab: String) -> void:
-	chat_messages.append({"sender": sender, "text": text, "tab": tab})
-	if tab == chat_tab:
-		var is_self = (sender == (auth_manager.display_name() if auth_manager != null else ""))
-		floating_chat.add_message(sender, text, is_self)
+func _is_local_sender(sender_id: String, sender: String) -> bool:
+	if lobby_manager != null and lobby_manager.has_method("get_local_player_id"):
+		return sender_id == str(lobby_manager.get_local_player_id())
+	if auth_manager != null:
+		return sender == auth_manager.display_name()
+	return false
 
-func _on_chat_message_sent(text: String) -> void:
+func _show_local_speech_bubble(text: String) -> void:
+	if showcase != null and showcase.has_method("get") and showcase.get("slots") != null and showcase.slots.size() > 0:
+		var local_slot = showcase.slots[0]
+		if local_slot != null and local_slot.has_method("show_speech_bubble"):
+			local_slot.show_speech_bubble(text, 3.0)
+
+func _on_chat_private_message_received(sender: String, target_id: String, text: String) -> void:
+	var is_self := _is_local_sender("", sender)
+	chat_panel.add_private_message(sender, target_id, text, is_self)
+	chat_dock.update_preview(sender, text, "room")
+
+func _on_chat_reaction_received(message_id: String, emoji: String, add: bool, _sender: String) -> void:
+	if add:
+		chat_panel.add_reaction(message_id, emoji)
+	else:
+		chat_panel.remove_reaction(message_id, emoji)
+
+func _on_chat_message_sent(text: String, is_private: bool = false, target_id: String = "") -> void:
 	var t := text.strip_edges()
 	if t == "":
 		return
-	# Send via NetworkManager (EOS P2P chat)
 	var nm = get_node_or_null("/root/NetworkManager")
+	if is_private and target_id != "":
+		if nm != null and nm.has_method("send_private_message"):
+			nm.send_private_message(t, target_id)
+		# NetworkManager echoes locally; _on_chat_private_message_received handles display
+		return
 	if nm != null and nm.has_method("send_chat_message"):
 		nm.send_chat_message(t, chat_tab)
-	# RPC will echo back; _on_chat_message_received handles display
+	# NetworkManager echoes locally; _on_chat_message_received handles display
+
+func _on_private_message_sent(target_id: String, text: String) -> void:
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null and nm.has_method("send_private_message"):
+		nm.send_private_message(text, target_id)
+	# NetworkManager echoes locally; _on_chat_private_message_received handles display
+
+func _on_reaction_added(message_id: String, emoji: String) -> void:
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null and nm.has_method("send_reaction"):
+		nm.send_reaction(message_id, emoji, true)
+
+func _on_reaction_removed(message_id: String, emoji: String) -> void:
+	var nm = get_node_or_null("/root/NetworkManager")
+	if nm != null and nm.has_method("send_reaction"):
+		nm.send_reaction(message_id, emoji, false)
 
 func _on_showcase_slot_selected(index: int, _is_self: bool) -> void:
 	if index >= players.size():
