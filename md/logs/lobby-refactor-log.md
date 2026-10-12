@@ -691,3 +691,218 @@ NetworkManager 已有完整正確的實作（`init_eos`/`login(provider)`/`try_p
 54. **新舊雙軌並存是最醜的狀態**——Dock＋Panel 程式寫好卻不接場景，比沒寫更糟（兩個輸入框）；遷移必須場景＋接線同一步做完，A＋B 視為一個受驗單元。
 55. **平行 patch 同一 .gd 會產生過渡期 diagnostics 噪音**——每 patch 回傳的 parse error 是套用順序快照，以最終 `find_symbols`＋run 為準，不必中途停下修。
 
+---
+
+## Phase I2：聊天抽屜化——左欄 28% 滑展（2026-09-10）
+
+### 症狀
+上一版 ChatPanel 是全寬 bottom-sheet（覆蓋 BottomBar），錨點寫死像素（offset_top=-476），在不同解析度下會遮擋中央車位。
+
+### 根因
+`_ready` 強制 `anchor_right=1.0` 全寬＋`offset_bottom=0` 蓋住底欄；開關只做 fade（`modulate.a`），無滑展；`ChatInputBar` 內短語條與 Dock 晶片重複。
+
+### 修復策略（AAA 決議：保 4 tabs／改造 ChatPanel／面板層隱藏短語）
+- `chat_panel.gd`：`_ready` 改抽屜錨點（`anchor_right=0.28`、`offset_bottom=-68`、`custom_minimum_size=(0,0)`，免最小高撐破收合）；開關改 `offset_top -68↔-420` Tween（`TRANS_CUBIC, EASE_OUT, 0.25s`，正反向互 kill）；新增 `_hide_phrase_bar()` 藏輸入列短語 `ScrollContainer`（共用檔不動）
+- `chat_input_bar.gd`：送出鈕「送出」→「➤」（該元件現僅 Panel 使用）
+- 驗證：`filesystem_manage(scan)`＋`project_run(autosave=false)`；game_eval＋`get_ui_elements` 6/6——展開 `(12,300,360×352)` 底部緊貼 BottomBar、`offset_top=-420` 精準、4 tabs 各 56 無溢出、短語條無、➤在位、✕ 收回 `-68`＋隱藏、車位槽內容（384 起）與開始鈕零遮擋；game log 零 error；實機截圖逐鈕驗收全過
+
+### 教訓補充
+56. **抽屜寬用相對錨點，實寬以量測為準**——`anchor_right=0.28` 在 1280 下理論 334，實測 360（PanelContainer 被內容最小寬撐開）；`get_ui_elements` 實量右緣 372 恰觸槽緣、槽內容零覆蓋即收，不必硬湊理論值。
+57. **收合態高度數值在 visible=false 下無意義**——collapsed `offset_top=offset_bottom` 高度應為 0，但容器內容最小高仍回報 140；不可見即無礙，驗收只看 visible＋offset_top。
+
+---
+
+## Phase I3：氣泡覆蓋車輛、房名遺失、抽屜越界（2026-09-10）
+
+### 症狀（實機截圖）
+1. 快捷短語氣泡蓋住 Slot 1 的車輛與玩家名；2. Header 膠囊只剩「🌐 」沒有房名；3. 抽屜太高＋輸入字大＋發送鈕大。
+
+### 根因
+1. `PanelContainer` 會把子節點拉滿整卡——氣泡雖已是根直屬子節點，錨點在容器排版裡直接作廢，背景糊住全卡。規格的 `top_level=false` 照抄也修不好。
+2. `room_config.get("name", "我的房間")`——key 存在但值是空字串，預設永遠吃不到。
+3. `DRAWER_OPEN_TOP=-420` 過高；`LineEdit` 無字級限制；送出鈕 70×40。
+
+### 修復策略
+- `car_slot.gd`：氣泡 `top_level=true`＋`mouse_filter=IGNORE`＋`z_index=50`，`show` 時 `reset_size()`＋`get_combined_minimum_size()` 實測後定位；首版放卡上緣外撞到 Header 房名膠囊，改貼卡內頂緣＋8（車居中、名在下，皆不擋）。VBox 全程不動。
+- `header.gd`：空字串回退「我的房間」；房名 `FontVariation.variation_embolden=0.6` 仿粗（無粗體字資時的 Godot 4 正解）。
+- `chat_panel.gd`：`DRAWER_OPEN_TOP`→`-360`；`chat_input_bar.gd`：輸入 14px（另：`LineEdit` 無 `vertical_alignment` 屬性，誤加會 boot break，已刪；置中本就預設行為）、送出鈕 48×36。
+- 驗證：run_token 33 一次即 live 零 error；氣泡 `(540,90)` 卡內頂緣置中、車名完好；房名「🌐 我的房間」居中加粗；抽屜頂 360（Header 底 72 之下）；兩張實機截圖逐鈕驗收。
+
+### 教訓補充
+58. **容器會沒收子節點的錨點**——`PanelContainer` 內任何子節點都會被拉滿，浮層需求一律 `top_level=true`＋顯示時實測定位，不要相信錨點。
+59. **dict.get 的預設擋不住空字串**——`config.get("name", fallback)` 只擋缺 key；空字串要另判 `is_empty()` 回退。
+60. **LineEdit 沒有 vertical_alignment**——那是 Label/Button 的屬性；誤設會在 boot 期 `Invalid assignment` 直接 break。字小＋預設置中即夠。
+
+---
+
+## Phase I4：視覺精緻化——輸入列／純文字訊息／氣泡懸浮（2026-09-10）
+
+### 內容
+- 輸入列：LineEdit 36px＋14px＋EXPAND（已在），送出鈕 44×32 r6＋SHRINK_CENTER，😊／⛶ 縮 36，佔位符照規格縮為「輸入訊息...」免截斷。
+- 訊息：新增 `chat_message_line.gd`（RichTextLabel，fit＋BBCode），Panel 改發純文字行（自己 `You:` 綠／他人名灰白／系統 cyan，私訊 🔒、reaction 內嵌計數）；右鍵 reaction、私訊點擊（[url] meta）、搜尋高亮全數保留；文字先 escape `[` 防 BBCode 注入。
+- 氣泡：定位改卡頂緣對半跨越＋半透明深藍＋細青框，營造懸浮感。
+- 驗證：兩張實機截圖逐項通過；run_token 36 一次即 live 零 error。
+
+### 教訓補充
+61. **卡片換純文字時先盤點被幹掉的互動**——頭像卡自帶 reaction chip、私訊點擊、高亮三功能；換 RichTextLabel 行前先列出，逐一找替代（[url] meta、私訊 🔒 後綴、reaction 計數內嵌），否則靜默丟功能。
+62. **佔位符長度是版面的一部分**——窄抽屜裡長佔位必被咬；規格寫「輸入訊息...」就照字面用，不要自作聰明加後綴。
+
+---
+
+## Phase I5：聊天搜尋列動態取代＋視覺重構＋單一焦點（2026-09-10）
+
+### 症狀
+1. 搜尋列與分頁上下兩行擠壓（`ChatSearchBar` 掛在 header 下方獨立行）；2. 搜尋框吃 Godot 預設主題霓虹粗框（`LineEdit` 零 StyleBox override）＋亮青 icon；3. 搜尋＋底部輸入雙 `LineEdit` 搶焦點 → 注音 IME 選字框錯位。
+
+### 根因
+1. `_build_ui` header HBox 只裝 Tabs＋✕，搜尋列是 vbox 下一行；2. `chat_search_bar.gd` 的 `LineEdit` 無任何 stylebox；3. `_on_search_pressed` 只 grab 不 release 底部；4. 需求文寫 `chat_panel.tscn`，但該檔根本不存在（聊天 UI 全程式碼搭建）。
+
+### 修復策略（全 Godot-ai MCP，4 檔）
+- `chat_panel.gd`：header 改 `MarginContainer` 固定槽（min 48，margins 4）＋內層 swap HBox，Tabs／Search 互斥；panel ✕ 留槽外＋tooltip；新增 `_set_header_mode()`；pressed→藏 Tabs＋`release_input_focus()`＋deferred grab；closed→`clear_query()`＋release＋回 Tabs＋顯式 `_on_search_changed("")`＋`set_match_count(0)`；changed 接 `ChatData.search_messages(...).size()` 計數。
+- `chat_search_bar.gd`：LineEdit normal／focus 雙 StyleBox（border 0、bg 0.3／0.45、r6、margins 8／2、14px＋placeholder 灰）；icon 轉灰 (0.6,0.6,0.6)；刪 `_count_label`（HBox 回 3 子節點）；`set_match_count()` 改寫 close 鈕 tooltip；新增 `clear_query()`／`release_search_focus()`，`focus_input()` 改 deferred。
+- `chat_tabs.gd`：僅縮尺寸（root 28、鈕 56×24、下劃線 2、🔍 28×28），邏輯零動。
+- `chat_input_bar.gd`：僅加 `release_input_focus()`。
+- 驗證：run live 零 error；game_eval——tabs/search 同高 40.0、互斥、單焦點、過濾＋tooltip「N 筆符合」、✕ 關閉全恢復（tabs／空字／全量／焦點釋放）；雙 LineEdit viewport 皆 root；game log 僅 helper 註冊；scan＋scene save。
+- 偏差：槽高 48 非規格「如 36px」（tabs 🔍 emoji floor 實測 40，硬壓會裁字）；count 採精簡版（tooltip 化，因 placeholder 有字時不可見）。
+
+### 教訓補充
+63. **程式碼改 `LineEdit.text` 不會觸發 `text_changed`**——`clear()`／賦值皆靜默；關閉搜尋不可依賴 cascade，必須顯式調重置路徑（本次：`_on_search_closed` 直調 `_on_search_changed("")`）。
+64. **emoji 決定最小高**——🔍 按鈕實測內容高 40（fallback 字體行高＋預設 margins），固定槽只能向上對齊（48）不可硬壓 36；驗收看「兩模式等高」而非字面數字。
+
+---
+
+## Phase I6：底欄三段式黃金配置（2026-09-10）
+
+### 症狀
+BottomBar 只有兩段（ChatDock＋ReadyButton），中央無狀態緩衝；需求：左通訊／中唯讀狀態／右行動。
+
+### 根因
+`lobby.tscn`／`main.tscn` 的 BottomBar 天生兩子節點；中央狀態無節點、無驅動。
+
+### 修復策略（Godot-ai MCP＋script_patch）
+- 結構：兩份場景的 BottomBar 皆插 `StatusLabel`（Label，index 1；tscn 只留節點＋順序，樣式全由程式碼強制——因 MCP `node_set_property` 數值型別傳輸失效）。
+- `lobby_main.gd`：@onready＋`_setup_status_label()`（置中／IGNORE／FOCUS_NONE／EXPAND ratio 3／12px 暗灰／clip）＋`_refresh_status_label()` 五態（離線空／未進房「等待房主設定...」／未齊「N/M 玩家已準備」／全齊「全員就緒！」／房主全齊「全員就緒，可以開始！」），掛在 `_refresh_ready_button()` 尾端（單點共刷，不漏調用點）；數據沿用 `players`／`_all_lobby_ready`／`is_host`／max_members 既有模式。
+- `chat_dock.gd`：`_ready` 加 `size_flags_stretch_ratio = 4.0`（左4：中3，右 220 固定）。
+- 驗證：run live 零新增錯；game_eval——順序 [ChatDock,StatusLabel,ReadyButton]、Label 零子／IGNORE／無焦點／expand ratio 3／置中／12px／灰、離線空字、dock:status 寬 612:459（4:3）；game log 僅 helper 註冊；scan＋雙場景 save。
+- 偏差／發現：①遊戲實際跑 `main.tscn`（root Lobby），`ui/lobby.tscn` 只是編輯器常開場景——兩份 BottomBar 都得插（雙場景稅，待日後合併）；② `main.tscn`／`lobby.tscn` 根皆為 Lobby2（共享編輯會話的未存改名被歷次 autosave 落盤，非本次所為，未還原）；③ ReadyButton 實寬 153（`ready_button.gd:18` 把 tscn 的 220 寬 min 蓋成 0，舊坑，OUT 範圍未動，右欄醒目度待後續）。
+
+### 教訓補充
+65. **場景結構改完先存檔再 run**——`node_create` 只活在記憶體；`project_run` 的 autosave 時機不可靠（本次：run 起來才發現 StatusLabel 不在盤上，@onready 炸）。
+66. **先確認遊戲跑哪個場景**——`current_scene`（編輯器開著）≠ `main_scene`（遊戲跑的）；本專案 `lobby.tscn` 與 `main.tscn` 各有一套 BottomBar，改一邊等於沒改。動 BottomBar 前先查 `project.godot`。
+
+---
+
+## Phase I7：打回重修——底欄晶片清理＋聊天抽屜黑塊（2026-09-10）
+
+### 症狀（實機截圖）
+1. 底欄左側仍顯示 4 快捷晶片（🚀發車／⏳等我／🏁GG／😄），無乾淨留白；2. 聊天抽屜右上黑塊壓住車位展台。
+
+### 根因
+1. 晶片是 `ChatDock._hbox` 常駐子節點（Phase I6 只加了中央區，沒動晶片）；2. 抽屜 `anchor_right=0.5`（616px@1280）蓋住中央展台——黑塊不是子孫溢出（實測全子孫皆在界內），是面板本體太寬＋右半訊息區留白。
+
+### 修復策略
+- `chat_dock.gd`：晶片建完即 `visible=false`（接線保留休眠）；`_on_gui_input` 跳過不可見晶片防誤觸。
+- `chat_panel.gd`：`_ready` 加 `clip_contents=true`；`anchor_right` 0.5→0.38（462px；tabs 內容 floor 292＝236＋56，emoji 浮層 432 恰容下，0.36 以下會擠爆二者）。
+- 驗證：run live 零新增錯；game_eval——晶片 4×false、dock 可見僅 icon＋預覽＋▲、實際渲染溢出 []、emoji 開合皆界內、search 互斥如常；game log 僅 helper；scan＋save。
+- Header 約束複核：slot／swap／tabs／search 皆 EXPAND_FILL、min.x＝0——本就合規，所謂溢出實為面板過寬。
+
+### 教訓補充
+67. **「黑塊」先量 rect 再動手**——溢出感可能來自本體過寬而非子孫越界；`get_global_rect` 逐層比對＋可見鏈過濾，兩次 eval 即定讞，勝過瞎調 constraints。
+68. **藏節點要連命中測試一起藏**——`visible=false` 的 Button 其 `get_global_rect()` 仍在，`_on_gui_input` 須同步跳過，否則隱形按鈕繼續吃點擊。
+
+---
+
+## Phase I8：三排版災難重修——Header 單行／底欄底座／輸入框底線（2026-09-10）
+
+### 症狀（實機截圖）
+1. Header 右上 🔍＋✕ 被裝進深色垂直方塊；2. 底欄解體（左右漂浮、中間鏤空）；3. 輸入框藍色底線殘留。
+
+### 根因
+1. `set_search_button_visible(false)` 調在 `add_child` 之前——tabs `_ready` 尚未建鈕，guard 靜默跳過，tabs 內建 🔍 殘留（雙 🔍）；2. BottomBar 在 tscn 裡本就是無底 HBox，中央 StatusLabel（空字透明）讓鏤空中段現形；3. 只清了 focus 態底邊，normal 態 `border_width_bottom=1` 漏網。
+
+### 修復策略
+- `chat_panel.gd`＋`chat_tabs.gd`：Header 打回扁平單行［tabs｜spring｜🔍｜✕］（全 SHRINK_CENTER 同列）；tabs 內建 🔍 改在 add_child 後隱藏；搜尋改交替行（header_row XOR search_bar，頂部永遠一列高）。
+- `lobby_main.gd`：`_wrap_bottom_bar()`——運行時建全寬深色 `BottomBarBG`（PanelContainer，1240 寬實測）＋內行重掛三段，舊 BottomBar 藏空殼；@onready 引用皆有效（同節點重掛，雙場景自動生效）。
+- `chat_input_bar.gd`：normal／focus 八邊全 0，focus 背景 0.45（與搜尋框同制）。
+- 驗證：run live 零新增錯；game_eval——單行 centers 全 20.0、內建🔍隱藏、底座全寬、三段入內、邊框全 0、swap 如常；scan＋save。
+
+### 教訓補充
+69. **跨節點 setter 必須在 add_child 之後調**——`_ready` 前子節點方法都是空轉（guard 吃掉呼叫還不報錯）；凡是「建完立刻設」一律寫在 add_child 下一行。
+70. **normal／focus 是一體兩面**——清邊框只清一態等於沒清；凡改 StyleBox 必雙態同查（八邊全斷言）。
+
+---
+
+## Phase J：底欄 Ticker＋左區 View Swap（2026-09-10）
+
+### 目標
+底欄改「Ticker／輸入框」二態＋左欄 Inspector↔聊天面板 1:1 互換；輸入列只有一組、永住底欄。
+
+### 實作（Godot-ai MCP）
+- tscn 兩份：BottomBar 加 `ChatInput`（掛 chat_input_bar.gd，index 1）；ChatPanel reparent 入 LeftContent。
+- `chat_dock.gd`：膠囊改透明無邊（熔入底條）；`set_open` 只換 ▲▼。
+- `chat_panel.gd`：刪抽屜錨點／offset tween，改 visible＋淡入淡出；不自建輸入列，`attach_input_bar()` 接管；😊 浮層停靠面板底部本地座標。
+- `chat_input_bar.gd`：加 `set_expand_button_visible()`。
+- `lobby_main.gd`：@onready chat_input＋bottom_bar；`_wrap_bottom_bar()` 全寬底座＋內行重掛；`_refresh_status_label` 五態；`_on_chat_toggled/_on_chat_closed` 做 dock XOR input＋焦點；`$ChatPanel` 路徑改 LeftContent 下（reparent 後舊路徑炸過一次）。
+- 驗證：run live 零新增錯；game_eval——基線 collapsed、展開四態、底欄發送鏈通、😊 界內、關閉全恢復＋焦點釋放；scan＋save。
+
+### 教訓補充
+72. **同一 .gd 禁止平行 patch**——MCP 並發寫同一檔會互相覆蓋、回報錯亂 size、診斷張冠李戴；同檔 patch 一律串行（lesson 55 的過渡噪音升級版）。
+73. **Boot 可見態必須程式碼歸一**——共享會話的 autosave 會污染 tscn visible；`_ready` 顯式設全家 collapsed，不信盤上旗標。
+74. **可見後抓焦點必須 deferred**——同幀對剛 visible 的 Control `grab_focus` 靜默失敗；`call_deferred("focus_input")`。
+75. **浮層停靠宿主本地座標**——picker 不要跨子樹換算（輸入列已搬家）；直接 `Vector2(8, size.y - 268)` 釘在面板底部。
+
+---
+
+## Phase J2：底欄輸入列取寬（2026-09-13）
+
+### 症狀（實機截圖）
+展開後底欄輸入框僅 ~90px，狀態空區巨大，排版失衡。
+
+### 根因
+`ChatInput` 從 tscn 建出來是預設 FILL＋ratio 1，列寬全被 StatusLabel（ratio 3）吃掉。
+
+### 修復
+- `chat_input_bar.gd`：自設 `EXPAND_FILL＋ratio 5＋min 高 44`；`lobby_main` 狀態區降 ratio 2。
+- 驗證：run live 零錯；game_eval——ChatInput 757（內框 665）、Status 303、 collapsed 恢復、焦點如常；scan＋save。
+
+### 教訓補充
+76. **expand 權重決定話語權**——同列多 expand 以 ratio 分贓；tscn 新建節點預設 ratio 1 必被吃乾抹淨，建完第一件事就是配權重。
+
+---
+
+## Phase J3：左柱一體＋右條獨立＋舊底欄刪除（2026-09-13）
+
+### 目標
+左欄頂天立地（Inspector XOR 面板含輸入＋柱底 Ticker）；右下獨立條（狀態＋CTA）；刪 BottomBar 空殼。
+
+### 實作
+- tscn ×2：ChatDock／ChatInput→LeftPanel 尾、StatusLabel／ReadyButton→根、刪 BottomBar。
+- `chat_panel.gd`：存 `_vbox`；`attach_input_bar` 改搬入 vbox 尾；其餘不動。
+- `lobby_main.gd`：@onready 改新路徑；`_wrap`→`_build_right_strip`（右浮 420：-440/-70/-20/-12）；morph 不變（dock XOR input，Status 常駐）。
+- 驗證：run live 零新增錯；game_eval——零 BottomBar、左柱有序、右條 420 右浮、開合四態、面板底發送鏈通、Ticker 格式、單焦點、關閉全恢復；scan＋save。
+
+### 教訓補充
+77. **reparent 後先 grep 全 repo 的舊路徑**——`$ChatPanel` 殘留讓開機即炸（debugger break）；節點搬家＝路徑合約變更，@onready／動畫／eval 三處同查。
+78. **eval 遍歷子節點必判 `is Control`**——AnimationPlayer 等非 Control 混在 children 裡，`.name` 直取即炸；先守衛再讀屬性。
+
+---
+
+## Phase I9：底座可視化＋接縫貼齊（2026-09-10）
+
+### 症狀（實機截圖）
+1. 底座存在但隱形（深色壓深色）；2. 抽屜底與底欄間 4px 漏光（panel offset_bottom -68 vs 底欄 top -64）。
+
+### 根因
+1. `BottomBarBG` 邊框 cyan 0.25 太淡，在深色遊戲底上無對比；2. 上下 offset 差 4px。
+
+### 修復策略
+- `lobby_main.gd`：底座改 bg (0.08,0.11,0.18,0.95)＋邊框 cyan 0.6＋shadow 8（與 Header 膠囊同語言）。
+- `chat_panel.gd`：`offset_bottom` -68→-64，與底欄 top 字面對齊。
+- 驗證：run live 零新增錯；game_eval——Header 單行 centers 全 20、底座 1240 全寬、三段入內、輸入框底邊雙態 0、接縫渲染值 -17（抽屜疊壓底欄 17px，無漏光）；scan＋save。
+
+### 教訓補充
+71. **貼齊以後還要量渲染值**——offset 相等≠渲染貼齊，content min 會把容器撐大；本例收斂為抽屜疊壓底欄 17px（無縫收口），比硬湊 0 更耐看；驗收看縫，不看設定值。
+
+
+78. **plugin �۱a .agents �|�мg�P�W agent �w�q**�G`oh-my-openagent` ���J���ѡA���� `.agents` �ؿ����Q���y�X�֡A����� `build` �� `mode: primary` �\�� subagent�A�ɭP�Ҧ� `opencode run` �� `default agent "build" is a subagent`�C�E�_�� `agent list`�]���`�Ҧ��^vs `agent list --pure`�]���� plugin�^��ӡA�@���ݥX�мg�̡F�״_���� `opencode.jsonc`/`tui.json` ������ plugin�C�Ԩ� `md/logs/env-setup-log.md` E6�C
+79. **opencode plugin ���ؤ��䴩 package/subpath �g�k**�G`opencode-pty/v2` �b 1.18.29 �� `NpmInstallFailedError ... unknown git error`�]loader �~�P�� github ²�g�^�A�b 1.19.0 �R�q���L�F��^�r `opencode-pty` �� `pty_spawn/read/write/list/kill` ���X�{�C���� plugin �O�_���J�A�ߤ@�i�a��k�O�}�@�� `run` �� model �C�X�u��W��]`agent list` stdout �P ephemeral log ���R�q�^�C�Ԩ� `md/logs/env-setup-log.md` E10�C
