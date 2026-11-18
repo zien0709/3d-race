@@ -15,6 +15,9 @@ _probe*.gd.uid
 *.bak
 Thumbs.db
 
+# OpenCode local workspace
+.omo/
+
 # Addons: keep only epic-online-services-godot, ignore everything else
 # (local tool/plugin configs such as godot_ai / flatten_for_llm)
 addons/*
