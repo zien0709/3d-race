@@ -62,12 +62,12 @@
 
 | remote | repo | 用途 |
 |--------|------|------|
-| `origin` | `zien0709/3d-race` | 開發備份 |
-| `fork` | `Z11430373/3d-race` | **Release 發佈處**（GitHub Releases 在這） |
+| `origin` | `zien0709/3d-race` | **唯一推送目標**（開發 + Release 發佈處） |
+| `fork` | (removed) | `Z11430373/3d-race` 已轉移至 `zien0709`；remote 已 `git remote remove fork` |
 
 ### 發新版 vX.YZ 標準流程
-1. 確認本地 main 領先且 fast-forward（0 commits behind fork/main）。
-2. `git push fork main`
+1. 確認本地 main 領先且 fast-forward（0 commits behind origin/main）。
+2. `git push origin main`
 3. Release notes 寫暫存檔，**Keep a Changelog 業界格式**：
    ```markdown
    Changelog
@@ -81,10 +81,10 @@
    ### Notes
    - 已知限制 / 已知問題
 
-   **Full Changelog**: https://github.com/Z11430373/3d-race/compare/v上一版...vX.YZ
+   **Full Changelog**: https://github.com/zien0709/3d-race/compare/v上一版...vX.YZ
    ```
 4. `git tag -a vX.YZ --cleanup=verbatim -F <notes檔>`
-5. `git push fork vX.YZ`（若改寫舊 tag 加 `--force`）
+5. `git push origin vX.YZ`（若改寫舊 tag 加 `--force`）
 6. 建 GitHub Release：
    ```powershell
    $gh = "$env:ProgramFiles\GitHub CLI\gh.exe"
@@ -92,7 +92,7 @@
    $credLines = $credInput | git credential fill
    $token = ($credLines | Where-Object { $_ -like 'password=*' }).Substring(9)
    $env:GH_TOKEN = $token
-   & $gh release create vX.YZ --repo Z11430373/3d-race `
+   & $gh release create vX.YZ --repo zien0709/3d-race `
        --title "vX.YZ - <短標>" --notes-file "<notes檔>"
    ```
    注意：gh **未正式登入**（儲存的 token 缺 `read:org` scope），

@@ -140,6 +140,18 @@ v2 Desktop 升級後進行健康檢查，發現 13 個 agent 的 model 全部指
 - 結論：兩份 `opencode.json` 的 `opencode-pty/v2` 全部改回裸 `opencode-pty`（0.4.0 root 內含 v1+v2 adapter，loader 可協商；tarball 完整，`./v2`→`dist/src/v2/index.js` 存在，之前是 loader 不支援寫法，不是套件壞）。
 - **教訓 E10**：opencode 的 `plugin` 條目只支援裸包名（`name` 或 `@scope/name`），`package/subpath` 在 1.18.29 報 git 錯、在 1.19.0 靜默跳過。驗證 plugin 是否載入的唯一可靠方法是叫 model 列出工具（`run` 請它報 tool 名單），`agent list` stdout 與 ephemeral log 都看不出來。
 
+### E12：`permission` 不會關掉 subagent 工具；task/subagent 不在 run 與嵌入 session 的工具集（2026-10-12）
+- 使用者懷疑「設定檔把 build 呼叫代理的能力關掉」。全面排查＋對照實驗後證偽：
+  1. Schema（https://opencode.ai/config.json）實證：`permission.task` 是「呼叫時 ask/allow/deny」的授權，不是工具存在性；會拔工具的是 `tools: {name:false}`、`experimental.primary_tools`、agent `tools:`（deprecated）——三處皆無。
+  2. 全域 config 的 `permission.task` 13 個代理全 allow、`*:deny` 語法合法，只影響未列名代理的 spawn 授權。
+  3. 對照實驗：同一 prompt（要求用 task 派生 ui-explorer，無則回 DT_NO_TASK_TOOL），config 分別為「無 permission」與「`{"build":"allow","*":"deny"}`」→ 兩者 model 都回 `DT_NO_TASK_TOOL`，64 個工具清單完全相同、零 task/subagent。permission 與工具存在性零相關。
+  4. 觀察：CLI `run` 的工具集連 `question` 都沒有（schema 有、config 未禁），而本 session（harness 嵌入）有 `question`——證明工具清單由宿主/runtime 決定，非 opencode config。
+- **教訓 E12**：`opencode run` 與嵌入 session 的 model 工具集**不含 task/subagent**，subagent 機制只在 TUI/Desktop 互動層。需要自動化跑子代理時，用 temp-config `mode:all` 晉升＋全域 agent md（見 E7、E11 的運作配方），本文記錄為標準做法。
+
+### E11：叫 git-committer 前先看三檔的 dirty 是否全是自己的（2026-10-12）
+- 本次 commit（`6a50814 docs(env)`）範圍是三檔沒錯，但 `lobby-refactor-log.md` 在開工前已是 `M`（先前 session 留下的未提交教訓約 211 行），一起被掃進同一個 commit。內容同屬 log 追加、無害，但訊息主體是 env，嚴格說應拆分。
+- **教訓 E11**：給 @git-committer 的範圍不能只列檔名；開工先 `git status`＋`git diff --stat`，若檔已有別人的 dirty，要嘛先請它拆 hunk，要嘛在 prompt 明寫「只提交第 N 行之後」。
+
 ---
 
 ## 待辦 / 風險

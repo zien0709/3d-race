@@ -189,6 +189,10 @@ func _build_room_capsule(parent: Node) -> void:
 	# Room name with globe icon (18px Bold, absolutely centered)
 	_room_name_label = Label.new()
 	_room_name_label.text = "🌐 我的房間"
+	var _room_name_bold := FontVariation.new()
+	_room_name_bold.base_font = ThemeDB.fallback_font
+	_room_name_bold.variation_embolden = 0.6
+	_room_name_label.add_theme_font_override("font", _room_name_bold)
 	_room_name_label.add_theme_font_size_override("font_size", 18)
 	_room_name_label.add_theme_color_override("font_color", C_TEXT)
 	_room_name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -294,7 +298,9 @@ func update_profile(display_name: String, level: int, rank_label: String, puid: 
 
 func update_room_capsule(room_config: Dictionary, players: Array, lobby_manager: Object) -> void:
 	if _room_name_label:
-		var room_name = room_config.get("name", "我的房間")
+		var room_name := str(room_config.get("name", ""))
+		if room_name.is_empty():
+			room_name = "我的房間"
 		_room_name_label.text = "🌐 %s" % room_name
 	if _player_count_label:
 		var max_p = lobby_manager.max_members if lobby_manager else _max_players

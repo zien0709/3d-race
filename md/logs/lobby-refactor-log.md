@@ -906,3 +906,19 @@ BottomBar åªæœ‰å…©æ®µï¼ˆChatDockï¼‹ReadyButtonï¼‰ï¼Œä¸­å¤®ç„¡ç‹€æ…‹ç·©è¡ï¼›éœ€
 
 78. **plugin ¦Û±a .agents ·|ÂĞ¼g¦P¦W agent ©w¸q**¡G`oh-my-openagent` ¸ü¤J¥¢±Ñ¡A¦ı¨ä `.agents` ¥Ø¿ı¤´³Q±½´y¦X¨Ö¡A§â¥ş°ì `build` ªº `mode: primary` »\¦¨ subagent¡A¾É­P©Ò¦³ `opencode run` ³ø `default agent "build" is a subagent`¡C¶EÂ_¥Î `agent list`¡]¥¿±`¼Ò¦¡¡^vs `agent list --pure`¡]¤£¸ü plugin¡^¹ï·Ó¡A¤@²´¬İ¥XÂĞ¼gªÌ¡F­×´_¬°¦Û `opencode.jsonc`/`tui.json` ²¾°£¸Ó plugin¡C¸Ô¨£ `md/logs/env-setup-log.md` E6¡C
 79. **opencode plugin ±ø¥Ø¤£¤ä´© package/subpath ¼gªk**¡G`opencode-pty/v2` ¦b 1.18.29 ³ø `NpmInstallFailedError ... unknown git error`¡]loader »~§P¬° github Â²¼g¡^¡A¦b 1.19.0 ÀRÀq¸õ¹L¡F§ï¦^»r `opencode-pty` «á `pty_spawn/read/write/list/kill` ¥ş¥X²{¡CÅçÃÒ plugin ¬O§_¸ü¤J¡A°ß¤@¥i¾a¤èªk¬O¶}¤@­Ó `run` ½Ğ model ¦C¥X¤u¨ã¦W³æ¡]`agent list` stdout »P ephemeral log ¬ÒÀRÀq¡^¡C¸Ô¨£ `md/logs/env-setup-log.md` E10¡C
+## Lesson 80 (2026-11-17) â€” GitHub repo è½‰ç§»èˆ‡ remote æ•´ç†
+- `Z11430373/3d-race` è½‰ç§»åˆ° `zien0709/3d-race` å·²å®Œæˆï¼›å€‹äººâ†’å€‹äººè½‰ç§»éœ€ç”±ç›®æ¨™å¸³è™Ÿåœ¨ GitHub email è£¡é»ã€ŒAccept transferã€é€£çµï¼ˆ24 å°æ™‚å…§æœ‰æ•ˆï¼‰ï¼ŒAPI ç«¯æ²’æœ‰æ¥å—ç«¯é»ã€‚
+- æœ¬æ©Ÿ `git remote remove fork` å¾Œï¼Œ`origin` æŒ‡å‘ `zien0709/3d-race` ä¸”å¯æ¨é€ï¼›8 å€‹æœ¬æ©Ÿ commit å·²æ¨ä¸Šå»ï¼ˆ`91c36fe..6a50814`ï¼‰ã€‚
+- èˆŠçš„ `zien0709/3d-race`ï¼ˆ8/03 ç‰ˆï¼‰å·²æ”¹åç‚º `3d-race-legacy`ï¼Œä¿ç•™ 4 stars èˆ‡ 3 å€‹ tagã€‚
+
+## Lesson 81 (2026-11-17) â€” 3d-race å…©ä»½æ­·å²ä¸å¯åˆä½µ
+- `Z11430373/3d-race` èˆ‡ `zien0709/3d-race` æ ¹ commit SHA ä¸åŒï¼Œ`compare` é›™å‘ 404ï¼ˆç„¡å…±åŒç¥–å…ˆï¼‰ï¼Œå…©ä»½æ˜¯åŒä¸€ 8/02 å¿«ç…§è¢«é‡å»ºå‡ºçš„ç¨ç«‹æ­·å²ã€‚
+- ä»¥ `Z11430373/3d-race` ç‚ºä¸»ç·šï¼ˆ128 commitsã€v1.04/v1.05ã€å®Œæ•´ lobby + chat 84 æª”ã€21 ä»½è¨­è¨ˆæ–‡ä»¶ã€EOS SDK addonï¼‰ï¼Œé€™æ˜¯å¯¦éš›åœ¨æ¨é€²çš„é‚£ä»½ã€‚
+
+## Lesson 82 (2026-11-17) â€” Edge GitHub cookie æœƒçˆ†
+- å¤§é‡é€ è¨ª `github.com/repositories/transfers/*` å¾Œï¼ŒEdge é€å‡ºçš„ GitHub cookie è¶…é nginx ä¸Šé™ï¼Œé€£ `github.com` é¦–é éƒ½å› `400 Request Header Or Cookie Too Large`ã€‚
+- ä¿®æ³•ï¼šEdge â†’ è¨­å®š â†’ Cookie å’Œç¶²ç«™è³‡æ–™ â†’ æœå°‹ `github.com` â†’ åˆªé™¤ â†’ é‡æ–°ç™»å…¥ã€‚
+
+## Lesson 83 (2026-11-17) â€” gh token æ¬Šé™
+- `gh repo delete` éœ€è¦ `delete_repo` scopeï¼›æ²’æœ‰æ™‚æœƒ 403ã€‚å…ˆåŸ·è¡Œ `gh auth refresh -h github.com -s delete_repo`ã€‚
+

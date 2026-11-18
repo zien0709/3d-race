@@ -109,6 +109,11 @@ func _build_speech_bubble() -> void:
 	_speech_bubble.name = "SpeechBubble"
 	_speech_bubble.visible = false
 	_speech_bubble.modulate.a = 0.0
+	# Free from PanelContainer full-rect layout: container would stretch the
+	# bubble over the whole card (covering car + name), ignoring anchors.
+	_speech_bubble.top_level = true
+	_speech_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_speech_bubble.z_index = 50
 	_speech_bubble.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_speech_bubble.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_speech_bubble.offset_top = -36
@@ -117,23 +122,28 @@ func _build_speech_bubble() -> void:
 	_speech_bubble.offset_right = 50
 
 	var bubble_style := StyleBoxFlat.new()
-	bubble_style.bg_color = Color(0.1, 0.13, 0.18)
+	bubble_style.bg_color = Color(0.05, 0.1, 0.18, 0.85)
 	bubble_style.set_corner_radius_all(10)
-	bubble_style.set_border_width_all(1)
-	bubble_style.border_color = Color(0.3, 0.85, 0.95, 0.7)
+	bubble_style.border_width_left = 1
+	bubble_style.border_width_right = 1
+	bubble_style.border_width_top = 1
+	bubble_style.border_width_bottom = 1
+	bubble_style.border_color = Color(0.2, 0.7, 0.9, 0.6)
 	bubble_style.content_margin_left = 10
 	bubble_style.content_margin_right = 10
-	bubble_style.content_margin_top = 5
-	bubble_style.content_margin_bottom = 5
+	bubble_style.content_margin_top = 6
+	bubble_style.content_margin_bottom = 6
 	bubble_style.shadow_color = Color(0.3, 0.85, 0.95, 0.15)
 	bubble_style.shadow_size = 4
 	_speech_bubble.add_theme_stylebox_override("panel", bubble_style)
 
 	_bubble_label = Label.new()
 	_bubble_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bubble_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_bubble_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_bubble_label.add_theme_font_size_override("font_size", 11)
 	_bubble_label.add_theme_color_override("font_color", C_TEXT)
+	_bubble_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bubble_label.custom_minimum_size = Vector2(80, 0)
 	_speech_bubble.add_child(_bubble_label)
 
@@ -148,6 +158,15 @@ func show_speech_bubble(text: String, duration: float = 3.0) -> void:
 	_bubble_label.text = text
 	_speech_bubble.visible = true
 	_speech_bubble.modulate.a = 0.0
+	# Measure-then-place above the card (VBox never touched)
+	_speech_bubble.reset_size()
+	var bubble_min: Vector2 = _speech_bubble.get_combined_minimum_size()
+	_speech_bubble.size = bubble_min
+	# Inside-top placement: card top strip is empty padding (car is centered,
+	# name is lower); placing above the card would collide with the header.
+	_speech_bubble.global_position = Vector2(
+		global_position.x + (size.x - bubble_min.x) * 0.5,
+		global_position.y - bubble_min.y * 0.5)
 
 	_bubble_tween = create_tween()
 	_bubble_tween.tween_property(_speech_bubble, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

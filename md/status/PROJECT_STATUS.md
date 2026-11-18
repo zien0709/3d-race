@@ -73,3 +73,15 @@ Lobby (Control, fullscreen, script: lobby_main.gd)
 - 13 agents 全數驗證可運作（`build`=primary，12 subagents；model 皆為 `opencode/*-free` 實測可用）。詳見 `md/logs/env-setup-log.md` E4–E9。
 - 已知：`oh-my-openagent` plugin 已移除（它覆寫 `build`→subagent，見教訓 78）；`plugin` 陣列現為 4 個 V2 套件，全數實測載入（`pty_spawn/read/write/list/kill` 工具已在 1.19.0 上線；`package/subpath` 寫法兩代 loader 皆不支援，見教訓 79／E10）。
 - 本 session 跑在舊 server 上，`build` 的新 model 只對新 session 生效。
+---
+
+## GitHub repo 轉移完成 (2026-11-17)
+- `Z11430373/3d-race` → `zien0709/3d-race`，已接受並落地（136 commits、v1.04/v1.05）
+- `zien0709/3d-race-legacy`：舊 8/03 版保留（4 stars，v1.0.1 / v1.0.2 / v1.03）
+- 本機 `D:\Github\3d-race`：remote 已整理為單一 `origin` = `zien0709/3d-race`，upstream = `origin/main`；8 個未推 commit 已推送（`91c36fe..6a50814`）
+- 13 個未 commit 修改（main.tscn、ui/lobby/*、md/logs/*、md/status/*）保持原樣
+- `AGENTS.md` remote 表已修正；`AI_WORKFLOW.md §3` 仍為舊寫法，待更新
+- wild-magic-brawl fork 已刪除，備份在 `D:\Github\_transfer-backups\wild-magic-brawl-fork.git`
+- Rocket_Soccer Pages 已修好（https://zien0709.github.io/Rocket_Soccer/ → 200）
+- 2 個測試空殼 repo（zz-transfer-probe*）已刪除
+

@@ -9,9 +9,11 @@ signal start_requested(player_name: String)
 @onready var header: Control = $Header
 @onready var inspector: Control = $MainContainer/LeftPanel/LeftContent/Inspector
 @onready var showcase: Control = $MainContainer/CenterRightPanel/Showcase
-@onready var ready_button: Control = $BottomBar/ReadyButton
-@onready var chat_dock: Control = $BottomBar/ChatDock
-@onready var chat_panel: Control = $ChatPanel
+@onready var ready_button: Control = $ReadyButton
+@onready var chat_dock: Control = $MainContainer/LeftPanel/ChatDock
+@onready var chat_input: Control = $MainContainer/LeftPanel/ChatInput
+@onready var status_label: Label = $StatusLabel
+@onready var chat_panel: Control = $MainContainer/LeftPanel/LeftContent/ChatPanel
 @onready var room_overlay: Control = $RoomOverlay
 @onready var lobby_browser: Control = $LobbyBrowser
 @onready var customize_view: Control = $CustomizeView
@@ -50,6 +52,16 @@ var auth_manager: Object = null
 func _ready() -> void:
 	_init_signals()
 	_connect_components()
+	_setup_status_label()
+	_build_right_strip()
+	chat_panel.attach_input_bar(chat_input)
+	chat_input.set_expand_button_visible(false)
+	chat_input.visible = false
+	# Normalize against autosaved tscn visibility pollution (shared editor):
+	# boot state is always collapsed ticker, regardless of persisted flags.
+	chat_panel.visible = false
+	inspector.visible = true
+	chat_dock.visible = true
 	# 若登入已在 _ready 前完成（boot 階段 persistent login），補觸發
 	if auth_manager != null and auth_manager.is_logged_in:
 		# 從 PlayerStorage 讀取暱稱（HAuth 可能沒有 display_name）
@@ -280,6 +292,14 @@ func _on_chat_toggled(opened: bool) -> void:
 		chat_panel.close_chat()
 		inspector.visible = true
 	chat_dock.set_open(opened)
+	# Bottom morph: ticker XOR input (single input source, no dual focus).
+	chat_dock.visible = not opened
+	chat_input.visible = opened
+	if opened:
+		# Deferred: grab only lands after the input is laid out visible.
+		chat_input.call_deferred("focus_input")
+	else:
+		chat_input.release_input_focus()
 	_refresh_all()
 
 func _on_chat_closed() -> void:
@@ -287,6 +307,9 @@ func _on_chat_closed() -> void:
 	chat_panel.close_chat()
 	inspector.visible = true
 	chat_dock.set_open(false)
+	chat_dock.visible = true
+	chat_input.release_input_focus()
+	chat_input.visible = false
 	_refresh_all()
 
 func _on_quick_phrase_selected(phrase: String) -> void:
@@ -626,6 +649,95 @@ func _refresh_ready_button() -> void:
 			if has_players or in_lobby:
 				is_host_state = true
 	ready_button.set_mode(is_host_state, all_rdy, is_ready)
+	_refresh_status_label()
+
+func _build_right_strip() -> void:
+	# Independent floating action strip (bottom-right): status + CTA.
+	if has_node("BottomBarBG"):
+		return
+	var bg := PanelContainer.new()
+	bg.name = "BottomBarBG"
+	bg.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bg.anchor_left = 1.0
+	bg.anchor_top = 1.0
+	bg.anchor_right = 1.0
+	bg.anchor_bottom = 1.0
+	bg.offset_left = -440.0
+	bg.offset_top = -70.0
+	bg.offset_right = -20.0
+	bg.offset_bottom = -12.0
+	bg.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	bg.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.11, 0.18, 0.95)
+	style.set_corner_radius_all(12)
+	style.set_border_width_all(1)
+	style.border_color = Color(0.22, 0.74, 0.97, 0.6)
+	style.shadow_color = Color(0.22, 0.74, 0.97, 0.15)
+	style.shadow_size = 8
+	style.set_content_margin_all(6)
+	bg.add_theme_stylebox_override("panel", style)
+	add_child(bg)
+	var row := HBoxContainer.new()
+	row.name = "BottomBarRow"
+	row.add_theme_constant_override("separation", 8)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	bg.add_child(row)
+	for k in [status_label, ready_button]:
+		if k != null and is_instance_valid(k):
+			if k.get_parent() != null:
+				k.get_parent().remove_child(k)
+			row.add_child(k)
+
+func _setup_status_label() -> void:
+	if status_label == null:
+		return
+	# Central zone doubles as the spacer: read-only, never interactive.
+	# (tscn carries node order only; all styling enforced here in code.)
+	status_label.text = ""
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	status_label.focus_mode = Control.FOCUS_NONE
+	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_label.size_flags_stretch_ratio = 2.0
+	status_label.add_theme_font_size_override("font_size", 12)
+	status_label.add_theme_color_override("font_color", Color(0.4, 0.45, 0.5))
+	status_label.clip_text = true
+
+func _refresh_status_label() -> void:
+	if status_label == null:
+		return
+	var nm := auth_manager
+	var lm := lobby_manager
+	var online: bool = nm != null and lm != null and lm.has_method("is_online") and lm.is_online()
+	if not online:
+		status_label.text = ""
+		return
+	var in_lobby: bool = not lm.current_lobby.is_empty()
+	if not in_lobby:
+		status_label.text = "等待房主設定..."
+		return
+	var max_p: int = 4
+	if "max_members" in lm and int(lm.max_members) > 0:
+		max_p = int(lm.max_members)
+	elif int(room_config.get("max_players", 4)) > 0:
+		max_p = int(room_config.get("max_players", 4))
+	var lp: Array = lm.players if "players" in lm else []
+	var ready_n: int = 0
+	for p in lp:
+		if p is Dictionary and bool(p.get("ready", false)):
+			ready_n += 1
+	if _all_lobby_ready(lm) and lp.size() > 0:
+		if lm.is_host:
+			status_label.text = "全員就緒，可以開始！"
+		else:
+			status_label.text = "全員就緒！"
+	else:
+		status_label.text = "%d/%d 玩家已準備" % [ready_n, max_p]
 
 @warning_ignore("inferred_declaration", "shadowed_variable")
 func _refresh_players() -> void:

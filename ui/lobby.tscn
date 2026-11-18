@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://dewipyx436h3v" path="res://ui/lobby/components/room_overlay/room_overlay.gd" id="8_n1208"]
 [ext_resource type="Script" uid="uid://deufb4p12o0ri" path="res://ui/lobby/components/chat/chat_dock.gd" id="8_x74pg"]
 [ext_resource type="Script" uid="uid://w4483afieja" path="res://ui/lobby/components/lobby_browser/lobby_browser.gd" id="9_n8uyy"]
+[ext_resource type="Script" uid="uid://dalbxsclaxfq5" path="res://ui/lobby/components/chat/chat_input_bar.gd" id="9_vgfbg"]
 [ext_resource type="Script" uid="uid://tmmo6v47gxfi" path="res://ui/lobby/components/customize/customize_view.gd" id="10_8mrmc"]
 [ext_resource type="Script" uid="uid://bg6gcvo1ojkyy" path="res://ui/lobby/components/chat/chat_panel.gd" id="10_vgfbg"]
 [ext_resource type="Script" uid="uid://818c53evv3jo" path="res://ui/lobby/components/toast/toast.gd" id="11_lkqrx"]
@@ -122,7 +123,7 @@ _data = {
 &"chat_open": SubResource("Animation_x74pg")
 }
 
-[node name="Lobby" type="Control" unique_id=2106021884]
+[node name="Lobby2" type="Control" unique_id=2106021884]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -180,6 +181,10 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("3_x74pg")
 
+[node name="ChatPanel" type="PanelContainer" parent="MainContainer/LeftPanel/LeftContent" unique_id=746724532]
+layout_mode = 2
+script = ExtResource("10_vgfbg")
+
 [node name="ChatTrigger" type="Button" parent="MainContainer/LeftPanel" unique_id=407141638]
 visible = false
 custom_minimum_size = Vector2(0, 48)
@@ -189,6 +194,14 @@ script = ExtResource("4_vgfbg")
 
 [node name="ChatAnimationPlayer" type="AnimationPlayer" parent="MainContainer/LeftPanel" unique_id=1504720937]
 libraries/ = SubResource("AnimationLibrary_vgfbg")
+
+[node name="ChatDock" type="PanelContainer" parent="MainContainer/LeftPanel" unique_id=317801009]
+layout_mode = 2
+script = ExtResource("8_x74pg")
+
+[node name="ChatInput" type="HBoxContainer" parent="MainContainer/LeftPanel" unique_id=481384510]
+layout_mode = 2
+script = ExtResource("9_vgfbg")
 
 [node name="CenterRightPanel" type="Control" parent="MainContainer" unique_id=274641255]
 layout_mode = 2
@@ -204,34 +217,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_vc1it")
-
-[node name="BottomBar" type="HBoxContainer" parent="." unique_id=286043615]
-layout_mode = 0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = -64.0
-offset_right = -20.0
-offset_bottom = -12.0
-grow_horizontal = 2
-grow_vertical = 0
-theme_override_constants/separation = 8
-alignment = 1
-
-[node name="ChatDock" type="PanelContainer" parent="BottomBar" unique_id=317801009]
-layout_mode = 2
-script = ExtResource("8_x74pg")
-
-[node name="ReadyButton" type="Button" parent="BottomBar" unique_id=2085932185]
-custom_minimum_size = Vector2(220, 44)
-layout_mode = 2
-size_flags_horizontal = 2
-script = ExtResource("6_xg6h8")
-
-[node name="ChatPanel" type="PanelContainer" parent="." unique_id=746724532]
-layout_mode = 0
-script = ExtResource("10_vgfbg")
 
 [node name="RoomOverlay" type="Control" parent="." unique_id=759378977]
 anchors_preset = 0
@@ -267,3 +252,17 @@ offset_bottom = 120.0
 grow_horizontal = 2
 mouse_filter = 2
 script = ExtResource("11_lkqrx")
+
+[node name="StatusLabel" type="Label" parent="." unique_id=355211684]
+layout_mode = 0
+offset_top = 14.0
+offset_right = 1.0
+offset_bottom = 37.0
+
+[node name="ReadyButton" type="Button" parent="." unique_id=2085932185]
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 0
+offset_right = 220.0
+offset_bottom = 52.0
+size_flags_horizontal = 2
+script = ExtResource("6_xg6h8")

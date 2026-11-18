@@ -1,0 +1,269 @@
+[gd_scene format=3 uid="uid://4r4n18atddvk"]
+
+[ext_resource type="Theme" uid="uid://ddikhtgjr7xbc" path="res://ui/race_theme.tres" id="1_ihsh0"]
+[ext_resource type="Script" uid="uid://b7qjspeswqqbd" path="res://ui/lobby/lobby_main.gd" id="2_ydy2v"]
+[ext_resource type="Script" uid="uid://cs0c1s2cmfhy0" path="res://ui/lobby/components/header/header.gd" id="3_itilh"]
+[ext_resource type="Script" uid="uid://dvxixwrnu3exd" path="res://ui/lobby/components/inspector/inspector.gd" id="4_up2os"]
+[ext_resource type="Script" uid="uid://cxxniwge0jw4h" path="res://ui/lobby/components/chat/chat_trigger.gd" id="5_88ytu"]
+[ext_resource type="Script" uid="uid://bcjj2tv1bk7k4" path="res://ui/lobby/components/showcase/showcase.gd" id="6_cx4t3"]
+[ext_resource type="Script" uid="uid://deufb4p12o0ri" path="res://ui/lobby/components/chat/chat_dock.gd" id="7_baa0i"]
+[ext_resource type="Script" uid="uid://b4hypcxaird4" path="res://ui/lobby/components/ready_button/ready_button.gd" id="8_3vunj"]
+[ext_resource type="Script" uid="uid://bg6gcvo1ojkyy" path="res://ui/lobby/components/chat/chat_panel.gd" id="9_pk3ku"]
+[ext_resource type="Script" uid="uid://dewipyx436h3v" path="res://ui/lobby/components/room_overlay/room_overlay.gd" id="10_72gva"]
+[ext_resource type="Script" uid="uid://w4483afieja" path="res://ui/lobby/components/lobby_browser/lobby_browser.gd" id="11_7x4ol"]
+[ext_resource type="Script" uid="uid://tmmo6v47gxfi" path="res://ui/lobby/components/customize/customize_view.gd" id="12_xdvrl"]
+[ext_resource type="Script" uid="uid://818c53evv3jo" path="res://ui/lobby/components/toast/toast.gd" id="13_17lmh"]
+
+[sub_resource type="Animation" id="Animation_oyvhv"]
+length = 0.25
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("FloatingChat:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("FloatingChat:position:x")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, -30.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Inspector:modulate:a")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.05, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Inspector:position:x")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.05, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [30.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_x74pg"]
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("FloatingChat:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("FloatingChat:position:x")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [-30.0, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Inspector:modulate:a")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.15),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Inspector:position:x")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 30.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_vgfbg"]
+_data = {
+&"chat_close": SubResource("Animation_oyvhv"),
+&"chat_open": SubResource("Animation_x74pg")
+}
+
+[node name="Lobby" type="Control" unique_id=2106021884]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("1_ihsh0")
+script = ExtResource("2_ydy2v")
+
+[node name="BackgroundGradient" type="ColorRect" parent="." unique_id=677198187]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.06, 0.08, 0.12, 1)
+
+[node name="Header" type="Control" parent="." unique_id=1379912908]
+anchors_preset = 0
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 84.0
+grow_horizontal = 2
+script = ExtResource("3_itilh")
+
+[node name="MainContainer" type="HBoxContainer" parent="." unique_id=1385647718]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 96.0
+offset_right = -12.0
+offset_bottom = -76.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainContainer" unique_id=939387940]
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="LeftContent" type="VBoxContainer" parent="MainContainer/LeftPanel" unique_id=-313732729]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="Inspector" type="PanelContainer" parent="MainContainer/LeftPanel/LeftContent" unique_id=1554692965]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("4_up2os")
+
+[node name="ChatTrigger" type="Button" parent="MainContainer/LeftPanel" unique_id=407141638]
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("5_88ytu")
+
+[node name="ChatAnimationPlayer" type="AnimationPlayer" parent="MainContainer/LeftPanel" unique_id=1504720937]
+libraries/ = SubResource("AnimationLibrary_vgfbg")
+
+[node name="CenterRightPanel" type="Control" parent="MainContainer" unique_id=274641255]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Showcase" type="PanelContainer" parent="MainContainer/CenterRightPanel" unique_id=2145791342]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_cx4t3")
+
+[node name="BottomBar" type="HBoxContainer" parent="." unique_id=286043615]
+layout_mode = 0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -64.0
+offset_right = -20.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="ChatDock" type="PanelContainer" parent="BottomBar" unique_id=317801009]
+layout_mode = 2
+script = ExtResource("7_baa0i")
+
+[node name="ReadyButton" type="Button" parent="BottomBar" unique_id=2085932185]
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 2
+size_flags_horizontal = 2
+script = ExtResource("8_3vunj")
+
+[node name="ChatPanel" type="PanelContainer" parent="." unique_id=746724532]
+layout_mode = 0
+script = ExtResource("9_pk3ku")
+
+[node name="RoomOverlay" type="Control" parent="." unique_id=759378977]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("10_72gva")
+
+[node name="LobbyBrowser" type="Control" parent="." unique_id=134340447]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("11_7x4ol")
+
+[node name="CustomizeView" type="Control" parent="." unique_id=1465822682]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_xdvrl")
+
+[node name="Toast" type="Control" parent="." unique_id=1727121142]
+anchors_preset = 0
+anchor_right = 1.0
+offset_left = 12.0
+offset_top = 96.0
+offset_right = -12.0
+offset_bottom = 120.0
+grow_horizontal = 2
+mouse_filter = 2
+script = ExtResource("13_17lmh")

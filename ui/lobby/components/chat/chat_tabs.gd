@@ -27,6 +27,7 @@ var _active_tab: String = "room"
 var _unread_counts: Dictionary = {}
 var _ui_animations: Node = null
 var _ribbon_style: StyleBoxFlat
+var _search_btn: Button = null
 
 func _ready() -> void:
 	_ui_animations = UIAnimations
@@ -41,7 +42,7 @@ func _build_ui() -> void:
 	add_theme_stylebox_override("panel", _ribbon_style)
 
 	add_theme_constant_override("separation", 2)
-	custom_minimum_size = Vector2(0, 44)
+	custom_minimum_size = Vector2(0, 28)
 
 	# Tab 容器
 	var tab_container := HBoxContainer.new()
@@ -62,7 +63,7 @@ func _build_ui() -> void:
 
 		var btn := Button.new()
 		btn.flat = true
-		btn.custom_minimum_size = Vector2(56, 32)
+		btn.custom_minimum_size = Vector2(56, 24)
 		btn.add_theme_font_size_override("font_size", 12)
 		btn.text = "%s %s" % [icon, label]
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -91,7 +92,7 @@ func _build_ui() -> void:
 		# 發光下劃線（選中時顯示）
 		var underline := ColorRect.new()
 		underline.color = C_ACCENT_CYAN
-		underline.custom_minimum_size = Vector2(0, 3)
+		underline.custom_minimum_size = Vector2(0, 2)
 		underline.visible = (tab_id == _active_tab)
 		underline.modulate.a = 0.0 if tab_id != _active_tab else 1.0
 		tab_wrap.add_child(underline)
@@ -107,11 +108,12 @@ func _build_ui() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(spacer)
 
-	# Search 按鈕
+	# Search 按鈕（面板 Header 自帶 🔍 時可由外部隱藏）
 	var search_btn := Button.new()
+	_search_btn = search_btn
 	search_btn.text = "🔍"
 	search_btn.flat = true
-	search_btn.custom_minimum_size = Vector2(32, 32)
+	search_btn.custom_minimum_size = Vector2(28, 28)
 	search_btn.add_theme_font_size_override("font_size", 14)
 	search_btn.pressed.connect(func(): search_button_pressed.emit())
 	search_btn.mouse_entered.connect(func():
@@ -176,6 +178,10 @@ func set_active_tab(tab_id: String) -> void:
 
 func get_active_tab() -> String:
 	return _active_tab
+
+func set_search_button_visible(v: bool) -> void:
+	if _search_btn != null:
+		_search_btn.visible = v
 
 func add_unread(tab_id: String) -> void:
 	if tab_id == _active_tab:
